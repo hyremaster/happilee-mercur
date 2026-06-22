@@ -14,6 +14,9 @@
     ],
     "skipLibCheck": true,
     "baseUrl": ".",
+    "paths": {
+      "@/*": ["../../packages/vendor/src/*"]
+    },
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

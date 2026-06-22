@@ -1438,6 +1438,10 @@ export function getRouteMap({
                 return { Component: StoreSelectPage };
               },
             },
+            {
+              path: "/sample",
+              lazy: () => import("./pages/sample"),
+            },
             ...customPublicRoutes,
             {
               path: "*",
