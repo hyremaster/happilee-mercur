@@ -21,7 +21,7 @@ const StoreProfile = model
     industry: model.enum(StoreIndustry).nullable(),
     commerce_type: model.enum(StoreCommerceType).nullable(),
     // Array of StoreFulfillmentMethod values (multi-select, wizard step 2).
-    fulfillment_methods: model.json().nullable(),
+    fulfillment_methods: model.array().nullable(),
     // Storefront design template (wizard step 4). The storefront URL slug reuses
     // the native Seller.handle; only the template choice is stored here.
     storefront_template: model.enum(StoreStorefrontTemplate).nullable(),

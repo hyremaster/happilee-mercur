@@ -59,19 +59,19 @@ export interface StoreProfileDTO {
 
 export interface CreateStoreProfileDTO {
   seller_id: string
-  industry?: string | null
-  commerce_type?: string | null
-  fulfillment_methods?: string[] | null
-  storefront_template?: string | null
+  industry?: StoreIndustry | null
+  commerce_type?: StoreCommerceType | null
+  fulfillment_methods?: StoreFulfillmentMethod[] | null
+  storefront_template?: StoreStorefrontTemplate | null
   metadata?: Record<string, unknown> | null
 }
 
 export interface UpdateStoreProfileDTO {
   seller_id?: string
-  industry?: string | null
-  commerce_type?: string | null
-  fulfillment_methods?: string[] | null
-  storefront_template?: string | null
+  industry?: StoreIndustry | null
+  commerce_type?: StoreCommerceType | null
+  fulfillment_methods?: StoreFulfillmentMethod[] | null
+  storefront_template?: StoreStorefrontTemplate | null
   metadata?: Record<string, unknown> | null
 }
 
@@ -92,7 +92,7 @@ export interface StoreOrderStatusDTO {
 
 export interface CreateStoreOrderStatusDTO {
   store_profile_id: string
-  status: string
+  status: StoreOrderStatusType
   display_name: string
   color?: string | null
   is_active?: boolean
@@ -102,7 +102,7 @@ export interface CreateStoreOrderStatusDTO {
 }
 
 export interface UpdateStoreOrderStatusDTO {
-  status?: string
+  status?: StoreOrderStatusType
   display_name?: string
   color?: string | null
   is_active?: boolean
