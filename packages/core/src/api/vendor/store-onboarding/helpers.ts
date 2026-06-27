@@ -3,6 +3,9 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { MercurModules, StoreOnboardingDraftDTO } from "@mercurjs/types"
+
+import type MarketplaceProfileModuleService from "../../../modules/marketplace-profile/service"
 
 /**
  * Store-onboarding routes are exempt from the global vendor `ensureSeller`
@@ -38,4 +41,39 @@ export async function assertStoreOwnership(
   }
 
   return memberId
+}
+
+/**
+ * Load a draft and verify it belongs to the authenticated member. Returns the
+ * draft so the handler can read its state.
+ */
+export async function assertDraftOwnership(
+  req: AuthenticatedMedusaRequest,
+  draftId: string
+): Promise<StoreOnboardingDraftDTO> {
+  const authIdentityId = req.auth_context?.auth_identity_id
+
+  if (!authIdentityId) {
+    throw new MedusaError(
+      MedusaError.Types.UNAUTHORIZED,
+      "You must be authenticated."
+    )
+  }
+
+  const service = req.scope.resolve<MarketplaceProfileModuleService>(
+    MercurModules.MARKETPLACE_PROFILE
+  )
+
+  let draft: StoreOnboardingDraftDTO | undefined
+  try {
+    draft = await service.retrieveStoreOnboardingDraft(draftId)
+  } catch {
+    draft = undefined
+  }
+
+  if (!draft || draft.auth_identity_id !== authIdentityId) {
+    throw new MedusaError(MedusaError.Types.NOT_FOUND, "Draft not found.")
+  }
+
+  return draft
 }

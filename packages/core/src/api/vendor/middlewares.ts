@@ -83,13 +83,14 @@ export const vendorMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    // Detail/update/delete + nested locations: must be a registered member;
-    // handler verifies ownership.
+    // Detail/update/delete + nested locations + drafts. allowUnregistered so a
+    // first-time vendor (no Member yet) can use the draft/onboarding endpoints;
+    // store/location handlers still verify ownership via seller_member.
     matcher: "/vendor/store-onboarding/*",
     method: ["GET", "POST", "DELETE"],
     middlewares: [
       authenticate("member", ["session", "bearer"], {
-        allowUnregistered: false,
+        allowUnregistered: true,
       }),
     ],
   },

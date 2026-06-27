@@ -7,6 +7,7 @@ import {
 import {
   vendorStoreQueryConfig,
   vendorStoreLocationQueryConfig,
+  vendorDraftQueryConfig,
 } from "./query-config"
 import {
   VendorGetStoresParams,
@@ -16,6 +17,11 @@ import {
   VendorGetStoreLocationsParams,
   VendorCreateStoreLocation,
   VendorUpdateStoreLocation,
+  VendorGetDraftsParams,
+  VendorGetDraftParams,
+  VendorCreateDraft,
+  VendorSaveDraftStep,
+  VendorSubmitDraft,
 } from "./validators"
 
 export const vendorStoreOnboardingMiddlewares: MiddlewareRoute[] = [
@@ -105,5 +111,52 @@ export const vendorStoreOnboardingMiddlewares: MiddlewareRoute[] = [
     method: ["DELETE"],
     matcher: "/vendor/store-onboarding/:id/locations/:location_id",
     middlewares: [],
+  },
+  // ---- Onboarding drafts (declared after /:id so they win the path overlap) ----
+  // GET /vendor/store-onboarding/drafts — list drafts
+  {
+    method: ["GET"],
+    matcher: "/vendor/store-onboarding/drafts",
+    middlewares: [
+      validateAndTransformQuery(
+        VendorGetDraftsParams,
+        vendorDraftQueryConfig.list
+      ),
+    ],
+  },
+  // POST /vendor/store-onboarding/drafts — start a draft
+  {
+    method: ["POST"],
+    matcher: "/vendor/store-onboarding/drafts",
+    middlewares: [validateAndTransformBody(VendorCreateDraft)],
+  },
+  // GET /vendor/store-onboarding/drafts/:draft_id — resume a draft
+  {
+    method: ["GET"],
+    matcher: "/vendor/store-onboarding/drafts/:draft_id",
+    middlewares: [
+      validateAndTransformQuery(
+        VendorGetDraftParams,
+        vendorDraftQueryConfig.retrieve
+      ),
+    ],
+  },
+  // POST /vendor/store-onboarding/drafts/:draft_id — save one screen
+  {
+    method: ["POST"],
+    matcher: "/vendor/store-onboarding/drafts/:draft_id",
+    middlewares: [validateAndTransformBody(VendorSaveDraftStep)],
+  },
+  // DELETE /vendor/store-onboarding/drafts/:draft_id — discard a draft
+  {
+    method: ["DELETE"],
+    matcher: "/vendor/store-onboarding/drafts/:draft_id",
+    middlewares: [],
+  },
+  // POST /vendor/store-onboarding/drafts/:draft_id/submit — materialize the store
+  {
+    method: ["POST"],
+    matcher: "/vendor/store-onboarding/drafts/:draft_id/submit",
+    middlewares: [validateAndTransformBody(VendorSubmitDraft)],
   },
 ]

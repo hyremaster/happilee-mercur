@@ -32,6 +32,12 @@ export enum StoreStorefrontTemplate {
   BOLD_SHOWCASE = "bold_showcase",
 }
 
+/** Lifecycle of a store-onboarding draft (wizard in progress vs materialized). */
+export enum StoreOnboardingDraftStatus {
+  DRAFT = "draft",
+  SUBMITTED = "submitted",
+}
+
 /** Standard order-status keys configurable per store (wizard step 2). */
 export enum StoreOrderStatusType {
   ORDER_PLACED = "order_placed",
@@ -228,5 +234,40 @@ export interface CreateMemberProfileDTO {
 export interface UpdateMemberProfileDTO {
   member_id?: string
   handle?: string
+  metadata?: Record<string, unknown> | null
+}
+
+/**
+ * In-progress store-onboarding wizard, persisted per owner member. Holds all
+ * screen payloads (incl. locations) in `draft_data` plus the resume pointer
+ * `onboarding_step`. No Seller/StockLocation exist until the draft is submitted.
+ */
+export interface StoreOnboardingDraftDTO {
+  id: string
+  auth_identity_id: string
+  draft_data: Record<string, unknown> | null
+  onboarding_step: number
+  status: string
+  submitted_seller_id: string | null
+  metadata: Record<string, unknown> | null
+  created_at: Date
+  updated_at: Date
+  deleted_at: Date | null
+}
+
+export interface CreateStoreOnboardingDraftDTO {
+  auth_identity_id: string
+  draft_data?: Record<string, unknown> | null
+  onboarding_step?: number
+  status?: StoreOnboardingDraftStatus
+  submitted_seller_id?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+export interface UpdateStoreOnboardingDraftDTO {
+  draft_data?: Record<string, unknown> | null
+  onboarding_step?: number
+  status?: StoreOnboardingDraftStatus
+  submitted_seller_id?: string | null
   metadata?: Record<string, unknown> | null
 }

@@ -73,3 +73,26 @@ export const vendorStoreLocationQueryConfig = {
     isList: false,
   },
 }
+
+export const vendorDraftFields = [
+  "id",
+  "member_id",
+  "draft_data",
+  "onboarding_step",
+  "status",
+  "submitted_seller_id",
+  "created_at",
+  "updated_at",
+]
+
+export const vendorDraftQueryConfig = {
+  list: {
+    defaults: vendorDraftFields,
+    defaultLimit: 50,
+    isList: true,
+  },
+  retrieve: {
+    defaults: vendorDraftFields,
+    isList: false,
+  },
+}

@@ -95,6 +95,40 @@ export const VendorCreateStore = z.object({
 // POST /vendor/store-onboarding/:id — update store_profile extension data
 // (steps 2-4). Seller-native fields (name/address/professional) use the existing
 // /vendor/sellers/:id endpoints.
+// ---- Onboarding drafts (save & resume) ------------------------------------
+
+export type VendorGetDraftsParamsType = z.infer<typeof VendorGetDraftsParams>
+export const VendorGetDraftsParams = createFindParams({
+  offset: 0,
+  limit: 50,
+}).merge(
+  z.object({
+    status: z.union([z.string(), z.array(z.string())]).optional(),
+  })
+)
+
+export type VendorGetDraftParamsType = z.infer<typeof VendorGetDraftParams>
+export const VendorGetDraftParams = createSelectParams()
+
+// POST /vendor/store-onboarding/drafts — start a draft (optionally seeded).
+export type VendorCreateDraftType = z.infer<typeof VendorCreateDraft>
+export const VendorCreateDraft = z.object({
+  draft_data: z.record(z.unknown()).optional(),
+  onboarding_step: z.number().int().min(0).max(4).optional(),
+})
+
+// POST /vendor/store-onboarding/drafts/:draft_id — save one screen.
+// Loose by design: partial screen data is allowed mid-wizard.
+export type VendorSaveDraftStepType = z.infer<typeof VendorSaveDraftStep>
+export const VendorSaveDraftStep = z.object({
+  step: z.number().int().min(1).max(4),
+  data: z.record(z.unknown()),
+})
+
+// POST /vendor/store-onboarding/drafts/:draft_id/submit
+export type VendorSubmitDraftType = z.infer<typeof VendorSubmitDraft>
+export const VendorSubmitDraft = z.object({}).passthrough()
+
 // ---- Fulfillment centres (wizard step 3) ----------------------------------
 
 const storeLocationAddressSchema = z.object({
