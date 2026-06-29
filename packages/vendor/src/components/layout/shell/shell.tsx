@@ -14,6 +14,7 @@ import {
 } from "react-router-dom"
 
 import components from "virtual:mercur/components"
+import { DashboardLayout } from "../dashboard-layout"
 import { KeybindProvider } from "../../../providers/keybind-provider"
 import { useGlobalShortcuts } from "../../../providers/keybind-provider/hooks"
 import { useSidebar } from "../../../providers/sidebar-provider"
@@ -28,29 +29,30 @@ export const Shell = ({ children }: PropsWithChildren) => {
 
   return (
     <KeybindProvider shortcuts={globalShortcuts}>
-      <div className="relative flex h-screen flex-col items-start overflow-hidden lg:flex-row">
+      <DashboardLayout
+        sidebar={
+          <div>
+            <MobileSidebarContainer>{children}</MobileSidebarContainer>
+            <DesktopSidebarContainer>{children}</DesktopSidebarContainer>
+          </div>
+        }
+      >
         <NavigationBar loading={loading} />
-        <div>
-          <MobileSidebarContainer>{children}</MobileSidebarContainer>
-          <DesktopSidebarContainer>{children}</DesktopSidebarContainer>
-        </div>
-        <div className="flex h-screen w-full flex-col overflow-auto">
-          <Topbar />
-          <main
-            className={clx(
-              "flex h-full w-full flex-col items-center overflow-y-auto transition-opacity delay-200 duration-200",
-              {
-                "opacity-25": loading,
-              }
-            )}
-          >
-            <Gutter>
-              <StoreSetupWidget />
-              <Outlet />
-            </Gutter>
-          </main>
-        </div>
-      </div>
+        <Topbar />
+        <main
+          className={clx(
+            "flex h-full w-full flex-col items-center overflow-y-auto transition-opacity delay-200 duration-200",
+            {
+              "opacity-25": loading,
+            }
+          )}
+        >
+          <Gutter>
+            <StoreSetupWidget />
+            <Outlet />
+          </Gutter>
+        </main>
+      </DashboardLayout>
     </KeybindProvider>
   )
 }

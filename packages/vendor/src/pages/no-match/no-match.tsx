@@ -21,7 +21,7 @@ export const NoMatch = () => {
             </Text>
             <Text
               size="small"
-              className="text-ui-fg-muted text-balance text-center bg-red-500"
+              className="text-ui-fg-muted text-balance text-center"
             >
               {message}
             </Text>

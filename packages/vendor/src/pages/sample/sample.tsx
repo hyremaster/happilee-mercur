@@ -1,5 +1,6 @@
 import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
+import { DashboardLayout } from "@components/layout/dashboard-layout";
 
 export const SamplePage = () => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -12,14 +13,16 @@ export const SamplePage = () => {
   };
 
   return (
-    <main className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold">Welcome to Untitled UI + Vite</h1>
-      <form onSubmit={handleSubmit} className="mt-4">
-        <Input label="Name" name="name" placeholder="Enter your name" />
-        <Button type="submit" className="mt-2">
-          Submit
-        </Button>
-      </form>
-    </main>
+    <DashboardLayout>
+      <div className="flex flex-1 flex-col overflow-y-auto p-8">
+        <h1 className="text-2xl font-bold">Welcome to Untitled UI + Vite</h1>
+        <form onSubmit={handleSubmit} className="mt-4">
+          <Input label="Name" name="name" placeholder="Enter your name" />
+          <Button type="submit" className="mt-2">
+            Submit
+          </Button>
+        </form>
+      </div>
+    </DashboardLayout>
   );
 };
