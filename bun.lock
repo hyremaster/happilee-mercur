@@ -91,6 +91,10 @@
       "name": "@acme/vendor",
       "version": "0.0.0",
       "dependencies": {
+        "@happilee-app/icons": "^0.1.0",
+        "@happilee-app/tailwind-preset": "^0.1.0",
+        "@happilee-app/tokens": "^0.1.0",
+        "@happilee-app/ui": "^0.1.1",
         "@hookform/resolvers": "3.4.2",
         "@medusajs/icons": "^2.13.4",
         "@medusajs/ui": "4.1.1",
@@ -489,6 +493,10 @@
         "@dnd-kit/core": "^6.1.0",
         "@dnd-kit/sortable": "^8.0.0",
         "@dnd-kit/utilities": "^3.2.2",
+        "@happilee-app/icons": "^0.1.0",
+        "@happilee-app/tailwind-preset": "^0.1.0",
+        "@happilee-app/tokens": "^0.1.0",
+        "@happilee-app/ui": "^0.1.1",
         "@hookform/error-message": "^2.0.1",
         "@hookform/resolvers": "3.4.2",
         "@medusajs/admin-shared": "^2.13.4",
@@ -909,6 +917,14 @@
     "@hapi/tlds": ["@hapi/tlds@1.1.6", "", {}, "sha512-xdi7A/4NZokvV0ewovme3aUO5kQhW9pQ2YD1hRqZGhhSi5rBv4usHYidVocXSi9eihYsznZxLtAiEYYUL6VBGw=="],
 
     "@hapi/topo": ["@hapi/topo@6.0.2", "", { "dependencies": { "@hapi/hoek": "^11.0.2" } }, "sha512-KR3rD5inZbGMrHmgPxsJ9dbi6zEK+C3ZwUwTa+eMwWLz7oijWUTWD2pMSNNYJAU6Qq+65NkxXjqHr/7LM2Xkqg=="],
+
+    "@happilee-app/icons": ["@happilee-app/icons@0.1.0", "https://npm.pkg.github.com/download/@happilee-app/icons/0.1.0/11689ad639051b17821b14fdd9333b4ef10648b8", { "peerDependencies": { "react": "^18" } }, "sha512-lflYJSfipYqeM7+dOJjgP4h9uxk0T+MTM+H338AH9PQdfTsWmDWzIgtVUsefcwzOvLv2UIochjBy0ScsTtrN1A=="],
+
+    "@happilee-app/tailwind-preset": ["@happilee-app/tailwind-preset@0.1.0", "https://npm.pkg.github.com/download/@happilee-app/tailwind-preset/0.1.0/d4c50fca550c65953380646289b942d4d3e26160", { "dependencies": { "@happilee-app/tokens": "0.1.0" }, "peerDependencies": { "tailwindcss": ">=3.4" } }, "sha512-X9NdV+3TAM2IqNFvGuPFQAzLwmtpm5QMZ6H9U9bTX9vr888YBE1S73BRFGPOSjIjlGEg6jewvdUfJkYdLATNRg=="],
+
+    "@happilee-app/tokens": ["@happilee-app/tokens@0.1.0", "https://npm.pkg.github.com/download/@happilee-app/tokens/0.1.0/19af1e30b7f3110498526dff3b319332a5ff8e2c", {}, "sha512-bxyMY9bgUbr6/QREfNoLGmUeg3Huq0I3wFFgOvX9y/sga54pQYoYkV5th8xdadMPZ3HePODHcSbGykFA8Ma2og=="],
+
+    "@happilee-app/ui": ["@happilee-app/ui@0.1.1", "https://npm.pkg.github.com/download/@happilee-app/ui/0.1.1/aacd393be0f8c7fc079e48235e68d32dac74e384", { "dependencies": { "@happilee-app/icons": "0.1.0", "@happilee-app/tailwind-preset": "0.1.0", "@happilee-app/tokens": "0.1.0", "clsx": "^2.1.1", "react-aria-components": "^1.3.3", "tailwind-merge": "^2.5.4" }, "peerDependencies": { "react": "^18", "react-dom": "^18" } }, "sha512-iPusoAptYe3x3n0s871PTJI+HdLViMqHASC41hx02hAkwusGNVhga689aWe1eKs03XiiaFSvk7ALNVC4nTlB6A=="],
 
     "@hookform/error-message": ["@hookform/error-message@2.0.1", "", { "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0", "react-hook-form": "^7.0.0" } }, "sha512-U410sAr92xgxT1idlu9WWOVjndxLdgPUHEB8Schr27C9eh7/xUnITWpCMF93s+lGiG++D4JnbSnrb5A21AdSNg=="],
 
@@ -3795,6 +3811,10 @@
     "@graphql-tools/schema/@graphql-tools/utils": ["@graphql-tools/utils@11.0.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.1", "@whatwg-node/promise-helpers": "^1.0.0", "cross-inspect": "1.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-bM1HeZdXA2C3LSIeLOnH/bcqSgbQgKEDrjxODjqi3y58xai2TkNrtYcQSoWzGbt9VMN1dORGjR7Vem8SPnUFQA=="],
 
     "@grpc/proto-loader/yargs": ["yargs@17.7.2", "", { "dependencies": { "cliui": "^8.0.1", "escalade": "^3.1.1", "get-caller-file": "^2.0.5", "require-directory": "^2.1.1", "string-width": "^4.2.3", "y18n": "^5.0.5", "yargs-parser": "^21.1.1" } }, "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w=="],
+
+    "@happilee-app/ui/clsx": ["clsx@2.1.1", "", {}, "sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA=="],
+
+    "@happilee-app/ui/tailwind-merge": ["tailwind-merge@2.6.1", "", {}, "sha512-Oo6tHdpZsGpkKG88HJ8RR1rg/RdnEkQEfMoEk2x1XRI3F1AxeU+ijRXpiVUF4UbLfcxxRGw6TbUINKYdWVsQTQ=="],
 
     "@inquirer/checkbox/ansi-escapes": ["ansi-escapes@4.3.2", "", { "dependencies": { "type-fest": "^0.21.3" } }, "sha512-gKXj5ALrKWQLsYG9jlTRmR/xKluxHV+Z9QEwNIgCfM1/uwPMCuzVVnh5mwTd+OuBZcwSIMbqssNWRm1lE51QaQ=="],
 
