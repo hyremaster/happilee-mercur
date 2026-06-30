@@ -9,7 +9,7 @@ import type { StoreSetupState, WizardStep } from "./types";
 const defaultState: StoreSetupState = {
   currentStep: 0,
   businessDetails: {
-    industry: "",
+    industry: "restaurant",
     storeName: "",
     businessLegalName: "",
     email: "",
@@ -22,22 +22,22 @@ const defaultState: StoreSetupState = {
     taxNumber: "",
   },
   commerce: {
-    commerceType: "",
+    commerceType: "local-delivery",
     localFulfillment: ["delivery"],
     ecomFulfillment: ["shipping"],
-    deliveryArea: "",
+    deliveryArea: "whitefield",
     orderStatuses: DEFAULT_ORDER_STATUSES,
   },
   fulfillmentCentres: DEFAULT_FULFILLMENT_CENTRES,
   payment: {
     methods: ["online"],
-    paymentGateway: "",
+    paymentGateway: "razorpay",
     codMin: "",
     codMax: "",
   },
   storefront: {
     handle: "",
-    template: "",
+    template: "classic",
   },
   isComplete: false,
 };
@@ -61,10 +61,16 @@ function loadState(): StoreSetupState {
         businessDetails: {
           ...defaultState.businessDetails,
           ...parsed.businessDetails,
+          industry:
+            parsed.businessDetails?.industry || defaultState.businessDetails.industry,
         },
         commerce: {
           ...defaultState.commerce,
           ...parsed.commerce,
+          commerceType:
+            parsed.commerce?.commerceType || defaultState.commerce.commerceType,
+          deliveryArea:
+            parsed.commerce?.deliveryArea || defaultState.commerce.deliveryArea,
           orderStatuses:
             parsed.commerce?.orderStatuses?.length
               ? parsed.commerce.orderStatuses
@@ -77,10 +83,13 @@ function loadState(): StoreSetupState {
         payment: {
           ...defaultState.payment,
           ...parsed.payment,
+          paymentGateway:
+            parsed.payment?.paymentGateway || defaultState.payment.paymentGateway,
         },
         storefront: {
           ...defaultState.storefront,
           ...parsed.storefront,
+          template: parsed.storefront?.template || defaultState.storefront.template,
         },
       };
     }

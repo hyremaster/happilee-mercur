@@ -6,37 +6,11 @@ import type { BusinessDetails } from "../types";
 type BusinessDetailsStepProps = {
   data: BusinessDetails;
   onChange: (patch: Partial<BusinessDetails>) => void;
-  errors: Partial<Record<keyof BusinessDetails, string>>;
 };
-
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export function validateBusinessDetails(data: BusinessDetails) {
-  const errors: Partial<Record<keyof BusinessDetails, string>> = {};
-
-  if (!data.industry) errors.industry = "Please select an industry";
-  if (!data.storeName.trim()) errors.storeName = "Store name is required";
-  if (!data.businessLegalName.trim()) errors.businessLegalName = "Business legal name is required";
-  if (!data.email.trim()) errors.email = "Email is required";
-  else if (!emailRegex.test(data.email)) errors.email = "Enter a valid email address";
-  if (!data.phone.trim()) errors.phone = "Phone number is required";
-  if (!data.address.trim()) errors.address = "Address is required";
-  if (!data.country.trim()) errors.country = "Country is required";
-  if (!data.state.trim()) errors.state = "State is required";
-  if (!data.city.trim()) errors.city = "City is required";
-  if (!data.pinCode.trim()) errors.pinCode = "PIN code is required";
-
-  return errors;
-}
-
-export function isBusinessDetailsValid(data: BusinessDetails) {
-  return Object.keys(validateBusinessDetails(data)).length === 0;
-}
 
 export const BusinessDetailsStep = ({
   data,
   onChange,
-  errors,
 }: BusinessDetailsStepProps) => {
   return (
     <div className="flex w-full flex-col items-start gap-4xl">
@@ -62,9 +36,6 @@ export const BusinessDetailsStep = ({
             />
           ))}
         </RadioCardGroup>
-        {errors.industry && (
-          <span className="text-sm text-text-error">{errors.industry}</span>
-        )}
       </div>
 
       <div className="flex w-full flex-col items-start gap-2xl">
@@ -80,18 +51,14 @@ export const BusinessDetailsStep = ({
               size="md"
               value={data.storeName}
               onChange={(v) => onChange({ storeName: v })}
-              errorMessage={errors.storeName}
-              isInvalid={!!errors.storeName}
             />
             <InputField
               label="Business Legal Name"
               isRequired
-              placeholder="e.g. GreenMart Pvt Ltd"
+              placeholder="e.g. GreenMart"
               size="md"
               value={data.businessLegalName}
               onChange={(v) => onChange({ businessLegalName: v })}
-              errorMessage={errors.businessLegalName}
-              isInvalid={!!errors.businessLegalName}
             />
           </div>
 
@@ -104,8 +71,6 @@ export const BusinessDetailsStep = ({
               size="md"
               value={data.email}
               onChange={(v) => onChange({ email: v })}
-              errorMessage={errors.email}
-              isInvalid={!!errors.email}
             />
             <InputField
               label="Phone Number"
@@ -114,8 +79,6 @@ export const BusinessDetailsStep = ({
               size="md"
               value={data.phone}
               onChange={(v) => onChange({ phone: v })}
-              errorMessage={errors.phone}
-              isInvalid={!!errors.phone}
             />
           </div>
 
@@ -127,8 +90,6 @@ export const BusinessDetailsStep = ({
             className="w-full"
             value={data.address}
             onChange={(v) => onChange({ address: v })}
-            errorMessage={errors.address}
-            isInvalid={!!errors.address}
           />
 
           <div className="grid w-full grid-cols-4 gap-lg">
@@ -139,8 +100,6 @@ export const BusinessDetailsStep = ({
               size="md"
               value={data.country}
               onChange={(v) => onChange({ country: v })}
-              errorMessage={errors.country}
-              isInvalid={!!errors.country}
             />
             <InputField
               label="State"
@@ -149,8 +108,6 @@ export const BusinessDetailsStep = ({
               size="md"
               value={data.state}
               onChange={(v) => onChange({ state: v })}
-              errorMessage={errors.state}
-              isInvalid={!!errors.state}
             />
             <InputField
               label="City"
@@ -159,8 +116,6 @@ export const BusinessDetailsStep = ({
               size="md"
               value={data.city}
               onChange={(v) => onChange({ city: v })}
-              errorMessage={errors.city}
-              isInvalid={!!errors.city}
             />
             <InputField
               label="Pincode"
@@ -169,8 +124,6 @@ export const BusinessDetailsStep = ({
               size="md"
               value={data.pinCode}
               onChange={(v) => onChange({ pinCode: v })}
-              errorMessage={errors.pinCode}
-              isInvalid={!!errors.pinCode}
             />
           </div>
 

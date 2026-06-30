@@ -18,7 +18,6 @@ type FulfillmentDetailsStepProps = {
   onPaymentChange: (patch: Partial<PaymentConfig>) => void;
   onDeleteCentre: (id: string) => void;
   onAddLocation?: () => void;
-  codError?: string;
 };
 
 export function isFulfillmentValid(
@@ -56,7 +55,6 @@ export const FulfillmentDetailsStep = ({
   onPaymentChange,
   onDeleteCentre,
   onAddLocation,
-  codError,
 }: FulfillmentDetailsStepProps) => {
   return (
     <div className="flex w-full flex-col items-start gap-4xl">
@@ -178,8 +176,6 @@ export const FulfillmentDetailsStep = ({
                 size="sm"
                 value={payment.codMax}
                 onChange={(v) => onPaymentChange({ codMax: v })}
-                errorMessage={codError}
-                isInvalid={!!codError}
               />
             </div>
           </ExpandableCheckboxCard>

@@ -48,8 +48,6 @@ export const StorefrontSetupStep = ({
   onChange,
   onPreviewTemplate,
 }: StorefrontSetupStepProps) => {
-  const handleStatus = getHandleStatus(data.handle);
-
   return (
     <div className="flex w-full flex-col items-start gap-4xl">
       <div className="flex w-full flex-col gap-sm">
@@ -79,15 +77,10 @@ export const StorefrontSetupStep = ({
         <span className="text-sm text-text-tertiary">
           This is your unique storefront URL.
         </span>
-        {data.handle &&
-          (handleStatus.valid ? (
-            <div className="flex items-center gap-xs">
-              <CheckCircle size={16} className="text-fg-success" />
-              <span className="text-sm text-text-success">{handleStatus.message}</span>
-            </div>
-          ) : (
-            <span className="text-sm text-text-error">{handleStatus.message}</span>
-          ))}
+        <div className="flex items-center gap-xs">
+          <CheckCircle size={16} className="text-fg-success" />
+          <span className="text-sm text-text-success">Handle is available</span>
+        </div>
       </div>
 
       <div className="flex w-full flex-col gap-md">

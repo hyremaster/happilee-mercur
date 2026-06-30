@@ -1,6 +1,6 @@
 import { ArrowRight, CheckCircle } from "@happilee-app/icons";
 import { toast } from "@medusajs/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMe } from "../../hooks/api/members";
 import { STEP_HEADINGS } from "./_components/constants";
@@ -8,24 +8,10 @@ import { AddLocationModal } from "./_components/modals/add-location-modal";
 import { ReviewSubmitModal } from "./_components/modals/review-submit-modal";
 import { TemplatePreviewModal } from "./_components/modals/template-preview-modal";
 import { StoreSetupLayout } from "./_components/store-setup-layout";
-import {
-  BusinessDetailsStep,
-  isBusinessDetailsValid,
-  validateBusinessDetails,
-} from "./_components/steps/business-details-step";
-import {
-  CommerceTypeStep,
-  isCommerceTypeValid,
-} from "./_components/steps/commerce-type-step";
-import {
-  FulfillmentDetailsStep,
-  getCodError,
-  isFulfillmentValid,
-} from "./_components/steps/fulfillment-details-step";
-import {
-  isStorefrontValid,
-  StorefrontSetupStep,
-} from "./_components/steps/storefront-setup-step";
+import { BusinessDetailsStep } from "./_components/steps/business-details-step";
+import { CommerceTypeStep } from "./_components/steps/commerce-type-step";
+import { FulfillmentDetailsStep } from "./_components/steps/fulfillment-details-step";
+import { StorefrontSetupStep } from "./_components/steps/storefront-setup-step";
 import { SuccessStep } from "./_components/steps/success-step";
 import type { WizardStep } from "./_components/types";
 import { useStoreSetup } from "./_components/use-store-setup";
@@ -47,9 +33,6 @@ export const OnboardPage = () => {
     resetOrderStatuses,
   } = useStoreSetup();
 
-  const [businessErrors, setBusinessErrors] = useState<
-    Partial<Record<string, string>>
-  >({});
   const [justLaunched, setJustLaunched] = useState(false);
   const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
   const [isTemplatePreviewOpen, setIsTemplatePreviewOpen] = useState(false);
@@ -69,33 +52,11 @@ export const OnboardPage = () => {
   const stepIndex = Math.min(state.currentStep, 3) as 0 | 1 | 2 | 3;
   const heading = STEP_HEADINGS[stepIndex];
 
-  const canContinue = useMemo(() => {
-    switch (state.currentStep) {
-      case 0:
-        return isBusinessDetailsValid(state.businessDetails);
-      case 1:
-        return isCommerceTypeValid(state.commerce);
-      case 2:
-        return isFulfillmentValid(state.fulfillmentCentres, state.payment);
-      case 3:
-        return isStorefrontValid(state.storefront);
-      default:
-        return true;
-    }
-  }, [state]);
-
   const handleContinue = () => {
-    if (state.currentStep === 0) {
-      const errors = validateBusinessDetails(state.businessDetails);
-      setBusinessErrors(errors);
-      if (Object.keys(errors).length > 0) return;
-    }
-
     if (state.currentStep === 3) {
       setIsReviewOpen(true);
       return;
     }
-
     nextStep();
   };
 
@@ -166,7 +127,6 @@ export const OnboardPage = () => {
         continueIcon={
           state.currentStep === 3 ? <CheckCircle /> : <ArrowRight />
         }
-        isContinueDisabled={!canContinue}
       >
         <div className="flex w-full flex-col">
           <span className="text-sm font-medium leading-5 text-text-brand">
@@ -188,7 +148,6 @@ export const OnboardPage = () => {
                 businessDetails: { ...state.businessDetails, ...patch },
               })
             }
-            errors={businessErrors}
           />
         )}
 
@@ -212,7 +171,6 @@ export const OnboardPage = () => {
             }
             onDeleteCentre={handleDeleteCentre}
             onAddLocation={() => setIsAddLocationOpen(true)}
-            codError={getCodError(state.payment)}
           />
         )}
 
