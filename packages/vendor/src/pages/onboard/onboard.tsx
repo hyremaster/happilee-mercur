@@ -1,7 +1,7 @@
 import { CheckCircle } from "@happilee-app/icons";
 import { toast } from "@medusajs/ui";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMe } from "../../hooks/api/members";
 import { StoreSetupLayout } from "./_components/store-setup-layout";
 import {
@@ -24,14 +24,13 @@ import {
   StorefrontSetupStep,
 } from "./_components/steps/storefront-setup-step";
 import { SuccessStep } from "./_components/steps/success-step";
-import { STEP_HEADINGS, SAMPLE_BUSINESS_DETAILS } from "./_components/constants";
+import { STEP_HEADINGS } from "./_components/constants";
 import { useStoreSetup } from "./_components/use-store-setup";
 import { WizardShell } from "./_components/wizard-shell";
 import type { WizardStep } from "./_components/types";
 
 export const OnboardPage = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { seller_member } = useMe();
   const {
     state,
@@ -48,26 +47,6 @@ export const OnboardPage = () => {
   >({});
 
   const [justLaunched, setJustLaunched] = useState(false);
-  const appliedStepParam = useRef(false);
-
-  useEffect(() => {
-    if (appliedStepParam.current) return;
-
-    const stepParam = searchParams.get("step");
-    if (!stepParam) return;
-
-    const parsed = Number(stepParam);
-    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 4) return;
-
-    appliedStepParam.current = true;
-    const step = (parsed - 1) as WizardStep;
-
-    updateState({
-      currentStep: step,
-      isComplete: false,
-      ...(step >= 1 ? { businessDetails: SAMPLE_BUSINESS_DETAILS } : {}),
-    });
-  }, [searchParams, updateState]);
 
   useEffect(() => {
     if (state.isComplete && !justLaunched && seller_member) {
