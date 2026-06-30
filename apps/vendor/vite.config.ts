@@ -44,5 +44,12 @@ export default defineConfig(({ mode }) => {
         ...vendorSourceAliases,
       },
     },
+    optimizeDeps: {
+      include: [
+        '@happilee-app/ui',
+        '@happilee-app/ui/ecommerce',
+        '@happilee-app/icons',
+      ],
+    },
   }
 })

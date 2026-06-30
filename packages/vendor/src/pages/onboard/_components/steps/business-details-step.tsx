@@ -25,7 +25,6 @@ export function validateBusinessDetails(data: BusinessDetails) {
   if (!data.state.trim()) errors.state = "State is required";
   if (!data.city.trim()) errors.city = "City is required";
   if (!data.pinCode.trim()) errors.pinCode = "PIN code is required";
-  if (!data.taxNumber.trim()) errors.taxNumber = "Tax/GST number is required";
 
   return errors;
 }
@@ -177,7 +176,6 @@ export const BusinessDetailsStep = ({
 
           <InputField
             label="Tax/GST number"
-            isRequired
             placeholder="27AAACC1234B1Z5"
             size="md"
             className="w-full"

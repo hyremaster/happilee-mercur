@@ -42,11 +42,47 @@ const defaultState: StoreSetupState = {
   isComplete: false,
 };
 
+function normalizeStep(step: unknown): WizardStep {
+  const n = typeof step === "number" ? step : 0;
+  if (n <= 0) return 0;
+  if (n >= 4) return 4;
+  return n as WizardStep;
+}
+
 function loadState(): StoreSetupState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return { ...defaultState, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw) as Partial<StoreSetupState>;
+      return {
+        ...defaultState,
+        ...parsed,
+        currentStep: normalizeStep(parsed.currentStep),
+        businessDetails: {
+          ...defaultState.businessDetails,
+          ...parsed.businessDetails,
+        },
+        commerce: {
+          ...defaultState.commerce,
+          ...parsed.commerce,
+          orderStatuses:
+            parsed.commerce?.orderStatuses?.length
+              ? parsed.commerce.orderStatuses
+              : DEFAULT_ORDER_STATUSES,
+        },
+        fulfillmentCentres:
+          parsed.fulfillmentCentres?.length
+            ? parsed.fulfillmentCentres
+            : DEFAULT_FULFILLMENT_CENTRES,
+        payment: {
+          ...defaultState.payment,
+          ...parsed.payment,
+        },
+        storefront: {
+          ...defaultState.storefront,
+          ...parsed.storefront,
+        },
+      };
     }
   } catch {
     // ignore corrupt storage
@@ -75,7 +111,7 @@ export function useStoreSetup() {
   const nextStep = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      currentStep: Math.min(prev.currentStep + 1, 5) as WizardStep,
+      currentStep: Math.min(prev.currentStep + 1, 4) as WizardStep,
     }));
   }, []);
 
@@ -88,7 +124,7 @@ export function useStoreSetup() {
 
   const completeOnboarding = useCallback(() => {
     setState((prev) => {
-      const next = { ...prev, isComplete: true, currentStep: 5 as WizardStep };
+      const next = { ...prev, isComplete: true, currentStep: 4 as WizardStep };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       return next;
     });

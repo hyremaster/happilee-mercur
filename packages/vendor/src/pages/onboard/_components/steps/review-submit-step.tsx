@@ -1,112 +1,111 @@
-import { Edit01 } from "@happilee-app/icons";
-import { Button } from "@happilee-app/ui";
-import { DELIVERY_AREAS, INDUSTRIES, PAYMENT_GATEWAYS, STOREFRONT_TEMPLATES } from "../constants";
+import {
+  DELIVERY_AREAS,
+  INDUSTRIES,
+  PAYMENT_GATEWAYS,
+} from "../constants";
+import {
+  ReadyToGoLiveBanner,
+  ReviewSection,
+  SummaryRow,
+} from "../shared/review-ui";
 import type { StoreSetupState, WizardStep } from "../types";
 
-type ReviewSubmitStepProps = {
+type ReviewSubmitContentProps = {
   state: StoreSetupState;
   onEdit: (step: WizardStep) => void;
 };
 
-const ReviewSection = ({
-  title,
-  onEdit,
-  children,
-}: {
-  title: string;
-  onEdit: () => void;
-  children: React.ReactNode;
-}) => (
-  <div className="flex w-full flex-col gap-sm rounded-md border border-border-secondary p-xl">
-    <div className="flex items-center justify-between">
-      <span className="text-sm font-semibold text-text-primary">{title}</span>
-      <Button hierarchy="ghost" size="sm" iconLeading={<Edit01 size={16} />} onPress={onEdit}>
-        Edit
-      </Button>
-    </div>
-    <div className="flex flex-col gap-xs text-sm text-text-secondary">{children}</div>
-  </div>
-);
+export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps) => {
+  const { businessDetails, commerce, fulfillmentCentres, payment } = state;
 
-export const ReviewSubmitStep = ({ state, onEdit }: ReviewSubmitStepProps) => {
-  const { businessDetails, commerce, fulfillmentCentres, payment, storefront } = state;
+  const industry =
+    INDUSTRIES.find((i) => i.value === businessDetails.industry)?.title ?? "—";
 
-  const industry = INDUSTRIES.find((i) => i.value === businessDetails.industry)?.title ?? "—";
-  const deliveryArea =
-    DELIVERY_AREAS.find((a) => a.id === commerce.deliveryArea)?.label ?? "—";
-  const gateway =
+  const commerceTypeLabel =
+    commerce.commerceType === "local-delivery"
+      ? "Local delivery"
+      : commerce.commerceType === "ecommerce-shipping"
+        ? "Ecommerce shipping"
+        : "—";
+
+  const localMethods = commerce.localFulfillment
+    .map((m) => (m === "delivery" ? "Delivery" : "Pick-up"))
+    .join(" + ");
+  const ecomMethods = commerce.ecomFulfillment
+    .map((m) => (m === "shipping" ? "Shipping" : "Pickup"))
+    .join(" + ");
+
+  const commerceSummary =
+    commerce.commerceType === "local-delivery"
+      ? `${commerceTypeLabel} - ${localMethods}`
+      : commerce.commerceType === "ecommerce-shipping"
+        ? `${commerceTypeLabel} - ${ecomMethods}`
+        : commerceTypeLabel;
+
+  const activeStatusCount = commerce.orderStatuses.filter((s) => s.active).length;
+
+  const deliveryAreaLabel =
+    DELIVERY_AREAS.find((a) => a.id === commerce.deliveryArea)?.label ??
+    `${DELIVERY_AREAS.length} areas selected`;
+
+  const gatewayLabel =
     PAYMENT_GATEWAYS.find((g) => g.id === payment.paymentGateway)?.label ?? "—";
-  const template =
-    STOREFRONT_TEMPLATES.find((t) => t.id === storefront.template)?.label ?? "—";
-
-  const commerceLabel =
-    commerce.commerceType === "local-delivery" ? "Local delivery" : "Ecommerce shipping";
 
   const paymentMethods = payment.methods
-    .map((m) => (m === "online" ? "Online Payment" : "Cash on Delivery"))
+    .map((m) => {
+      if (m === "online") return `Online payment (${gatewayLabel})`;
+      if (m === "cod") return "Cash on delivery";
+      return m;
+    })
     .join(", ");
 
-  const activeStatuses = commerce.orderStatuses
-    .filter((s) => s.active)
-    .map((s) => s.displayName)
+  const addressParts = [
+    businessDetails.address,
+    businessDetails.city,
+    businessDetails.state,
+    businessDetails.country,
+    businessDetails.pinCode,
+  ]
+    .filter(Boolean)
     .join(", ");
 
   return (
-    <div className="flex w-full flex-col gap-lg">
-      <ReviewSection title="Business Details" onEdit={() => onEdit(0)}>
-        <span>Industry: {industry}</span>
-        <span>Store: {businessDetails.storeName}</span>
-        <span>Legal name: {businessDetails.businessLegalName}</span>
-        <span>Email: {businessDetails.email}</span>
-        <span>Phone: {businessDetails.phone}</span>
-        <span>
-          Address: {businessDetails.address}, {businessDetails.city},{" "}
-          {businessDetails.state}, {businessDetails.country} — {businessDetails.pinCode}
-        </span>
-        {businessDetails.taxNumber && <span>Tax/GST: {businessDetails.taxNumber}</span>}
-      </ReviewSection>
-
-      <ReviewSection title="Store URL Handle" onEdit={() => onEdit(3)}>
-        <span>commerce.happilee.io/stores/{storefront.handle}</span>
-        <span>Template: {template}</span>
-      </ReviewSection>
-
-      <ReviewSection title="Commerce Type" onEdit={() => onEdit(1)}>
-        <span>{commerceLabel}</span>
-        <span>
-          Fulfillment:{" "}
-          {commerce.commerceType === "local-delivery"
-            ? commerce.localFulfillment.join(", ")
-            : commerce.ecomFulfillment.join(", ")}
-        </span>
-        <span>Delivery area: {deliveryArea}</span>
-      </ReviewSection>
-
-      <ReviewSection title="Payment Types" onEdit={() => onEdit(2)}>
-        <span>{paymentMethods || "—"}</span>
-        {payment.methods.includes("online") && <span>Gateway: {gateway}</span>}
-        {payment.methods.includes("cod") && (
-          <span>
-            COD range: {payment.codMin || "—"} – {payment.codMax || "—"}
-          </span>
+    <div className="flex flex-col gap-xl">
+      <ReviewSection title="Business details" onEdit={() => onEdit(0)}>
+        <SummaryRow label="Industry" value={industry} />
+        <SummaryRow label="Store name" value={businessDetails.storeName || "—"} />
+        <SummaryRow
+          label="Business legal name"
+          value={businessDetails.businessLegalName || "—"}
+        />
+        <SummaryRow
+          label="Contact"
+          value={`${businessDetails.email || "—"}  ·  ${businessDetails.phone || "—"}`}
+        />
+        <SummaryRow label="Address" value={addressParts || "—"} />
+        {businessDetails.taxNumber && (
+          <SummaryRow label="GSTIN" value={businessDetails.taxNumber} />
         )}
       </ReviewSection>
 
-      <ReviewSection title="Order Status Configuration" onEdit={() => onEdit(1)}>
-        <span>{activeStatuses || "—"}</span>
+      <ReviewSection title="Commerce & orders" onEdit={() => onEdit(1)}>
+        <SummaryRow label="Commerce type" value={commerceSummary} />
+        <SummaryRow
+          label="Active order statuses"
+          value={`${activeStatusCount} Statuses enabled`}
+        />
+        <SummaryRow label="Delivery areas" value={deliveryAreaLabel} />
       </ReviewSection>
 
-      <ReviewSection title="Fulfillment Centres" onEdit={() => onEdit(2)}>
-        {fulfillmentCentres.map((c) => (
-          <span key={c.id}>
-            {c.name} ({c.active ? "Active" : "Inactive"}) — {c.address}
-          </span>
-        ))}
+      <ReviewSection title="Fulfillment details" onEdit={() => onEdit(2)}>
+        <SummaryRow
+          label="Fulfillment centres"
+          value={`${fulfillmentCentres.length} outlets`}
+        />
+        <SummaryRow label="Payment methods" value={paymentMethods || "—"} />
       </ReviewSection>
 
-      <ReviewSection title="Delivery Areas" onEdit={() => onEdit(1)}>
-        <span>{deliveryArea}</span>
-      </ReviewSection>
+      <ReadyToGoLiveBanner />
     </div>
   );
 };

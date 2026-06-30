@@ -101,7 +101,19 @@ export const DEFAULT_FULFILLMENT_CENTRES = [
     pinCode: "560038",
     active: true,
   },
+  {
+    id: "koramangala",
+    name: "Koramangala outlet",
+    address: "5th Block, Koramangala, Bengaluru 560095",
+    city: "Bengaluru",
+    state: "Karnataka",
+    country: "India",
+    pinCode: "560095",
+    active: false,
+  },
 ];
+
+export const URL_PREFIX = "commerce.happilee.io/stores/";
 
 export const STEP_HEADINGS = [
   {

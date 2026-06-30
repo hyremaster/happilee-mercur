@@ -1,8 +1,12 @@
-import { CheckCircle } from "@happilee-app/icons";
+import { ArrowRight, CheckCircle } from "@happilee-app/icons";
 import { toast } from "@medusajs/ui";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMe } from "../../hooks/api/members";
+import { STEP_HEADINGS } from "./_components/constants";
+import { AddLocationModal } from "./_components/modals/add-location-modal";
+import { ReviewSubmitModal } from "./_components/modals/review-submit-modal";
+import { TemplatePreviewModal } from "./_components/modals/template-preview-modal";
 import { StoreSetupLayout } from "./_components/store-setup-layout";
 import {
   BusinessDetailsStep,
@@ -18,20 +22,21 @@ import {
   getCodError,
   isFulfillmentValid,
 } from "./_components/steps/fulfillment-details-step";
-import { ReviewSubmitStep } from "./_components/steps/review-submit-step";
 import {
   isStorefrontValid,
   StorefrontSetupStep,
 } from "./_components/steps/storefront-setup-step";
 import { SuccessStep } from "./_components/steps/success-step";
-import { STEP_HEADINGS } from "./_components/constants";
+import type { WizardStep } from "./_components/types";
 import { useStoreSetup } from "./_components/use-store-setup";
 import { WizardShell } from "./_components/wizard-shell";
-import type { WizardStep } from "./_components/types";
 
 export const OnboardPage = () => {
   const navigate = useNavigate();
-  const { seller_member } = useMe();
+  const { seller_member } = useMe({
+    retry: false,
+    throwOnError: false,
+  });
   const {
     state,
     updateState,
@@ -45,16 +50,24 @@ export const OnboardPage = () => {
   const [businessErrors, setBusinessErrors] = useState<
     Partial<Record<string, string>>
   >({});
-
   const [justLaunched, setJustLaunched] = useState(false);
+  const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
+  const [isTemplatePreviewOpen, setIsTemplatePreviewOpen] = useState(false);
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
 
   useEffect(() => {
-    if (state.isComplete && !justLaunched && seller_member) {
-      navigate("/", { replace: true });
+    if (state.isComplete && !justLaunched) {
+      if (seller_member) {
+        navigate("/", { replace: true });
+      } else {
+        updateState({ isComplete: false, currentStep: 0 });
+      }
     }
-  }, [state.isComplete, justLaunched, navigate, seller_member]);
+  }, [state.isComplete, justLaunched, navigate, seller_member, updateState]);
 
   const stepIndex = Math.min(state.currentStep, 3) as 0 | 1 | 2 | 3;
+  const heading = STEP_HEADINGS[stepIndex];
 
   const canContinue = useMemo(() => {
     switch (state.currentStep) {
@@ -79,23 +92,11 @@ export const OnboardPage = () => {
     }
 
     if (state.currentStep === 3) {
-      goToStep(4);
-      return;
-    }
-
-    if (state.currentStep === 4) {
-      try {
-        completeOnboarding();
-        setJustLaunched(true);
-        toast.success("Store launched successfully");
-      } catch {
-        toast.error("Failed to launch store. Please try again.");
-      }
+      setIsReviewOpen(true);
       return;
     }
 
     nextStep();
-    toast.success("Progress saved");
   };
 
   const handleBack = () => {
@@ -103,15 +104,23 @@ export const OnboardPage = () => {
       navigate("/");
       return;
     }
-    if (state.currentStep === 4) {
-      goToStep(3);
-      return;
-    }
     prevStep();
   };
 
-  const handleEdit = (step: WizardStep) => {
+  const handleEditFromReview = (step: WizardStep) => {
+    setIsReviewOpen(false);
     goToStep(step);
+  };
+
+  const handleConfirmLaunch = () => {
+    try {
+      completeOnboarding();
+      setJustLaunched(true);
+      setIsReviewOpen(false);
+      toast.success("Store launched successfully");
+    } catch {
+      toast.error("Failed to launch store. Please try again.");
+    }
   };
 
   const handleDeleteCentre = (id: string) => {
@@ -134,46 +143,43 @@ export const OnboardPage = () => {
     });
   };
 
-  if ((state.currentStep === 5 || state.isComplete) && justLaunched) {
+  const handlePreviewTemplate = (templateId: string) => {
+    setPreviewTemplateId(templateId);
+    setIsTemplatePreviewOpen(true);
+  };
+
+  if (state.currentStep === 4 && justLaunched) {
     return (
-      <StoreSetupLayout>
+      <StoreSetupLayout minHeight="min-h-[933px]">
         <SuccessStep />
       </StoreSetupLayout>
     );
   }
 
-  const isReviewStep = state.currentStep === 4;
-  const heading = isReviewStep
-    ? {
-        step: "Review",
-        title: "Review & Submit",
-        description: "Review your store configuration before launching.",
-      }
-    : STEP_HEADINGS[stepIndex];
-
   return (
     <StoreSetupLayout>
       <WizardShell
-        currentStep={state.currentStep}
         stepIndex={stepIndex}
-        heading={heading}
         onBack={handleBack}
         onContinue={handleContinue}
-        continueLabel={
-          state.currentStep === 3
-            ? "Review and submit"
-            : state.currentStep === 4
-              ? "Launch Store"
-              : "Continue"
-        }
+        continueLabel={state.currentStep === 3 ? "Review and submit" : "Continue"}
         continueIcon={
-          state.currentStep === 3 || state.currentStep === 4 ? (
-            <CheckCircle />
-          ) : undefined
+          state.currentStep === 3 ? <CheckCircle /> : <ArrowRight />
         }
         isContinueDisabled={!canContinue}
-        showBack
       >
+        <div className="flex w-full flex-col">
+          <span className="text-sm font-medium leading-5 text-text-brand">
+            {heading.step}
+          </span>
+          <span className="text-xl font-semibold leading-8 text-text-primary">
+            {heading.title}
+          </span>
+          <span className="text-sm font-normal leading-5 text-text-tertiary">
+            {heading.description}
+          </span>
+        </div>
+
         {state.currentStep === 0 && (
           <BusinessDetailsStep
             data={state.businessDetails}
@@ -205,6 +211,7 @@ export const OnboardPage = () => {
               updateState({ payment: { ...state.payment, ...patch } })
             }
             onDeleteCentre={handleDeleteCentre}
+            onAddLocation={() => setIsAddLocationOpen(true)}
             codError={getCodError(state.payment)}
           />
         )}
@@ -215,13 +222,32 @@ export const OnboardPage = () => {
             onChange={(patch) =>
               updateState({ storefront: { ...state.storefront, ...patch } })
             }
+            onPreviewTemplate={handlePreviewTemplate}
           />
         )}
-
-        {state.currentStep === 4 && (
-          <ReviewSubmitStep state={state} onEdit={handleEdit} />
-        )}
       </WizardShell>
+
+      <AddLocationModal
+        isOpen={isAddLocationOpen}
+        onOpenChange={setIsAddLocationOpen}
+      />
+
+      <TemplatePreviewModal
+        isOpen={isTemplatePreviewOpen}
+        templateId={previewTemplateId}
+        onOpenChange={setIsTemplatePreviewOpen}
+        onChooseTemplate={(templateId) =>
+          updateState({ storefront: { ...state.storefront, template: templateId } })
+        }
+      />
+
+      <ReviewSubmitModal
+        isOpen={isReviewOpen}
+        state={state}
+        onOpenChange={setIsReviewOpen}
+        onEdit={handleEditFromReview}
+        onConfirm={handleConfirmLaunch}
+      />
     </StoreSetupLayout>
   );
 };

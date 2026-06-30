@@ -211,6 +211,7 @@ export const CommerceTypeStep = ({
                       value={row.displayName}
                       onChange={(v) => onUpdateStatus(row.id, { displayName: v })}
                       size="sm"
+                      isDisabled={row.required}
                     />
                   </Cell>
                   <Cell>

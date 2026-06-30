@@ -1,4 +1,4 @@
-export type WizardStep = 0 | 1 | 2 | 3 | 4 | 5;
+export type WizardStep = 0 | 1 | 2 | 3 | 4;
 
 export type BusinessDetails = {
   industry: string;

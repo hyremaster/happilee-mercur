@@ -12,8 +12,8 @@ export const SuccessStep = () => {
   }));
 
   return (
-    <div className="flex flex-1 flex-col items-center overflow-y-auto px-4xl pb-4xl pt-3xl">
-      <div className="flex w-full shrink-0 flex-col items-center gap-2xl">
+    <>
+      <div className="flex w-full shrink-0 flex-col items-center gap-2xl px-4xl pt-3xl">
         <ProgressSteps
           steps={steps}
           orientation="horizontal"
@@ -31,7 +31,7 @@ export const SuccessStep = () => {
               Storefront created successfully!
             </span>
             <span className="text-sm leading-5 text-text-tertiary">
-              Your storefront is added to the workspace. Keep shipping.
+              Your storefront is added to the workspace, Keep shipping.
             </span>
           </div>
 
@@ -45,6 +45,6 @@ export const SuccessStep = () => {
           </Button>
         </div>
       </div>
-    </div>
+    </>
   );
 };

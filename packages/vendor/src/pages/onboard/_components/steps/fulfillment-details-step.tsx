@@ -17,6 +17,7 @@ type FulfillmentDetailsStepProps = {
   payment: PaymentConfig;
   onPaymentChange: (patch: Partial<PaymentConfig>) => void;
   onDeleteCentre: (id: string) => void;
+  onAddLocation?: () => void;
   codError?: string;
 };
 
@@ -54,6 +55,7 @@ export const FulfillmentDetailsStep = ({
   payment,
   onPaymentChange,
   onDeleteCentre,
+  onAddLocation,
   codError,
 }: FulfillmentDetailsStepProps) => {
   return (
@@ -64,7 +66,12 @@ export const FulfillmentDetailsStep = ({
             <span>Fulfillment centres</span>
             <span className="text-text-brand" aria-hidden="true">*</span>
           </div>
-          <Button hierarchy="primary" size="sm" iconTrailing={<Plus />}>
+          <Button
+            hierarchy="primary"
+            size="sm"
+            iconTrailing={<Plus />}
+            onPress={onAddLocation}
+          >
             Add new location
           </Button>
         </div>

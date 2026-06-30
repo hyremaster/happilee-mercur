@@ -9,10 +9,10 @@
     "preview": "vite preview --port 7001"
   },
   "dependencies": {
-    "@happilee-app/icons": "^0.1.0",
+    "@happilee-app/icons": "^0.2.0",
     "@happilee-app/tailwind-preset": "^0.1.0",
     "@happilee-app/tokens": "^0.1.0",
-    "@happilee-app/ui": "^0.1.1",
+    "@happilee-app/ui": "^0.2.0",
     "@hookform/resolvers": "3.4.2",
     "@medusajs/icons": "^2.13.4",
     "@medusajs/ui": "4.1.1",
