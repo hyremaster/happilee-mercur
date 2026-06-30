@@ -9,7 +9,22 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const backendUrl =
     env.VITE_MERCUR_BACKEND_URL || env.MERCUR_BACKEND_URL
-  const vendorSrc = resolve(__dirname, '../../packages/vendor/src')
+  const vendorRoot = resolve(__dirname, '../../packages/vendor')
+  const vendorSrc = resolve(vendorRoot, 'src')
+  const useVendorSource = mode === 'development'
+
+  const vendorSourceAliases = useVendorSource
+    ? {
+        '@mercurjs/vendor/index.css': resolve(vendorSrc, 'index.css'),
+        '@mercurjs/vendor': resolve(vendorSrc, 'index.ts'),
+        '@components': resolve(vendorSrc, 'components'),
+        '@hooks': resolve(vendorSrc, 'hooks'),
+        '@lib': resolve(vendorSrc, 'lib'),
+        '@pages': resolve(vendorSrc, 'pages'),
+        '@providers': resolve(vendorSrc, 'providers'),
+        '@assets': resolve(vendorSrc, 'assets'),
+      }
+    : {}
 
   return {
     plugins: [
@@ -26,6 +41,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': vendorSrc,
+        ...vendorSourceAliases,
       },
     },
   }

@@ -1442,6 +1442,10 @@ export function getRouteMap({
               path: "/sample",
               lazy: () => import("./pages/sample"),
             },
+            {
+              path: "/onboard",
+              lazy: () => import("./pages/onboard"),
+            },
             ...customPublicRoutes,
             {
               path: "*",
