@@ -56,7 +56,7 @@ const addNestedItems = (
   return [...(items ?? []), ...nestedNavItems];
 };
 
-const MainSidebar = () => {
+export const MainSidebar = () => {
   const coreRoutes = useCoreRoutes();
   const customMenuItems = getMenuItemsByType(allMenuItems, "main");
 
