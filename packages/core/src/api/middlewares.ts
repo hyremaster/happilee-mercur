@@ -28,6 +28,12 @@ export default defineMiddlewares({
     ...vendorMiddlewares,
     ...hooksRoutesMiddlewares,
     {
+      // Happilee SSO entry point — public; auth is the signed Happilee JWT
+      matcher: "/sso",
+      method: ["GET", "POST"],
+      middlewares: [],
+    },
+    {
       matcher: "*",
       method: ["GET"],
       middlewares: [(req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
