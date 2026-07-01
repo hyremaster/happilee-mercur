@@ -772,6 +772,7 @@ export type Routes = {
                 };
             };
         };
+        storefrontTemplates: typeof import("../../src/api/vendor/storefront-templates/route");
         stores: typeof import("../../src/api/vendor/stores/route");
         subscription: typeof import("../../src/api/vendor/subscription/route");
     };

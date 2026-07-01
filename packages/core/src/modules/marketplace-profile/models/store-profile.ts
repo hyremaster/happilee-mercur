@@ -1,5 +1,5 @@
 import { model } from "@medusajs/framework/utils"
-import { StoreCommerceType, StoreIndustry, StoreStorefrontTemplate } from "@mercurjs/types"
+import { StoreCommerceType, StoreIndustry } from "@mercurjs/types"
 import StoreOrderStatus from "./store-order-status"
 import StorePaymentConfig from "./store-payment-config"
 
@@ -22,9 +22,9 @@ const StoreProfile = model
     commerce_type: model.enum(StoreCommerceType).nullable(),
     // Array of StoreFulfillmentMethod values (multi-select, wizard step 2).
     fulfillment_methods: model.array().nullable(),
-    // Storefront design template (wizard step 4). The storefront URL slug reuses
-    // the native Seller.handle; only the template choice is stored here.
-    storefront_template: model.enum(StoreStorefrontTemplate).nullable(),
+    // Storefront design template key (wizard step 4). Free text referencing a
+    // storefront_template.key — validated at the app layer against the DB table.
+    storefront_template: model.text().nullable(),
     metadata: model.json().nullable(),
     order_statuses: model.hasMany(() => StoreOrderStatus, {
       mappedBy: "store_profile",

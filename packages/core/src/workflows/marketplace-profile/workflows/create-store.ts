@@ -9,7 +9,6 @@ import {
   StoreCommerceType,
   StoreFulfillmentMethod,
   StoreIndustry,
-  StoreStorefrontTemplate,
   UpdateSellerAddressDTO,
   UpdateProfessionalDetailsDTO,
 } from "@mercurjs/types"
@@ -36,7 +35,7 @@ type CreateStoreWorkflowInput = {
     industry?: StoreIndustry | null
     commerce_type?: StoreCommerceType | null
     fulfillment_methods?: StoreFulfillmentMethod[] | null
-    storefront_template?: StoreStorefrontTemplate | null
+    storefront_template?: string | null
     metadata?: Record<string, unknown> | null
   }
 }

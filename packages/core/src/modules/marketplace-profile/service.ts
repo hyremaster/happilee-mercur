@@ -12,6 +12,7 @@ import {
   StoreLocationDetail,
   MemberProfile,
   StoreOnboardingDraft,
+  StorefrontTemplate,
 } from "./models"
 
 type InjectedDependencies = {
@@ -25,6 +26,7 @@ class MarketplaceProfileModuleService extends MedusaService({
   StoreLocationDetail,
   MemberProfile,
   StoreOnboardingDraft,
+  StorefrontTemplate,
 }) {
   protected readonly baseRepository_: DAL.RepositoryService
 

@@ -11,7 +11,6 @@ import {
   StoreFulfillmentMethod,
   StoreIndustry,
   StoreOrderStatusType,
-  StoreStorefrontTemplate,
   UpdateProfessionalDetailsDTO,
   UpdateSellerAddressDTO,
 } from "@mercurjs/types"
@@ -47,7 +46,7 @@ type SubmitStoreDraftWorkflowInput = {
     industry?: StoreIndustry | null
     commerce_type?: StoreCommerceType | null
     fulfillment_methods?: StoreFulfillmentMethod[] | null
-    storefront_template?: StoreStorefrontTemplate | null
+    storefront_template?: string | null
   }
   payment?: {
     online_enabled?: boolean
