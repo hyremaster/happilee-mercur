@@ -33,6 +33,7 @@ import { vendorShippingOptionTypesMiddlewares } from "./shipping-option-types/mi
 import { vendorShippingProfilesMiddlewares } from "./shipping-profiles/middlewares"
 import { vendorStockLocationsMiddlewares } from "./stock-locations/middlewares"
 import { vendorStoresMiddlewares } from "./stores/middlewares"
+import { vendorStoreOnboardingMiddlewares } from "./store-onboarding/middlewares"
 import { vendorSubscriptionMiddlewares } from "./subscription/middlewares"
 import { vendorUploadsMiddlewares } from "./uploads/middlewares"
 import { ensureSellerMiddleware, scanUnauthenticatedRoutes, unlessBaseUrl, vendorCorsMiddleware } from "../utils"
@@ -44,6 +45,9 @@ const unauthenticatedRoutes = [
   /^\/vendor\/sellers\/select$/,
   /^\/vendor\/feature-flags$/,
   /^\/vendor\/stores$/,
+  // Store-onboarding handles its own auth + ownership checks (a vendor creates
+  // new stores/sellers, so the global ensureSeller header guard does not apply).
+  /^\/vendor\/store-onboarding/,
   /^\/vendor\/members\/invites\/accept$/,
   ...scanUnauthenticatedRoutes(process.cwd()),
 ]
@@ -64,6 +68,29 @@ export const vendorMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       authenticate("member", ["session", "bearer"], {
         allowUnregistered: false,
+      }),
+    ],
+  },
+  {
+    // Base: list/create stores. allowUnregistered so a first-time vendor (no
+    // member yet) can create their first store, mirroring /vendor/sellers.
+    matcher: "/vendor/store-onboarding",
+    method: ["POST", "GET"],
+    middlewares: [
+      authenticate("member", ["session", "bearer"], {
+        allowUnregistered: true,
+      }),
+    ],
+  },
+  {
+    // Detail/update/delete + nested locations + drafts. allowUnregistered so a
+    // first-time vendor (no Member yet) can use the draft/onboarding endpoints;
+    // store/location handlers still verify ownership via seller_member.
+    matcher: "/vendor/store-onboarding/*",
+    method: ["GET", "POST", "DELETE"],
+    middlewares: [
+      authenticate("member", ["session", "bearer"], {
+        allowUnregistered: true,
       }),
     ],
   },
@@ -113,6 +140,7 @@ export const vendorMiddlewares: MiddlewareRoute[] = [
   ...vendorShippingProfilesMiddlewares,
   ...vendorStockLocationsMiddlewares,
   ...vendorStoresMiddlewares,
+  ...vendorStoreOnboardingMiddlewares,
   ...vendorUploadsMiddlewares,
   ...vendorProductTagsMiddlewares,
   ...vendorSubscriptionMiddlewares,

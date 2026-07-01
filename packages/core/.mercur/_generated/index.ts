@@ -760,10 +760,23 @@ export type Routes = {
             me: typeof import("../../src/api/vendor/members/me/route");
         };
         productVariants: typeof import("../../src/api/vendor/product-variants/route");
+        storeOnboarding: typeof import("../../src/api/vendor/store-onboarding/route") & {
+            $id: typeof import("../../src/api/vendor/store-onboarding/[id]/route") & {
+                locations: typeof import("../../src/api/vendor/store-onboarding/[id]/locations/route") & {
+                    $locationId: typeof import("../../src/api/vendor/store-onboarding/[id]/locations/[location_id]/route");
+                };
+            };
+            drafts: typeof import("../../src/api/vendor/store-onboarding/drafts/route") & {
+                $draftId: typeof import("../../src/api/vendor/store-onboarding/drafts/[draft_id]/route") & {
+                    submit: typeof import("../../src/api/vendor/store-onboarding/drafts/[draft_id]/submit/route");
+                };
+            };
+        };
         stores: typeof import("../../src/api/vendor/stores/route");
         subscription: typeof import("../../src/api/vendor/subscription/route");
     };
     hooks: {
         payout: typeof import("../../src/api/hooks/payout/route");
     };
+    sso: typeof import("../../src/api/sso/route");
 };

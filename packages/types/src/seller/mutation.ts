@@ -2,6 +2,7 @@ export interface CreateSellerDTO {
   name: string
   handle?: string
   email: string
+  phone?: string | null
   description?: string | null
   logo?: string | null
   banner?: string | null

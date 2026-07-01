@@ -40,3 +40,5 @@ yarn-error.log*
 
 apps/backend/.medusa
 packages/modules/*
+
+docs/dev-tracking
