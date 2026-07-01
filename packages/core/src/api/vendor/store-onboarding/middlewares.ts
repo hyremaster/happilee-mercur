@@ -1,4 +1,4 @@
-import { MiddlewareRoute } from "@medusajs/framework/http"
+import { authenticate, MiddlewareRoute } from "@medusajs/framework/http"
 import {
   validateAndTransformBody,
   validateAndTransformQuery,
@@ -48,11 +48,21 @@ export const vendorStoreOnboardingMiddlewares: MiddlewareRoute[] = [
       ),
     ],
   },
+  // GET /vendor/store-onboarding/default-statuses — list default order statuses
+  {
+    method: ["GET"],
+    matcher: "/vendor/store-onboarding/default-statuses",
+    middlewares: [
+      authenticate("member", ["session", "bearer"], { allowUnregistered: false }),
+    ],
+  },
   // GET /vendor/store-onboarding/check-handle — check handle availability
   {
     method: ["GET"],
     matcher: "/vendor/store-onboarding/check-handle",
-    middlewares: [],
+    middlewares: [
+      authenticate("member", ["session", "bearer"], { allowUnregistered: false }),
+    ],
   },
   // GET /vendor/store-onboarding/:id — store detail
   {
