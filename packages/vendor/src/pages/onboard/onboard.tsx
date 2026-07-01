@@ -188,6 +188,11 @@ export const OnboardPage = () => {
       <AddLocationModal
         isOpen={isAddLocationOpen}
         onOpenChange={setIsAddLocationOpen}
+        onAddCentre={(centre) =>
+          updateState({
+            fulfillmentCentres: [...state.fulfillmentCentres, centre],
+          })
+        }
       />
 
       <TemplatePreviewModal

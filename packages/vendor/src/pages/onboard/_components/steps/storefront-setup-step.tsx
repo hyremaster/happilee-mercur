@@ -7,6 +7,8 @@ import {
 } from "@happilee-app/ui";
 import * as HappileeUI from "@happilee-app/ui";
 import type { ComponentType } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "@medusajs/ui";
 import { HANDLE_REGEX, STOREFRONT_TEMPLATES, TAKEN_HANDLES, URL_PREFIX } from "../constants";
 import type { StorefrontConfig } from "../types";
 
@@ -48,6 +50,42 @@ export const StorefrontSetupStep = ({
   onChange,
   onPreviewTemplate,
 }: StorefrontSetupStepProps) => {
+  const [didCopy, setDidCopy] = useState(false);
+  const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current) {
+        clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopy = async () => {
+    const value = data.handle?.trim() ?? "";
+
+    if (!value) {
+      toast.error("Nothing to copy");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success("Copied");
+      setDidCopy(true);
+
+      if (copyResetTimeoutRef.current) {
+        clearTimeout(copyResetTimeoutRef.current);
+      }
+
+      copyResetTimeoutRef.current = setTimeout(() => {
+        setDidCopy(false);
+      }, 900);
+    } catch {
+      toast.error("Failed to copy");
+    }
+  };
+
   return (
     <div className="flex w-full flex-col items-start gap-4xl">
       <div className="flex w-full flex-col gap-sm">
@@ -69,7 +107,31 @@ export const StorefrontSetupStep = ({
             unstyled
             value={data.handle}
             onChange={(v) => onChange({ handle: v.toLowerCase() })}
-            iconTrailing={<Copy01 />}
+            iconTrailing={
+              <button
+                type="button"
+                aria-label="Copy store URL slug"
+                onClick={handleCopy}
+                className={`
+                  relative inline-flex items-center justify-center rounded-sm p-1 text-text-tertiary
+                  transition-transform duration-150 ease-out hover:text-text-secondary focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand
+                  ${didCopy ? "scale-110" : "scale-100"}
+                `}
+              >
+                <Copy01
+                  className={`
+                    transition-all duration-150 ease-out
+                    ${didCopy ? "opacity-0 scale-75" : "opacity-100 scale-100"}
+                  `}
+                />
+                <CheckCircle
+                  className={`
+                    absolute transition-all duration-150 ease-out
+                    ${didCopy ? "opacity-100 scale-100 text-fg-success" : "opacity-0 scale-75"}
+                  `}
+                />
+              </button>
+            }
             className="min-w-0 flex-1"
           />
         </div>

@@ -42,6 +42,8 @@ export type FulfillmentCentre = {
   country: string;
   pinCode: string;
   active: boolean;
+  lat?: number;
+  lng?: number;
 };
 
 export type PaymentConfig = {

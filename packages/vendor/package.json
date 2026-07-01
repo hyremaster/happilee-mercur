@@ -59,6 +59,7 @@
     "i18next": "23.7.11",
     "i18next-browser-languagedetector": "7.2.0",
     "i18next-http-backend": "2.4.2",
+    "leaflet": "^1.9.4",
     "lodash.debounce": "^4.0.8",
     "lodash.isequal": "^4.5.0",
     "match-sorter": "^6.3.4",
@@ -72,6 +73,7 @@
     "react-hook-form": "7.49.1",
     "react-i18next": "13.5.0",
     "react-jwt": "^1.2.0",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "6.30.3",
     "tailwind-merge": "^3.6.0",
     "zod": "3.25.76"
@@ -86,6 +88,7 @@
     "@mercurjs/core": "workspace:*",
     "@mercurjs/dashboard-sdk": "workspace:*",
     "@mercurjs/types": "workspace:*",
+    "@types/leaflet": "^1.9.21",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "autoprefixer": "^10.4.20",
