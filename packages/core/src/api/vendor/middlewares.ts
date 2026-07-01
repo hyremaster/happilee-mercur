@@ -49,6 +49,7 @@ const unauthenticatedRoutes = [
   // Store-onboarding handles its own auth + ownership checks (a vendor creates
   // new stores/sellers, so the global ensureSeller header guard does not apply).
   /^\/vendor\/store-onboarding/,
+  /^\/vendor\/storefront-templates$/,
   /^\/vendor\/members\/invites\/accept$/,
   ...scanUnauthenticatedRoutes(process.cwd()),
 ]

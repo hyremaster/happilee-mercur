@@ -48,6 +48,12 @@ export const vendorStoreOnboardingMiddlewares: MiddlewareRoute[] = [
       ),
     ],
   },
+  // GET /vendor/store-onboarding/check-handle — check handle availability
+  {
+    method: ["GET"],
+    matcher: "/vendor/store-onboarding/check-handle",
+    middlewares: [],
+  },
   // GET /vendor/store-onboarding/:id — store detail
   {
     method: ["GET"],

@@ -766,6 +766,7 @@ export type Routes = {
                     $locationId: typeof import("../../src/api/vendor/store-onboarding/[id]/locations/[location_id]/route");
                 };
             };
+            checkHandle: typeof import("../../src/api/vendor/store-onboarding/check-handle/route");
             drafts: typeof import("../../src/api/vendor/store-onboarding/drafts/route") & {
                 $draftId: typeof import("../../src/api/vendor/store-onboarding/drafts/[draft_id]/route") & {
                     submit: typeof import("../../src/api/vendor/store-onboarding/drafts/[draft_id]/submit/route");
