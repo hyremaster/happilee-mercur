@@ -39,7 +39,7 @@ export const SuccessStep = () => {
             hierarchy="ghost"
             size="md"
             iconTrailing={<ArrowRight />}
-            onPress={() => navigate("/")}
+            onPress={() => navigate("/stores")}
           >
             Go to workspace
           </Button>

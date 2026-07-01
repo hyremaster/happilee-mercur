@@ -44,10 +44,13 @@ export const WizardShell = ({
           orientation="horizontal"
           className="w-full max-w-[1008px]"
         />
-        <div className="w-full border-t border-border-secondary" role="separator" />
+        <div
+          className="w-full border-t border-border-secondary"
+          role="separator"
+        />
       </div>
 
-      <div className="flex w-full max-w-[888px] flex-col items-start gap-4xl px-4xl pb-4xl">
+      <div className="flex w-full max-w-[888px] flex-col items-start gap-4xl pb-4xl">
         {children}
 
         {(showBack || onContinue) && (

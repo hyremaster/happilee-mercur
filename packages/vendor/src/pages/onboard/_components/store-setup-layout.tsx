@@ -5,11 +5,13 @@ import { useMe } from "../../../hooks/api/members";
 type StoreSetupLayoutProps = {
   children: ReactNode;
   minHeight?: string;
+  contentClassName?: string;
 };
 
 export const StoreSetupLayout = ({
   children,
   minHeight = "min-h-[calc(100vh-16px)]",
+  contentClassName = "items-center gap-4xl",
 }: StoreSetupLayoutProps) => {
   const { seller_member } = useMe({
     retry: false,
@@ -35,7 +37,7 @@ export const StoreSetupLayout = ({
       </div>
 
       <div
-        className={`flex flex-1 flex-col items-center gap-4xl overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-l border-r border-t border-border-primary bg-bg-primary ${minHeight}`}
+        className={`flex flex-1 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl border border-l border-r border-t border-border-primary bg-bg-primary ${minHeight} ${contentClassName}`}
       >
         {children}
       </div>
