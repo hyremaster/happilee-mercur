@@ -67,3 +67,14 @@ input[type="search"]::-webkit-search-cancel-button {
 .recharts-surface path {
     outline: none;
 }
+
+/* Keep Leaflet tiles below the fixed center pin overlay in location modals */
+.location-map .leaflet-container {
+    z-index: 0 !important;
+}
+
+.location-map .leaflet-pane,
+.location-map .leaflet-top,
+.location-map .leaflet-bottom {
+    z-index: 1 !important;
+}

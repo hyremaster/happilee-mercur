@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMe } from "../../hooks/api/members";
 import { STEP_HEADINGS } from "./_components/constants";
-import { AddLocationModal } from "./_components/modals/add-location-modal";
+import { LocationModal } from "./_components/modals/location-modal";
 import { ReviewSubmitModal } from "./_components/modals/review-submit-modal";
 import { TemplatePreviewModal } from "./_components/modals/template-preview-modal";
 import { StoreSetupLayout } from "./_components/store-setup-layout";
@@ -13,7 +13,7 @@ import { CommerceTypeStep } from "./_components/steps/commerce-type-step";
 import { FulfillmentDetailsStep } from "./_components/steps/fulfillment-details-step";
 import { StorefrontSetupStep } from "./_components/steps/storefront-setup-step";
 import { SuccessStep } from "./_components/steps/success-step";
-import type { WizardStep } from "./_components/types";
+import type { FulfillmentCentre, WizardStep } from "./_components/types";
 import { useStoreSetup } from "./_components/use-store-setup";
 import { WizardShell } from "./_components/wizard-shell";
 
@@ -34,7 +34,11 @@ export const OnboardPage = () => {
   } = useStoreSetup();
 
   const [justLaunched, setJustLaunched] = useState(false);
-  const [isAddLocationOpen, setIsAddLocationOpen] = useState(false);
+  const [locationModal, setLocationModal] = useState<
+    | { mode: "add" }
+    | { mode: "edit"; centre: FulfillmentCentre }
+    | null
+  >(null);
   const [isTemplatePreviewOpen, setIsTemplatePreviewOpen] = useState(false);
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
@@ -170,7 +174,8 @@ export const OnboardPage = () => {
               updateState({ payment: { ...state.payment, ...patch } })
             }
             onDeleteCentre={handleDeleteCentre}
-            onAddLocation={() => setIsAddLocationOpen(true)}
+            onAddLocation={() => setLocationModal({ mode: "add" })}
+            onEditCentre={(centre) => setLocationModal({ mode: "edit", centre })}
           />
         )}
 
@@ -185,15 +190,33 @@ export const OnboardPage = () => {
         )}
       </WizardShell>
 
-      <AddLocationModal
-        isOpen={isAddLocationOpen}
-        onOpenChange={setIsAddLocationOpen}
-        onAddCentre={(centre) =>
-          updateState({
-            fulfillmentCentres: [...state.fulfillmentCentres, centre],
-          })
-        }
-      />
+      {locationModal && (
+        <LocationModal
+          key={
+            locationModal.mode === "edit"
+              ? `edit-${locationModal.centre.id}`
+              : "add"
+          }
+          isOpen
+          mode={locationModal.mode}
+          centre={
+            locationModal.mode === "edit" ? locationModal.centre : undefined
+          }
+          onOpenChange={(open) => {
+            if (!open) setLocationModal(null);
+          }}
+          onSave={(centre) => {
+            updateState((prev) => ({
+              fulfillmentCentres:
+                locationModal.mode === "add"
+                  ? [...prev.fulfillmentCentres, centre]
+                  : prev.fulfillmentCentres.map((c) =>
+                      c.id === centre.id ? centre : c,
+                    ),
+            }));
+          }}
+        />
+      )}
 
       <TemplatePreviewModal
         isOpen={isTemplatePreviewOpen}

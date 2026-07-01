@@ -107,8 +107,15 @@ export function useStoreSetup() {
   }, [state]);
 
   const updateState = useCallback(
-    (patch: Partial<StoreSetupState>) => {
-      setState((prev) => ({ ...prev, ...patch }));
+    (
+      patch:
+        | Partial<StoreSetupState>
+        | ((prev: StoreSetupState) => Partial<StoreSetupState>),
+    ) => {
+      setState((prev) => ({
+        ...prev,
+        ...(typeof patch === "function" ? patch(prev) : patch),
+      }));
     },
     [],
   );

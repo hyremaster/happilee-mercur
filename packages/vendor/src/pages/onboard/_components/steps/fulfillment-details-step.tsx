@@ -18,6 +18,7 @@ type FulfillmentDetailsStepProps = {
   onPaymentChange: (patch: Partial<PaymentConfig>) => void;
   onDeleteCentre: (id: string) => void;
   onAddLocation?: () => void;
+  onEditCentre?: (centre: FulfillmentCentre) => void;
 };
 
 export function isFulfillmentValid(
@@ -55,6 +56,7 @@ export const FulfillmentDetailsStep = ({
   onPaymentChange,
   onDeleteCentre,
   onAddLocation,
+  onEditCentre,
 }: FulfillmentDetailsStepProps) => {
   return (
     <div className="flex w-full flex-col items-start gap-4xl">
@@ -106,6 +108,7 @@ export const FulfillmentDetailsStep = ({
                   iconLeading={<Edit01 size={16} />}
                   aria-label="Edit"
                   className="text-fg-quaternary"
+                  onPress={() => onEditCentre?.(centre)}
                 />
               </div>
             </div>
