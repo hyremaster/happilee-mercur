@@ -110,8 +110,8 @@ export const POST = async (
             currency_code?: string | null
           })
         : null,
-      order_statuses: Array.isArray(data.order_statuses)
-        ? (data.order_statuses as {
+      order_statuses: Array.isArray(commerce.order_statuses)
+        ? (commerce.order_statuses as {
             status: StoreOrderStatusType
             display_name: string
             color?: string | null
