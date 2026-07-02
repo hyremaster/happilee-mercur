@@ -1,5 +1,6 @@
 import { Avatar } from "@medusajs/ui";
 import { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import config from "virtual:mercur/config";
 
 import AvatarBox from "@components/common/logo-box/avatar-box";
@@ -25,7 +26,13 @@ export const DashboardLayout = ({ sidebar, children }: DashboardLayoutProps) => 
   return (
     <div className="flex h-dvh w-dvw overflow-hidden bg-[var(--ds-bg-brand-primary)]">
       <aside className="flex w-[72px] shrink-0 flex-col items-center justify-between py-4">
-        <AvatarBox />
+        <Link
+          to="/stores"
+          className="rounded-xl outline-none focus-visible:shadow-borders-focus"
+          data-testid="sidebar-logo-link"
+        >
+          <AvatarBox />
+        </Link>
         <DashboardUserAvatar />
       </aside>
       <div className="flex min-h-0 min-w-0 flex-1">
