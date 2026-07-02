@@ -34,6 +34,7 @@ import { vendorShippingProfilesMiddlewares } from "./shipping-profiles/middlewar
 import { vendorStockLocationsMiddlewares } from "./stock-locations/middlewares"
 import { vendorStoresMiddlewares } from "./stores/middlewares"
 import { vendorStoreOnboardingMiddlewares } from "./store-onboarding/middlewares"
+import { vendorStorefrontTemplatesMiddlewares } from "./storefront-templates/middlewares"
 import { vendorSubscriptionMiddlewares } from "./subscription/middlewares"
 import { vendorUploadsMiddlewares } from "./uploads/middlewares"
 import { ensureSellerMiddleware, scanUnauthenticatedRoutes, unlessBaseUrl, vendorCorsMiddleware } from "../utils"
@@ -48,6 +49,7 @@ const unauthenticatedRoutes = [
   // Store-onboarding handles its own auth + ownership checks (a vendor creates
   // new stores/sellers, so the global ensureSeller header guard does not apply).
   /^\/vendor\/store-onboarding/,
+  /^\/vendor\/storefront-templates$/,
   /^\/vendor\/members\/invites\/accept$/,
   ...scanUnauthenticatedRoutes(process.cwd()),
 ]
@@ -141,6 +143,7 @@ export const vendorMiddlewares: MiddlewareRoute[] = [
   ...vendorStockLocationsMiddlewares,
   ...vendorStoresMiddlewares,
   ...vendorStoreOnboardingMiddlewares,
+  ...vendorStorefrontTemplatesMiddlewares,
   ...vendorUploadsMiddlewares,
   ...vendorProductTagsMiddlewares,
   ...vendorSubscriptionMiddlewares,
