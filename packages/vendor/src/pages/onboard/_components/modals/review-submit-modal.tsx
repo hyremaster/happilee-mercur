@@ -9,6 +9,7 @@ type ReviewSubmitModalProps = {
   onOpenChange: (open: boolean) => void;
   onEdit: (step: WizardStep) => void;
   onConfirm: () => void;
+  isConfirmLoading?: boolean;
 };
 
 export const ReviewSubmitModal = ({
@@ -17,6 +18,7 @@ export const ReviewSubmitModal = ({
   onOpenChange,
   onEdit,
   onConfirm,
+  isConfirmLoading = false,
 }: ReviewSubmitModalProps) => {
   return (
     <Modal
@@ -31,6 +33,7 @@ export const ReviewSubmitModal = ({
             hierarchy="secondary"
             size="md"
             iconLeading={<ArrowLeft />}
+            isDisabled={isConfirmLoading}
             onPress={() => onOpenChange(false)}
           >
             Back
@@ -39,9 +42,10 @@ export const ReviewSubmitModal = ({
             hierarchy="primary"
             size="md"
             iconTrailing={<CheckCircle />}
+            isDisabled={isConfirmLoading}
             onPress={onConfirm}
           >
-            Confirm &amp; Launch
+            {isConfirmLoading ? "Launching..." : "Confirm & Launch"}
           </Button>
         </>
       }

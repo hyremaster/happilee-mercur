@@ -15,8 +15,6 @@ import {
 import type { StepDef } from "@happilee-app/ui";
 import type { OrderStatusConfig } from "./types";
 
-export const STORAGE_KEY = "happilee-store-setup";
-
 export const WIZARD_STEPS: Omit<StepDef, "state">[] = [
   {
     title: "Business details",

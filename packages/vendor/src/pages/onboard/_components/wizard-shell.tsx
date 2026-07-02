@@ -12,6 +12,7 @@ type WizardShellProps = {
   continueLabel?: string;
   continueIcon?: ReactNode;
   isContinueDisabled?: boolean;
+  isContinueLoading?: boolean;
   showBack?: boolean;
 };
 
@@ -24,6 +25,7 @@ export const WizardShell = ({
   continueLabel = "Continue",
   continueIcon = <ArrowRight />,
   isContinueDisabled = false,
+  isContinueLoading = false,
   showBack = true,
 }: WizardShellProps) => {
   const steps = WIZARD_STEPS.map((step, i) => ({
@@ -70,10 +72,10 @@ export const WizardShell = ({
                 hierarchy="primary"
                 size="md"
                 iconTrailing={continueIcon}
-                isDisabled={isContinueDisabled}
+                isDisabled={isContinueDisabled || isContinueLoading}
                 onPress={onContinue}
               >
-                {continueLabel}
+                {isContinueLoading ? "Saving..." : continueLabel}
               </Button>
             )}
           </div>

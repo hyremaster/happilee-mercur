@@ -60,6 +60,7 @@ export type StorefrontConfig = {
 
 export type StoreSetupState = {
   currentStep: WizardStep;
+  draftId: string | null;
   businessDetails: BusinessDetails;
   commerce: CommerceConfig;
   fulfillmentCentres: FulfillmentCentre[];
