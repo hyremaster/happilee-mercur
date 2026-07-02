@@ -1,3 +1,7 @@
+export enum StorePaymentGatewayType {
+  RAZORPAY = "razorpay",
+}
+
 export enum StoreIndustry {
   RESTAURANT = "restaurant",
   GROCERY = "grocery",
@@ -236,6 +240,32 @@ export interface UpdateStorePaymentConfigDTO {
   cod_min_amount?: number | null
   cod_max_amount?: number | null
   currency_code?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+export interface StorePaymentGatewayDTO {
+  id: string
+  seller_id: string
+  gateway: StorePaymentGatewayType
+  is_active: boolean
+  credentials: { key_id: string; key_secret: string; webhook_secret?: string }
+  metadata: Record<string, unknown> | null
+  created_at: Date
+  updated_at: Date
+  deleted_at: Date | null
+}
+
+export interface CreateStorePaymentGatewayDTO {
+  seller_id: string
+  gateway: StorePaymentGatewayType
+  is_active?: boolean
+  credentials: { key_id: string; key_secret: string; webhook_secret?: string }
+  metadata?: Record<string, unknown> | null
+}
+
+export interface UpdateStorePaymentGatewayDTO {
+  is_active?: boolean
+  credentials?: { key_id?: string; key_secret?: string; webhook_secret?: string }
   metadata?: Record<string, unknown> | null
 }
 

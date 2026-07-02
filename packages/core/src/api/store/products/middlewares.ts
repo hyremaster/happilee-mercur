@@ -13,6 +13,10 @@ import { SellerStatus } from "@mercurjs/types"
  * closure window, then expose their IDs as `seller_id` so the link
  * filter below can translate it into a product-id constraint via the
  * `product_seller` join entity.
+ *
+ * Accepts an optional `seller_id` query param to scope results to a
+ * single store. Stripped from req.query before Medusa's built-in
+ * validator runs so it doesn't trigger an "Unrecognized fields" error.
  */
 async function applyVisibleSellerIdsFilter(
   req: MedusaRequest,

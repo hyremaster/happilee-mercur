@@ -553,7 +553,9 @@ export type Routes = {
             $id: typeof import("../../src/api/store/order-groups/[id]/route");
         };
         sellers: typeof import("../../src/api/store/sellers/route") & {
-            $id: typeof import("../../src/api/store/sellers/[id]/route");
+            $id: typeof import("../../src/api/store/sellers/[id]/route") & {
+                products: typeof import("../../src/api/store/sellers/[id]/products/route");
+            };
         };
     };
     vendor: {
