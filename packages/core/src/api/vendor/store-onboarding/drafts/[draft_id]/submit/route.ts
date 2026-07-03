@@ -13,7 +13,6 @@ import {
   StoreIndustry,
   StoreOnboardingDraftStatus,
   StoreOrderStatusType,
-  StoreStorefrontTemplate,
 } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../../../modules/marketplace-profile/service"
@@ -99,9 +98,7 @@ export const POST = async (
           (commerce.fulfillment_methods as StoreFulfillmentMethod[] | undefined) ??
           null,
         storefront_template:
-          (storefront.storefront_template as
-            | StoreStorefrontTemplate
-            | undefined) ?? null,
+          (storefront.storefront_template as string | undefined) ?? null,
       },
       payment: Object.keys(payment).length
         ? (payment as {
@@ -113,8 +110,8 @@ export const POST = async (
             currency_code?: string | null
           })
         : null,
-      order_statuses: Array.isArray(data.order_statuses)
-        ? (data.order_statuses as {
+      order_statuses: Array.isArray(commerce.order_statuses)
+        ? (commerce.order_statuses as {
             status: StoreOrderStatusType
             display_name: string
             color?: string | null

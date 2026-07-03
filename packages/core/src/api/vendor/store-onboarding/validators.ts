@@ -8,7 +8,6 @@ import {
   StoreFulfillmentMethod,
   StoreIndustry,
   StoreOrderStatusType,
-  StoreStorefrontTemplate,
 } from "@mercurjs/types"
 
 export type VendorGetStoresParamsType = z.infer<typeof VendorGetStoresParams>
@@ -88,7 +87,7 @@ export const VendorCreateStore = z.object({
   // Step 2/4 may also be sent up front (all optional, wizard fills over time).
   commerce_type: z.nativeEnum(StoreCommerceType).nullable().optional(),
   fulfillment_methods: z.array(z.nativeEnum(StoreFulfillmentMethod)).nullable().optional(),
-  storefront_template: z.nativeEnum(StoreStorefrontTemplate).nullable().optional(),
+  storefront_template: z.string().nullable().optional(),
   metadata: z.record(z.unknown()).nullable().optional(),
 })
 
@@ -182,7 +181,7 @@ export const VendorUpdateStore = z.object({
   industry: z.nativeEnum(StoreIndustry).nullable().optional(),
   commerce_type: z.nativeEnum(StoreCommerceType).nullable().optional(),
   fulfillment_methods: z.array(z.nativeEnum(StoreFulfillmentMethod)).nullable().optional(),
-  storefront_template: z.nativeEnum(StoreStorefrontTemplate).nullable().optional(),
+  storefront_template: z.string().nullable().optional(),
   owner_handle: z.string().optional(),
   payment_config: paymentConfigSchema.optional(),
   order_statuses: z.array(orderStatusSchema).optional(),

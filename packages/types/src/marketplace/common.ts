@@ -1,3 +1,7 @@
+export enum StorePaymentGatewayType {
+  RAZORPAY = "razorpay",
+}
+
 export enum StoreIndustry {
   RESTAURANT = "restaurant",
   GROCERY = "grocery",
@@ -23,13 +27,6 @@ export enum StoreFulfillmentMethod {
   DELIVERY = "delivery",
   PICKUP = "pickup",
   SHIPPING = "shipping",
-}
-
-/** Storefront design template (wizard step 4). */
-export enum StoreStorefrontTemplate {
-  CLASSIC = "classic",
-  MODERN_MINIMAL = "modern_minimal",
-  BOLD_SHOWCASE = "bold_showcase",
 }
 
 /** Lifecycle of a store-onboarding draft (wizard in progress vs materialized). */
@@ -68,7 +65,7 @@ export interface CreateStoreProfileDTO {
   industry?: StoreIndustry | null
   commerce_type?: StoreCommerceType | null
   fulfillment_methods?: StoreFulfillmentMethod[] | null
-  storefront_template?: StoreStorefrontTemplate | null
+  storefront_template?: string | null
   metadata?: Record<string, unknown> | null
 }
 
@@ -77,8 +74,39 @@ export interface UpdateStoreProfileDTO {
   industry?: StoreIndustry | null
   commerce_type?: StoreCommerceType | null
   fulfillment_methods?: StoreFulfillmentMethod[] | null
-  storefront_template?: StoreStorefrontTemplate | null
+  storefront_template?: string | null
   metadata?: Record<string, unknown> | null
+}
+
+export interface StorefrontTemplateDTO {
+  id: string
+  name: string
+  key: string
+  description: string | null
+  preview_image_url: string | null
+  is_active: boolean
+  rank: number
+  created_at: Date
+  updated_at: Date
+  deleted_at: Date | null
+}
+
+export interface CreateStorefrontTemplateDTO {
+  name: string
+  key: string
+  description?: string | null
+  preview_image_url?: string | null
+  is_active?: boolean
+  rank?: number
+}
+
+export interface UpdateStorefrontTemplateDTO {
+  name?: string
+  key?: string
+  description?: string | null
+  preview_image_url?: string | null
+  is_active?: boolean
+  rank?: number
 }
 
 export interface StoreOrderStatusDTO {
@@ -212,6 +240,32 @@ export interface UpdateStorePaymentConfigDTO {
   cod_min_amount?: number | null
   cod_max_amount?: number | null
   currency_code?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+export interface StorePaymentGatewayDTO {
+  id: string
+  seller_id: string
+  gateway: StorePaymentGatewayType
+  is_active: boolean
+  credentials: { key_id: string; key_secret: string; webhook_secret?: string }
+  metadata: Record<string, unknown> | null
+  created_at: Date
+  updated_at: Date
+  deleted_at: Date | null
+}
+
+export interface CreateStorePaymentGatewayDTO {
+  seller_id: string
+  gateway: StorePaymentGatewayType
+  is_active?: boolean
+  credentials: { key_id: string; key_secret: string; webhook_secret?: string }
+  metadata?: Record<string, unknown> | null
+}
+
+export interface UpdateStorePaymentGatewayDTO {
+  is_active?: boolean
+  credentials?: { key_id?: string; key_secret?: string; webhook_secret?: string }
   metadata?: Record<string, unknown> | null
 }
 
