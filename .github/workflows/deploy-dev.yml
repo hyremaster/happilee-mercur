@@ -1,0 +1,21 @@
+name: Deploy to Dev
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEV_EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+          # 4m30s — under job timeout so runner can report failure cleanly
+          command_timeout: 4m30s
+          script: bash /home/ubuntu/happilee-mercur/scripts/deploy-dev.sh develop
