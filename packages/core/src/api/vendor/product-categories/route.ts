@@ -13,6 +13,15 @@ import { MercurModules } from "@mercurjs/types"
 
 import { VendorCreateProductCategoryBodyType } from "./validators"
 
+function buildSellerHandle(sellerId: string, handle?: string, name?: string): string {
+  const prefix = sellerId.replace(/[^a-z0-9]/gi, "").slice(-8).toLowerCase()
+  const base = (handle ?? name ?? "category")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+  return `${prefix}-${base}`
+}
+
 export const GET = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse<HttpTypes.VendorProductCategoryListResponse>
@@ -42,8 +51,13 @@ export const POST = async (
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const link: Link = req.scope.resolve(ContainerRegistrationKeys.LINK)
 
+  const categoryInput = {
+    ...req.validatedBody,
+    handle: buildSellerHandle(sellerId, req.validatedBody.handle, req.validatedBody.name),
+  }
+
   const { result } = await createProductCategoriesWorkflow(req.scope).run({
-    input: { product_categories: [req.validatedBody] },
+    input: { product_categories: [categoryInput] },
   })
 
   const createdCategory = result[0]
