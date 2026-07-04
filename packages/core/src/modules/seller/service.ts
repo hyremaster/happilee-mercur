@@ -241,7 +241,7 @@ class SellerModuleService extends MedusaService({
   ): Promise<MemberInviteDTO> {
     let decoded: JwtPayload
     try {
-      decoded = jwt.verify(token, this.options_.jwt_secret, {
+      decoded = jwt.verify(token, this.options_.jwt_secret!, {
         complete: true,
       }) as JwtPayload
     } catch {
