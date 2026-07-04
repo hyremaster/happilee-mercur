@@ -20,6 +20,17 @@ module.exports = withMercur({
   },
   modules: [
     {
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: [
+          {
+            resolve: "@mercurjs/payment-razorpay",
+            id: "razorpay",
+          },
+        ],
+      },
+    },
+    {
       resolve: '@mercurjs/core/modules/admin-ui',
       options: {
         appDir: '',
