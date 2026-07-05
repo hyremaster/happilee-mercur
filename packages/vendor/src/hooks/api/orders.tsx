@@ -309,6 +309,108 @@ export const useCompleteOrder = (
   });
 };
 
+export type StoreOrderStatusConfig = {
+  id: string;
+  status: string;
+  display_name: string;
+  color: string | null;
+  rank: number;
+};
+
+export type StoreOrderStatusEvent = {
+  id: string;
+  status: string;
+  changed_by: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+export type OrderStoreStatusResponse = {
+  current: string;
+  allowed_next: string[];
+  statuses: StoreOrderStatusConfig[];
+  history: StoreOrderStatusEvent[];
+};
+
+export const useOrderStoreStatus = (
+  orderId: string,
+  options?: Omit<
+    UseQueryOptions<
+      OrderStoreStatusResponse,
+      Error,
+      OrderStoreStatusResponse,
+      QueryKey
+    >,
+    "queryFn" | "queryKey"
+  >
+) => {
+  return useQuery({
+    queryFn: async () =>
+      fetchQuery(`/vendor/orders/${orderId}/store-status`, {
+        method: "GET",
+      }),
+    queryKey: ordersQueryKeys.detail(`${orderId}/store-status`),
+    ...options,
+  });
+};
+
+export const useUpdateOrderStoreStatus = (
+  orderId: string,
+  options?: UseMutationOptions<
+    OrderStoreStatusResponse,
+    Error,
+    { status: string; note?: string }
+  >
+) => {
+  return useMutation({
+    mutationFn: (payload: { status: string; note?: string }) =>
+      fetchQuery(`/vendor/orders/${orderId}/store-status`, {
+        method: "POST",
+        body: payload,
+      }),
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.detail(`${orderId}/store-status`),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.detail(orderId),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.preview(orderId),
+      });
+
+      options?.onSuccess?.(data, variables, context);
+    },
+    ...options,
+  });
+};
+
+export const useMarkOrderPaymentAsPaid = (
+  orderId: string,
+  options?: UseMutationOptions<HttpTypes.AdminOrderResponse, Error, void>
+) => {
+  return useMutation({
+    mutationFn: () =>
+      fetchQuery(`/vendor/orders/${orderId}/payment/mark-as-paid`, {
+        method: "POST",
+      }),
+    onSuccess: (data: any, variables: any, context: any) => {
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.detail(orderId),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.preview(orderId),
+      });
+
+      options?.onSuccess?.(data, variables, context);
+    },
+    ...options,
+  });
+};
+
 type OrderCommission = {
   commission: any
 }

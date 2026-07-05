@@ -8,6 +8,8 @@ import type {
 import {
   StoreProfile,
   StoreOrderStatus,
+  StoreOrderStatusEvent,
+  OrderExtension,
   StorePaymentConfig,
   StoreLocationDetail,
   MemberProfile,
@@ -23,6 +25,8 @@ type InjectedDependencies = {
 class MarketplaceProfileModuleService extends MedusaService({
   StoreProfile,
   StoreOrderStatus,
+  StoreOrderStatusEvent,
+  OrderExtension,
   StorePaymentConfig,
   StoreLocationDetail,
   MemberProfile,
