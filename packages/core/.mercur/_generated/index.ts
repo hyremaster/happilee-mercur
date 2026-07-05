@@ -606,6 +606,9 @@ export type Routes = {
                     };
                 };
                 preview: typeof import("../../src/api/vendor/orders/[id]/preview/route");
+                payment: {
+                    markAsPaid: typeof import("../../src/api/vendor/orders/[id]/payment/mark-as-paid/route");
+                };
                 storeStatus: typeof import("../../src/api/vendor/orders/[id]/store-status/route");
             };
         };

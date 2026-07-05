@@ -106,6 +106,16 @@ export const vendorOrdersMiddlewares: MiddlewareRoute[] = [
   },
   {
     method: ["POST"],
+    matcher: "/vendor/orders/:id/payment/mark-as-paid",
+    middlewares: [
+      validateAndTransformQuery(
+        VendorGetOrderParams,
+        vendorOrderQueryConfig.retrieve
+      ),
+    ],
+  },
+  {
+    method: ["POST"],
     matcher: "/vendor/orders/:id/fulfillments",
     middlewares: [
       validateAndTransformBody(VendorCreateFulfillment),

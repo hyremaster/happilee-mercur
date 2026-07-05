@@ -995,6 +995,89 @@ medusaIntegrationTestRunner({
                     })
                 })
             })
+
+            describe("POST /vendor/orders/:id/payment/mark-as-paid", () => {
+                const PAYMENT_FIELDS =
+                    "fields=payment_status,*payment_collections,*payment_collections.payments"
+
+                it("captures the COD payment and completes the collection", async () => {
+                    const { order } = await createCompletedOrder(
+                        seller1Headers,
+                        product1,
+                        stockLocation1
+                    )
+
+                    // Precondition: COD collection is not yet captured.
+                    const before = await api.get(
+                        `/vendor/orders/${order.id}?${PAYMENT_FIELDS}`,
+                        seller1Headers
+                    )
+                    expect(before.data.order.payment_status).not.toEqual(
+                        "captured"
+                    )
+
+                    const res = await api.post(
+                        `/vendor/orders/${order.id}/payment/mark-as-paid`,
+                        {},
+                        seller1Headers
+                    )
+
+                    expect(res.status).toEqual(200)
+
+                    const after = await api.get(
+                        `/vendor/orders/${order.id}?${PAYMENT_FIELDS}`,
+                        seller1Headers
+                    )
+                    const collection = after.data.order.payment_collections[0]
+                    expect(collection.status).toEqual("completed")
+                    expect(after.data.order.payment_status).toEqual("captured")
+                    expect(
+                        collection.payments.every((p: any) => !!p.captured_at)
+                    ).toBe(true)
+                })
+
+                it("rejects a second mark-as-paid once captured", async () => {
+                    const { order } = await createCompletedOrder(
+                        seller1Headers,
+                        product1,
+                        stockLocation1
+                    )
+
+                    const first = await api.post(
+                        `/vendor/orders/${order.id}/payment/mark-as-paid`,
+                        {},
+                        seller1Headers
+                    )
+                    expect(first.status).toEqual(200)
+
+                    const second = await api
+                        .post(
+                            `/vendor/orders/${order.id}/payment/mark-as-paid`,
+                            {},
+                            seller1Headers
+                        )
+                        .catch((e) => e.response)
+                    expect(second.status).toEqual(400)
+                })
+
+                it("does not allow marking another vendor's order as paid", async () => {
+                    const { order } = await createCompletedOrder(
+                        seller1Headers,
+                        product1,
+                        stockLocation1
+                    )
+
+                    const res = await api
+                        .post(
+                            `/vendor/orders/${order.id}/payment/mark-as-paid`,
+                            {},
+                            seller2Headers
+                        )
+                        .catch((e) => e.response)
+
+                    expect(res.status).toEqual(404)
+                })
+            })
         })
     },
 })

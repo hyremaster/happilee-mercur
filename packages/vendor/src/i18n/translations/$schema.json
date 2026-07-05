@@ -4358,6 +4358,15 @@
             "markAsPaidPaymentSuccess": {
               "type": "string"
             },
+            "markAsPaidConfirmTitle": {
+              "type": "string"
+            },
+            "markAsPaidConfirmBody": {
+              "type": "string"
+            },
+            "markedAsPaid": {
+              "type": "string"
+            },
             "createRefund": {
               "type": "string"
             },

@@ -387,6 +387,30 @@ export const useUpdateOrderStoreStatus = (
   });
 };
 
+export const useMarkOrderPaymentAsPaid = (
+  orderId: string,
+  options?: UseMutationOptions<HttpTypes.AdminOrderResponse, Error, void>
+) => {
+  return useMutation({
+    mutationFn: () =>
+      fetchQuery(`/vendor/orders/${orderId}/payment/mark-as-paid`, {
+        method: "POST",
+      }),
+    onSuccess: (data: any, variables: any, context: any) => {
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.detail(orderId),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ordersQueryKeys.preview(orderId),
+      });
+
+      options?.onSuccess?.(data, variables, context);
+    },
+    ...options,
+  });
+};
+
 type OrderCommission = {
   commission: any
 }
