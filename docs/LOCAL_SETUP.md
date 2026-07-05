@@ -107,7 +107,7 @@ bun run dev
 
 **Terminal 3 — Admin panel:**
 ```bash
-cd apps/admin-test
+cd apps/admin
 bun run dev
 ```
 
@@ -146,10 +146,10 @@ The page appears at `http://localhost:7001/my-feature` after the vendor app relo
 
 ## Adding a new admin page
 
-Same pattern, but under `apps/admin-test/src/routes/`:
+Same pattern, but under `apps/admin/src/routes/`:
 
 ```
-apps/admin-test/src/routes/
+apps/admin/src/routes/
   my-admin-feature/
     page.tsx       ← becomes /my-admin-feature route at :7000
 ```
@@ -259,13 +259,13 @@ Same error appears for the admin app referencing `packages/admin/dist/chunk-*.js
 
 **Cause:** Both `packages/vendor` and `packages/admin` list `i18next` in their own
 `dependencies`; tsup externalizes it as expected for a library. But neither
-`apps/vendor` nor `apps/admin-test` listed `i18next` directly. Bun stores `i18next`
+`apps/vendor` nor `apps/admin` listed `i18next` directly. Bun stores `i18next`
 in `.bun/` internal cache (not a standard `node_modules/i18next` symlink), so Vite's
 scanner can't find it.
 
 **Fix:** Add `i18next` explicitly to **both** app `package.json` files:
 
-`apps/vendor/package.json` and `apps/admin-test/package.json`:
+`apps/vendor/package.json` and `apps/admin/package.json`:
 ```json
 "i18next": "23.7.11"
 ```
@@ -299,7 +299,7 @@ After the fix, rebuild `packages/dashboard-sdk` and restart the Vite apps:
 ```bash
 cd packages/dashboard-sdk && bun run build
 cd apps/vendor && bun run dev       # terminal 1
-cd apps/admin-test && bun run dev   # terminal 2
+cd apps/admin && bun run dev   # terminal 2
 ```
 
 ---

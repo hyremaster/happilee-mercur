@@ -19,7 +19,7 @@
         "typescript-eslint": "^8.53.0",
       },
     },
-    "apps/admin-test": {
+    "apps/admin": {
       "name": "@acme/admin",
       "version": "0.0.0",
       "dependencies": {
@@ -561,7 +561,7 @@
     },
   },
   "packages": {
-    "@acme/admin": ["@acme/admin@workspace:apps/admin-test"],
+    "@acme/admin": ["@acme/admin@workspace:apps/admin"],
 
     "@acme/api": ["@acme/api@workspace:apps/api"],
 
