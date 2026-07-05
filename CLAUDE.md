@@ -32,7 +32,7 @@ bun run test:integration:tests       # Run integration tests
 - `packages/registry` - Private workspace for the Mercur blocks registry
 - `packages/providers/payout-stripe-connect` - Stripe Connect payout provider
 - `apps/api` - Starter Medusa server wired to `@mercurjs/core`
-- `apps/admin-test` - Starter admin Vite app (port 7000)
+- `apps/admin` - Starter admin Vite app (port 7000)
 - `apps/vendor` - Starter vendor Vite app (port 7001)
 - `apps/docs` - Documentation site (Mintlify)
 - `integration-tests` - Cross-package Jest integration suites
