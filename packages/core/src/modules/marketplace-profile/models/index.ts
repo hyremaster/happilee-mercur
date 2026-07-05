@@ -1,6 +1,7 @@
 export { default as StoreProfile } from "./store-profile"
 export { default as StoreOrderStatus } from "./store-order-status"
 export { default as StoreOrderStatusEvent } from "./store-order-status-event"
+export { default as OrderExtension } from "./order-extension"
 export { default as StorePaymentConfig } from "./store-payment-config"
 export { default as StoreLocationDetail } from "./store-location-detail"
 export { default as MemberProfile } from "./member-profile"

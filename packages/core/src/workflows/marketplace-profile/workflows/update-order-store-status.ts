@@ -10,6 +10,7 @@ import { MarketplaceOrderStatusWorkflowEvents } from "../../events"
 import {
   validateOrderStatusTransitionStep,
   createStoreOrderStatusEventStep,
+  upsertOrderExtensionStep,
   syncMedusaOrderStateStep,
 } from "../steps"
 
@@ -47,7 +48,16 @@ export const updateOrderStoreStatusWorkflow: ReturnType<typeof createWorkflow> =
         }))
       )
 
-      // 3. Sync delivered/cancelled into Medusa's native order state.
+      // 3. Keep the denormalized 1:1 current-status read model in sync.
+      upsertOrderExtensionStep(
+        transform(input, (i) => ({
+          order_id: i.order_id,
+          seller_id: i.seller_id,
+          status: i.status,
+        }))
+      )
+
+      // 4. Sync delivered/cancelled into Medusa's native order state.
       syncMedusaOrderStateStep(
         transform(input, (i) => ({
           order_id: i.order_id,

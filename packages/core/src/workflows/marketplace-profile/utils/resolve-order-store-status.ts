@@ -79,7 +79,13 @@ export async function resolveOrderStoreStatusContext(
       { order: { created_at: "DESC" } }
     )
 
+  // Prefer the denormalized 1:1 extension row (source of truth for lists), fall
+  // back to the latest history event, then to order_placed for orders that have
+  // never transitioned.
+  const [extension] = await service.listOrderExtensions({ order_id: orderId })
+
   const current =
+    (extension?.current_status as StoreOrderStatusType) ??
     (history[0]?.status as StoreOrderStatusType) ??
     StoreOrderStatusType.ORDER_PLACED
 

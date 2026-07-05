@@ -230,6 +230,77 @@ export const createStoreOrderStatusEventStep = createStep(
 )
 
 /**
+ * Upsert the order's 1:1 marketplace extension row, keeping `current_status` in
+ * sync with the latest history event. This is the denormalized read model for
+ * list/filter views ("my orders by status") — one indexed row per order, no
+ * history scan. Compensation restores the previous status, or deletes the row
+ * if this call created it.
+ */
+export const upsertOrderExtensionStep = createStep(
+  "upsert-order-extension",
+  async (
+    input: {
+      order_id: string
+      seller_id: string
+      status: StoreOrderStatusType
+    },
+    { container }
+  ) => {
+    const service = container.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+    const [existing] = await service.listOrderExtensions({
+      order_id: input.order_id,
+    })
+
+    type OrderExtensionRollback = {
+      id: string
+      created: boolean
+      prev_status: StoreOrderStatusType | null
+    }
+
+    if (existing) {
+      await service.updateOrderExtensions({
+        id: existing.id,
+        current_status: input.status,
+      })
+      return new StepResponse<null, OrderExtensionRollback>(null, {
+        id: existing.id,
+        created: false,
+        prev_status: existing.current_status as StoreOrderStatusType,
+      })
+    }
+
+    const created = await service.createOrderExtensions({
+      order_id: input.order_id,
+      seller_id: input.seller_id,
+      current_status: input.status,
+    })
+    return new StepResponse<null, OrderExtensionRollback>(null, {
+      id: created.id,
+      created: true,
+      prev_status: null,
+    })
+  },
+  async (rollback, { container }) => {
+    if (!rollback) {
+      return
+    }
+    const service = container.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+    if (rollback.created) {
+      await service.deleteOrderExtensions(rollback.id)
+    } else if (rollback.prev_status) {
+      await service.updateOrderExtensions({
+        id: rollback.id,
+        current_status: rollback.prev_status,
+      })
+    }
+  }
+)
+
+/**
  * Sync key marketplace transitions into Medusa's native order state:
  *   - `cancelled` → cancel the Medusa order.
  *   - `delivered` → mark every not-yet-delivered fulfillment as delivered.
