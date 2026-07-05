@@ -17,6 +17,7 @@
     "declaration": true,
     "outDir": "./dist",
     "resolveJsonModule": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "jsx": "react-jsx",
     "paths": {
