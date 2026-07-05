@@ -146,6 +146,76 @@ export interface UpdateStoreOrderStatusDTO {
 }
 
 /**
+ * Terminal store order statuses — once an order reaches one of these it cannot
+ * transition to any other status. `getAllowedNextStatuses` returns [] for these.
+ */
+export const TERMINAL_STORE_ORDER_STATUSES: StoreOrderStatusType[] = [
+  StoreOrderStatusType.DELIVERED,
+  StoreOrderStatusType.CANCELLED,
+]
+
+/**
+ * Append-only history of an order's marketplace status changes. The current
+ * status of an order is the `status` of its most recent event; the full list
+ * powers the timeline on the vendor order details page. `order_id`/`seller_id`
+ * are plain cross-module text references (no defineLink), matching the rest of
+ * the marketplace_profile module.
+ */
+export interface StoreOrderStatusEventDTO {
+  id: string
+  order_id: string
+  seller_id: string
+  status: string
+  changed_by: string | null
+  note: string | null
+  metadata: Record<string, unknown> | null
+  created_at: Date
+  updated_at: Date
+  deleted_at: Date | null
+}
+
+export interface CreateStoreOrderStatusEventDTO {
+  order_id: string
+  seller_id: string
+  status: StoreOrderStatusType
+  changed_by?: string | null
+  note?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+/**
+ * Per-order marketplace extension (1:1 with a Medusa order). Holds
+ * denormalized columns the marketplace layer adds on top of the native order —
+ * currently the `current_status` (kept in sync with the latest
+ * StoreOrderStatusEvent) so list/filter views read one indexed row per order
+ * instead of scanning the append-only history. Future marketplace-specific
+ * order columns live here too. `order_id`/`seller_id` are plain text
+ * cross-module references (no defineLink).
+ */
+export interface OrderExtensionDTO {
+  id: string
+  order_id: string
+  seller_id: string
+  current_status: string
+  metadata: Record<string, unknown> | null
+  created_at: Date
+  updated_at: Date
+  deleted_at: Date | null
+}
+
+export interface CreateOrderExtensionDTO {
+  order_id: string
+  seller_id: string
+  current_status: StoreOrderStatusType
+  metadata?: Record<string, unknown> | null
+}
+
+export interface UpdateOrderExtensionDTO {
+  current_status?: StoreOrderStatusType
+  metadata?: Record<string, unknown> | null
+}
+
+/**
  * Canonical order-status rows seeded per store on creation, and the target of
  * the "Reset to defaults" action. Required rows (order_placed, delivered,
  * cancelled) are always active and cannot be toggled off in the UI.

@@ -5,6 +5,7 @@ import {
     MedusaContainer,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { DEFAULT_STORE_ORDER_STATUSES, MercurModules } from "@mercurjs/types"
 import { createSellerUser } from "../../../helpers/create-seller-user"
 import { createCustomerUser } from "../../../helpers/create-customer-user"
 import { generatePublishableKey, generateStoreHeaders } from "../../../helpers/create-admin-user"
@@ -790,6 +791,208 @@ medusaIntegrationTestRunner({
                         .catch((e) => e.response)
 
                     expect(response.status).toEqual(404)
+                })
+            })
+
+            describe("Vendor - Order Store Status", () => {
+                // A plain seller has no store_profile; seed one + the default
+                // active statuses so transitions have a status universe.
+                const seedStoreStatuses = async (sellerId: string) => {
+                    const service = appContainer.resolve(
+                        MercurModules.MARKETPLACE_PROFILE
+                    ) as any
+                    const [existingProfile] = await service.listStoreProfiles({
+                        seller_id: sellerId,
+                    })
+                    const storeProfile =
+                        existingProfile ??
+                        (await service.createStoreProfiles({ seller_id: sellerId }))
+
+                    const existing = await service.listStoreOrderStatuses({
+                        store_profile_id: storeProfile.id,
+                    })
+                    if (!existing.length) {
+                        await service.createStoreOrderStatuses(
+                            DEFAULT_STORE_ORDER_STATUSES.map((s) => ({
+                                store_profile_id: storeProfile.id,
+                                ...s,
+                            }))
+                        )
+                    }
+                    return storeProfile
+                }
+
+                const advance = (headers: any, orderId: string, status: string) =>
+                    api.post(
+                        `/vendor/orders/${orderId}/store-status`,
+                        { status },
+                        headers
+                    )
+
+                describe("GET /vendor/orders/:id/store-status", () => {
+                    it("defaults to order_placed with sequential allowed next", async () => {
+                        const { order } = await createCompletedOrder(
+                            seller1Headers,
+                            product1,
+                            stockLocation1
+                        )
+                        await seedStoreStatuses(_seller1.id)
+
+                        const res = await api.get(
+                            `/vendor/orders/${order.id}/store-status`,
+                            seller1Headers
+                        )
+
+                        expect(res.status).toEqual(200)
+                        expect(res.data.current).toEqual("order_placed")
+                        expect(res.data.allowed_next).toEqual([
+                            "confirmed",
+                            "cancelled",
+                        ])
+                        expect(res.data.history).toEqual([])
+                        expect(res.data.statuses.length).toBeGreaterThan(0)
+                    })
+
+                    it("does not allow reading another vendor's order status", async () => {
+                        const { order } = await createCompletedOrder(
+                            seller1Headers,
+                            product1,
+                            stockLocation1
+                        )
+                        await seedStoreStatuses(_seller1.id)
+
+                        const res = await api
+                            .get(
+                                `/vendor/orders/${order.id}/store-status`,
+                                seller2Headers
+                            )
+                            .catch((e) => e.response)
+
+                        expect(res.status).toEqual(404)
+                    })
+                })
+
+                describe("POST /vendor/orders/:id/store-status", () => {
+                    it("advances one step at a time and records history", async () => {
+                        const { order } = await createCompletedOrder(
+                            seller1Headers,
+                            product1,
+                            stockLocation1
+                        )
+                        await seedStoreStatuses(_seller1.id)
+
+                        const confirmed = await advance(
+                            seller1Headers,
+                            order.id,
+                            "confirmed"
+                        )
+                        expect(confirmed.status).toEqual(200)
+                        expect(confirmed.data.current).toEqual("confirmed")
+                        expect(confirmed.data.allowed_next).toEqual([
+                            "preparing",
+                            "cancelled",
+                        ])
+                        expect(confirmed.data.history[0].status).toEqual("confirmed")
+                    })
+
+                    it("rejects skipping ahead (non-sequential)", async () => {
+                        const { order } = await createCompletedOrder(
+                            seller1Headers,
+                            product1,
+                            stockLocation1
+                        )
+                        await seedStoreStatuses(_seller1.id)
+
+                        const res = await advance(
+                            seller1Headers,
+                            order.id,
+                            "preparing"
+                        ).catch((e) => e.response)
+
+                        expect(res.status).toEqual(400)
+                    })
+
+                    it("walks to delivered then locks (terminal)", async () => {
+                        const { order } = await createCompletedOrder(
+                            seller1Headers,
+                            product1,
+                            stockLocation1
+                        )
+                        await seedStoreStatuses(_seller1.id)
+
+                        for (const status of [
+                            "confirmed",
+                            "preparing",
+                            "ready_for_pickup",
+                            "out_for_delivery",
+                            "delivered",
+                        ]) {
+                            const step = await advance(seller1Headers, order.id, status)
+                            expect(step.status).toEqual(200)
+                            expect(step.data.current).toEqual(status)
+                        }
+
+                        const delivered = await api.get(
+                            `/vendor/orders/${order.id}/store-status`,
+                            seller1Headers
+                        )
+                        expect(delivered.data.allowed_next).toEqual([])
+
+                        const locked = await advance(
+                            seller1Headers,
+                            order.id,
+                            "cancelled"
+                        ).catch((e) => e.response)
+                        expect(locked.status).toEqual(400)
+                    })
+
+                    it("cancels the underlying Medusa order and locks", async () => {
+                        const { order } = await createCompletedOrder(
+                            seller1Headers,
+                            product1,
+                            stockLocation1
+                        )
+                        await seedStoreStatuses(_seller1.id)
+
+                        const cancelled = await advance(
+                            seller1Headers,
+                            order.id,
+                            "cancelled"
+                        )
+                        expect(cancelled.status).toEqual(200)
+                        expect(cancelled.data.current).toEqual("cancelled")
+                        expect(cancelled.data.allowed_next).toEqual([])
+
+                        const orderRes = await api.get(
+                            `/vendor/orders/${order.id}`,
+                            seller1Headers
+                        )
+                        expect(orderRes.data.order.status).toEqual("canceled")
+
+                        const locked = await advance(
+                            seller1Headers,
+                            order.id,
+                            "confirmed"
+                        ).catch((e) => e.response)
+                        expect(locked.status).toEqual(400)
+                    })
+
+                    it("does not allow updating another vendor's order status", async () => {
+                        const { order } = await createCompletedOrder(
+                            seller1Headers,
+                            product1,
+                            stockLocation1
+                        )
+                        await seedStoreStatuses(_seller1.id)
+
+                        const res = await advance(
+                            seller2Headers,
+                            order.id,
+                            "confirmed"
+                        ).catch((e) => e.response)
+
+                        expect(res.status).toEqual(404)
+                    })
                 })
             })
         })

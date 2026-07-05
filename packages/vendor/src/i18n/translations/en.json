@@ -1213,6 +1213,17 @@
     "return": "Return",
     "cancelWarning": "You are about to cancel the order {{id}}. This action cannot be undone.",
     "orderCanceled": "Order canceled successfully",
+    "storeStatus": {
+      "title": "Order status",
+      "selectPlaceholder": "Select next status",
+      "update": "Update",
+      "history": "Status history",
+      "terminal": "This order has reached a final status and can no longer be changed.",
+      "updated": "Order status updated",
+      "cancelTitle": "Cancel this order?",
+      "cancelWarning": "You are about to cancel order {{id}}. This action cannot be undone.",
+      "changedBySystem": "System"
+    },
     "onDateFromSalesChannel": "{{date}} from {{salesChannel}}",
     "list": {
       "noRecordsMessage": "Your orders will show up here."

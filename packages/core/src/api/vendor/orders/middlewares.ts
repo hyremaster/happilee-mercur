@@ -20,6 +20,7 @@ import {
   VendorGetOrderChangesParams,
   VendorGetOrderParams,
   VendorGetOrdersParams,
+  VendorUpdateOrderStoreStatus,
 } from "./validators"
 
 const applySellerLinkFilter = (
@@ -92,6 +93,16 @@ export const vendorOrdersMiddlewares: MiddlewareRoute[] = [
         vendorOrderChangesQueryConfig.list
       ),
     ],
+  },
+  {
+    method: ["GET"],
+    matcher: "/vendor/orders/:id/store-status",
+    middlewares: [],
+  },
+  {
+    method: ["POST"],
+    matcher: "/vendor/orders/:id/store-status",
+    middlewares: [validateAndTransformBody(VendorUpdateOrderStoreStatus)],
   },
   {
     method: ["POST"],

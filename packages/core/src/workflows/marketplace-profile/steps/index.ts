@@ -1,12 +1,24 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { MercurModules, StoreOnboardingDraftStatus } from "@mercurjs/types"
+import {
+  cancelOrderWorkflow,
+  markOrderFulfillmentAsDeliveredWorkflow,
+} from "@medusajs/medusa/core-flows"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  MercurModules,
+  StoreOnboardingDraftStatus,
+  StoreOrderStatusType,
+} from "@mercurjs/types"
 import type {
   CreateStoreProfileDTO,
   CreateStoreOrderStatusDTO,
+  CreateStoreOrderStatusEventDTO,
   CreateStoreLocationDetailDTO,
 } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../modules/marketplace-profile/service"
+import { assertTransitionAllowed } from "../utils/order-status-transitions"
+import { resolveOrderStoreStatusContext } from "../utils/resolve-order-store-status"
 
 export const createStoreProfileStep = createStep(
   "create-store-profile",
@@ -169,6 +181,107 @@ export const markDraftSubmittedStep = createStep(
       status: rollback.prev_status,
       submitted_seller_id: rollback.prev_seller,
     })
+  }
+)
+
+/**
+ * Guard: the requested status must be a valid next move from the order's current
+ * marketplace status given the store's active status config. Read-only.
+ */
+export const validateOrderStatusTransitionStep = createStep(
+  "validate-order-status-transition",
+  async (
+    input: {
+      seller_id: string
+      order_id: string
+      status: StoreOrderStatusType
+    },
+    { container }
+  ) => {
+    const ctx = await resolveOrderStoreStatusContext(
+      container,
+      input.seller_id,
+      input.order_id
+    )
+    assertTransitionAllowed(ctx.statuses, ctx.current, input.status)
+    return new StepResponse({ current: ctx.current })
+  }
+)
+
+/** Append one row to the order's marketplace status history. */
+export const createStoreOrderStatusEventStep = createStep(
+  "create-store-order-status-event",
+  async (input: CreateStoreOrderStatusEventDTO, { container }) => {
+    const service = container.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+    const [created] = await service.createStoreOrderStatusEvents([input])
+    return new StepResponse(created, created.id)
+  },
+  async (id, { container }) => {
+    if (!id) {
+      return
+    }
+    const service = container.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+    await service.deleteStoreOrderStatusEvents(id)
+  }
+)
+
+/**
+ * Sync key marketplace transitions into Medusa's native order state:
+ *   - `cancelled` → cancel the Medusa order.
+ *   - `delivered` → mark every not-yet-delivered fulfillment as delivered.
+ * Other statuses are marketplace-only and touch nothing. No compensation: these
+ * native transitions are not cleanly reversible and this is the final step.
+ */
+export const syncMedusaOrderStateStep = createStep(
+  "sync-medusa-order-state",
+  async (
+    input: {
+      order_id: string
+      seller_id: string
+      status: StoreOrderStatusType
+    },
+    { container }
+  ) => {
+    if (input.status === StoreOrderStatusType.CANCELLED) {
+      await cancelOrderWorkflow(container).run({
+        input: { order_id: input.order_id, canceled_by: input.seller_id },
+      })
+    } else if (input.status === StoreOrderStatusType.DELIVERED) {
+      const query = container.resolve(ContainerRegistrationKeys.QUERY)
+      const {
+        data: [order],
+      } = await query.graph({
+        entity: "order",
+        fields: [
+          "id",
+          "fulfillments.id",
+          "fulfillments.delivered_at",
+          "fulfillments.canceled_at",
+        ],
+        filters: { id: input.order_id },
+      })
+
+      const fulfillments = (order?.fulfillments ?? []) as Array<{
+        id: string
+        delivered_at: Date | null
+        canceled_at: Date | null
+      }>
+
+      for (const fulfillment of fulfillments) {
+        if (fulfillment.delivered_at || fulfillment.canceled_at) {
+          continue
+        }
+        await markOrderFulfillmentAsDeliveredWorkflow(container).run({
+          input: { orderId: input.order_id, fulfillmentId: fulfillment.id },
+        })
+      }
+    }
+
+    return new StepResponse(null)
   }
 )
 
