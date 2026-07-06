@@ -35,6 +35,7 @@ import {
 import { StorefrontSetupStep, isStorefrontValid } from "./_components/steps/storefront-setup-step";
 import { SuccessStep } from "./_components/steps/success-step";
 import type { FulfillmentCentre, WizardStep } from "./_components/types";
+import { useHandleAvailability } from "./_components/use-handle-availability";
 import { useStoreSetup } from "./_components/use-store-setup";
 import { WizardShell } from "./_components/wizard-shell";
 
@@ -125,6 +126,13 @@ export const OnboardPage = () => {
 
   const stepIndex = Math.min(state.currentStep, 3) as 0 | 1 | 2 | 3;
   const heading = STEP_HEADINGS[stepIndex];
+  const handleAvailability = useHandleAvailability(
+    state.currentStep === 3 ? state.storefront.handle : "",
+  );
+  const storefrontIsValid = isStorefrontValid(
+    state.storefront,
+    handleAvailability.isAvailable,
+  );
 
   const handleContinue = async () => {
     if (state.currentStep === 0) {
@@ -212,7 +220,7 @@ export const OnboardPage = () => {
     }
 
     if (state.currentStep === 3) {
-      if (!isStorefrontValid(state.storefront)) {
+      if (!storefrontIsValid) {
         toast.error("Please complete all required storefront details.");
         return;
       }
@@ -333,7 +341,7 @@ export const OnboardPage = () => {
           (state.currentStep === 1 && !isCommerceTypeValid(state.commerce)) ||
           (state.currentStep === 2 &&
             !isFulfillmentValid(state.fulfillmentCentres, state.payment)) ||
-          (state.currentStep === 3 && !isStorefrontValid(state.storefront))
+          (state.currentStep === 3 && !storefrontIsValid)
         }
         isContinueLoading={isSavingStep}
       >
@@ -387,6 +395,7 @@ export const OnboardPage = () => {
         {state.currentStep === 3 && (
           <StorefrontSetupStep
             data={state.storefront}
+            handleAvailability={handleAvailability}
             onChange={(patch) =>
               updateState({ storefront: { ...state.storefront, ...patch } })
             }

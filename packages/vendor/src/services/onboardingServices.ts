@@ -106,6 +106,21 @@ export const submitDraft = async (
   }) as Promise<SubmitDraftResponse>;
 };
 
+export type CheckHandleResponse = {
+  available: boolean;
+  handle: string;
+  reason?: string;
+};
+
+export const checkHandleAvailability = async (
+  handle: string,
+): Promise<CheckHandleResponse> => {
+  return fetchQuery("/vendor/store-onboarding/check-handle", {
+    method: "GET",
+    query: { handle },
+  }) as Promise<CheckHandleResponse>;
+};
+
 export const saveBusinessDetailsStep = async (
   draftId: string | null,
   data: Record<string, unknown>,

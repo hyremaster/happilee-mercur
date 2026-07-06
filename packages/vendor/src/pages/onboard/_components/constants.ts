@@ -229,4 +229,3 @@ export const STEP_HEADINGS = [
 ];
 
 export const HANDLE_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-export const TAKEN_HANDLES = ["greenmart", "freshbites", "stylehub"];

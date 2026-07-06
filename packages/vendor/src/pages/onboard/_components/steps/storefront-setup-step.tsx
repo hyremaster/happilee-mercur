@@ -9,7 +9,9 @@ import * as HappileeUI from "@happilee-app/ui";
 import type { ComponentType } from "react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "@medusajs/ui";
-import { HANDLE_REGEX, STOREFRONT_TEMPLATES, TAKEN_HANDLES, URL_PREFIX } from "../constants";
+import { STOREFRONT_TEMPLATES, URL_PREFIX } from "../constants";
+import { getHandleFormatStatus } from "../handle-utils";
+import type { HandleAvailabilityState } from "../use-handle-availability";
 import type { StorefrontConfig } from "../types";
 
 const StorefrontTemplateCard = (
@@ -22,31 +24,22 @@ const StorefrontTemplateCard = (
 
 type StorefrontSetupStepProps = {
   data: StorefrontConfig;
+  handleAvailability: HandleAvailabilityState;
   onChange: (patch: Partial<StorefrontConfig>) => void;
   onPreviewTemplate: (templateId: string) => void;
 };
 
-export function getHandleStatus(handle: string) {
-  if (!handle.trim()) return { valid: false, message: "" };
-  if (!HANDLE_REGEX.test(handle)) {
-    return {
-      valid: false,
-      message: "Only lowercase letters, numbers, and hyphens are allowed",
-    };
-  }
-  if (TAKEN_HANDLES.includes(handle.toLowerCase())) {
-    return { valid: false, message: "This handle is already taken" };
-  }
-  return { valid: true, message: "Handle is available" };
-}
-
-export function isStorefrontValid(data: StorefrontConfig) {
-  const handleStatus = getHandleStatus(data.handle);
-  return handleStatus.valid && !!data.template;
+export function isStorefrontValid(
+  data: StorefrontConfig,
+  handleAvailable: boolean,
+) {
+  const formatStatus = getHandleFormatStatus(data.handle);
+  return formatStatus.valid && handleAvailable && !!data.template;
 }
 
 export const StorefrontSetupStep = ({
   data,
+  handleAvailability,
   onChange,
   onPreviewTemplate,
 }: StorefrontSetupStepProps) => {
@@ -139,10 +132,20 @@ export const StorefrontSetupStep = ({
         <span className="text-sm text-text-tertiary">
           This is your unique storefront URL.
         </span>
-        <div className="flex items-center gap-xs">
-          <CheckCircle size={16} className="text-fg-success" />
-          <span className="text-sm text-text-success">Handle is available</span>
-        </div>
+        {handleAvailability.isChecking && (
+          <span className="text-sm text-text-tertiary">Checking availability...</span>
+        )}
+        {!handleAvailability.isChecking && handleAvailability.isAvailable && (
+          <div className="flex items-center gap-xs">
+            <CheckCircle size={16} className="text-fg-success" />
+            <span className="text-sm text-text-success">{handleAvailability.message}</span>
+          </div>
+        )}
+        {!handleAvailability.isChecking &&
+          !handleAvailability.isAvailable &&
+          handleAvailability.message && (
+            <span className="text-sm text-text-error">{handleAvailability.message}</span>
+          )}
       </div>
 
       <div className="flex w-full flex-col gap-md">
