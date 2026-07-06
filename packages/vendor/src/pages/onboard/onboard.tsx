@@ -36,6 +36,7 @@ import { StorefrontSetupStep, isStorefrontValid } from "./_components/steps/stor
 import { SuccessStep } from "./_components/steps/success-step";
 import type { FulfillmentCentre, WizardStep } from "./_components/types";
 import { useHandleAvailability } from "./_components/use-handle-availability";
+import { useStorefrontTemplates } from "./_components/use-storefront-templates";
 import { useStoreSetup } from "./_components/use-store-setup";
 import { WizardShell } from "./_components/wizard-shell";
 
@@ -66,7 +67,7 @@ export const OnboardPage = () => {
     | null
   >(null);
   const [isTemplatePreviewOpen, setIsTemplatePreviewOpen] = useState(false);
-  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
+  const [previewTemplateKey, setPreviewTemplateKey] = useState<string | null>(null);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [isSavingStep, setIsSavingStep] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -129,6 +130,12 @@ export const OnboardPage = () => {
   const handleAvailability = useHandleAvailability(
     state.currentStep === 3 ? state.storefront.handle : "",
   );
+  const {
+    templates: storefrontTemplates,
+    isLoading: isLoadingStorefrontTemplates,
+    isError: isStorefrontTemplatesError,
+    refetch: refetchStorefrontTemplates,
+  } = useStorefrontTemplates();
   const storefrontIsValid = isStorefrontValid(
     state.storefront,
     handleAvailability.isAvailable,
@@ -302,8 +309,8 @@ export const OnboardPage = () => {
     });
   };
 
-  const handlePreviewTemplate = (templateId: string) => {
-    setPreviewTemplateId(templateId);
+  const handlePreviewTemplate = (templateKey: string) => {
+    setPreviewTemplateKey(templateKey);
     setIsTemplatePreviewOpen(true);
   };
 
@@ -396,6 +403,10 @@ export const OnboardPage = () => {
           <StorefrontSetupStep
             data={state.storefront}
             handleAvailability={handleAvailability}
+            templates={storefrontTemplates}
+            isLoadingTemplates={isLoadingStorefrontTemplates}
+            isTemplatesError={isStorefrontTemplatesError}
+            onRetryTemplates={() => void refetchStorefrontTemplates()}
             onChange={(patch) =>
               updateState({ storefront: { ...state.storefront, ...patch } })
             }
@@ -434,10 +445,12 @@ export const OnboardPage = () => {
 
       <TemplatePreviewModal
         isOpen={isTemplatePreviewOpen}
-        templateId={previewTemplateId}
+        templateKey={previewTemplateKey}
+        templates={storefrontTemplates}
+        storeHandle={state.storefront.handle}
         onOpenChange={setIsTemplatePreviewOpen}
-        onChooseTemplate={(templateId) =>
-          updateState({ storefront: { ...state.storefront, template: templateId } })
+        onChooseTemplate={(templateKey) =>
+          updateState({ storefront: { ...state.storefront, template: templateKey } })
         }
       />
 

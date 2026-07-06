@@ -161,12 +161,6 @@ export const PAYMENT_GATEWAYS = [
   { id: "payu", label: "PayU" },
 ];
 
-export const STOREFRONT_TEMPLATES = [
-  { id: "classic", label: "Classic Store" },
-  { id: "minimal", label: "Modern Minimal" },
-  { id: "bold", label: "Bold Showcase" },
-] as const;
-
 export const DEFAULT_FULFILLMENT_CENTRES = [
   {
     id: "whitefield",

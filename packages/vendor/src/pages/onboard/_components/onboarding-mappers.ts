@@ -46,15 +46,17 @@ const fromApiCommerceType = (
   }
 };
 
+const LEGACY_STOREFRONT_TEMPLATE_KEYS: Record<string, string> = {
+  minimal: "modern_minimal",
+  bold: "bold_showcase",
+};
+
 const fromApiStorefrontTemplate = (template: string | undefined): string => {
-  switch (template) {
-    case "modern_minimal":
-      return "minimal";
-    case "bold_showcase":
-      return "bold";
-    default:
-      return template ?? "classic";
+  if (!template) {
+    return "classic";
   }
+
+  return LEGACY_STOREFRONT_TEMPLATE_KEYS[template] ?? template;
 };
 
 const draftStepToWizardStep = (onboardingStep: number): WizardStep => {
@@ -248,14 +250,7 @@ const toApiCommerceType = (commerceType: CommerceConfig["commerceType"]) => {
 };
 
 const toApiStorefrontTemplate = (template: string) => {
-  switch (template) {
-    case "minimal":
-      return "modern_minimal";
-    case "bold":
-      return "bold_showcase";
-    default:
-      return template;
-  }
+  return LEGACY_STOREFRONT_TEMPLATE_KEYS[template] ?? template;
 };
 
 const resolveCountryCode = (country: string): string | null => {

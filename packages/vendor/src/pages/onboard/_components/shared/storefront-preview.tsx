@@ -27,7 +27,13 @@ function ProductCard({ name, price }: { name: string; price: string }) {
   );
 }
 
-export function BrowserFrame({ children }: { children: ReactNode }) {
+export function BrowserFrame({
+  children,
+  storeHandle = "your-store",
+}: {
+  children: ReactNode;
+  storeHandle?: string;
+}) {
   return (
     <div className="overflow-hidden rounded-lg border border-border-secondary">
       <div className="flex items-center gap-md border-b border-border-secondary bg-bg-secondary px-lg py-sm">
@@ -45,7 +51,7 @@ export function BrowserFrame({ children }: { children: ReactNode }) {
         />
         <div className="min-w-0 flex-1">
           <InputField
-            value="commerce.happilee.io/stores/greenmart"
+            value={`commerce.happilee.io/stores/${storeHandle}`}
             isDisabled
             size="sm"
             aria-label="Store URL"

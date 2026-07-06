@@ -1,32 +1,27 @@
-import { CheckCircle, Copy01 } from "@happilee-app/icons";
-import {
-  Button,
-  InputField,
-  RadioCard,
-  RadioCardGroup,
-} from "@happilee-app/ui";
-import * as HappileeUI from "@happilee-app/ui";
-import type { ComponentType } from "react";
+import { CheckCircle, Copy01, RefreshCw01 } from "@happilee-app/icons";
+import { Button, InputField, RadioCardGroup, StorefrontTemplateCard } from "@happilee-app/ui";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "@medusajs/ui";
-import { STOREFRONT_TEMPLATES, URL_PREFIX } from "../constants";
+import type { StorefrontTemplate } from "../../../../services/onboardingServices";
+import { URL_PREFIX } from "../constants";
 import { getHandleFormatStatus } from "../handle-utils";
+import { StorefrontTemplateSkeleton } from "../shared/storefront-template-option";
 import type { HandleAvailabilityState } from "../use-handle-availability";
 import type { StorefrontConfig } from "../types";
 
-const StorefrontTemplateCard = (
-  HappileeUI as { StorefrontTemplateCard?: ComponentType<{
-    value: string;
-    title: string;
-    onPreview?: () => void;
-  }> }
-).StorefrontTemplateCard ?? null;
+/** Makes StorefrontTemplateCard square — the primitive uses aspect-[16/10] on the preview. */
+const SQUARE_STOREFRONT_TEMPLATE_CARD_CLASS =
+  "aspect-square [&>div:first-child]:aspect-auto [&>div:first-child]:min-h-0 [&>div:first-child]:flex-1 [&>div:first-child]:shrink [&>div:last-child]:shrink-0";
 
 type StorefrontSetupStepProps = {
   data: StorefrontConfig;
   handleAvailability: HandleAvailabilityState;
+  templates: StorefrontTemplate[];
+  isLoadingTemplates: boolean;
+  isTemplatesError: boolean;
+  onRetryTemplates: () => void;
   onChange: (patch: Partial<StorefrontConfig>) => void;
-  onPreviewTemplate: (templateId: string) => void;
+  onPreviewTemplate: (templateKey: string) => void;
 };
 
 export function isStorefrontValid(
@@ -40,6 +35,10 @@ export function isStorefrontValid(
 export const StorefrontSetupStep = ({
   data,
   handleAvailability,
+  templates,
+  isLoadingTemplates,
+  isTemplatesError,
+  onRetryTemplates,
   onChange,
   onPreviewTemplate,
 }: StorefrontSetupStepProps) => {
@@ -161,40 +160,56 @@ export const StorefrontSetupStep = ({
           </span>
         </div>
 
-        <RadioCardGroup
-          aria-label="Storefront template"
-          value={data.template}
-          onChange={(value) => onChange({ template: value })}
-          columns={3}
-          className="w-full"
-        >
-          {STOREFRONT_TEMPLATES.map((tpl) =>
-            StorefrontTemplateCard ? (
-              <StorefrontTemplateCard
-                key={tpl.id}
-                value={tpl.id}
-                title={tpl.label}
-                onPreview={() => onPreviewTemplate(tpl.id)}
-              />
-            ) : (
-              <RadioCard
-                key={tpl.id}
-                value={tpl.id}
-                title={tpl.label}
-                description="Preview available"
-              />
-            ),
-          )}
-        </RadioCardGroup>
+        {isLoadingTemplates && (
+          <div className="grid w-full grid-cols-3 items-start gap-md">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <StorefrontTemplateSkeleton key={index} />
+            ))}
+          </div>
+        )}
 
-        {!StorefrontTemplateCard && data.template && (
-          <Button
-            hierarchy="ghost"
-            size="sm"
-            onPress={() => onPreviewTemplate(data.template)}
+        {!isLoadingTemplates && isTemplatesError && (
+          <div className="flex w-full flex-col items-start gap-md rounded-xl border border-border-secondary bg-bg-secondary px-xl py-lg">
+            <p className="text-sm text-text-secondary">
+              We couldn&apos;t load storefront templates right now.
+            </p>
+            <Button
+              hierarchy="secondary"
+              size="sm"
+              iconLeading={<RefreshCw01 />}
+              onPress={onRetryTemplates}
+            >
+              Try again
+            </Button>
+          </div>
+        )}
+
+        {!isLoadingTemplates && !isTemplatesError && templates.length > 0 && (
+          <RadioCardGroup
+            aria-label="Storefront template"
+            value={data.template}
+            onChange={(value) => onChange({ template: value })}
+            columns={3}
+            className="w-full"
           >
-            Preview selected template
-          </Button>
+            {templates.map((template) => (
+              <StorefrontTemplateCard
+                key={template.key}
+                className={SQUARE_STOREFRONT_TEMPLATE_CARD_CLASS}
+                value={template.key}
+                title={template.name}
+                previewSrc={template.preview_image_url ?? undefined}
+                previewAlt={`${template.name} preview`}
+                onPreview={() => onPreviewTemplate(template.key)}
+              />
+            ))}
+          </RadioCardGroup>
+        )}
+
+        {!isLoadingTemplates && !isTemplatesError && templates.length === 0 && (
+          <div className="rounded-xl border border-border-secondary bg-bg-secondary px-xl py-lg text-sm text-text-tertiary">
+            No storefront templates are available yet. Please try again later.
+          </div>
         )}
       </div>
     </div>

@@ -1,29 +1,45 @@
-import { ArrowLeft, Check, SearchLg } from "@happilee-app/icons";
-import { Button, Modal, UtilityButton } from "@happilee-app/ui";
-import { STOREFRONT_TEMPLATES } from "../constants";
-import { BrowserFrame, StorefrontPlaceholder } from "../shared/storefront-preview";
+import { ArrowLeft, Check } from "@happilee-app/icons";
+import { Button, Modal } from "@happilee-app/ui";
+import { useEffect, useState } from "react";
+import type { StorefrontTemplate } from "../../../../services/onboardingServices";
+import { BrowserFrame } from "../shared/storefront-preview";
 
 type TemplatePreviewModalProps = {
   isOpen: boolean;
-  templateId: string | null;
+  templateKey: string | null;
+  templates: StorefrontTemplate[];
+  storeHandle?: string;
   onOpenChange: (open: boolean) => void;
-  onChooseTemplate: (templateId: string) => void;
+  onChooseTemplate: (templateKey: string) => void;
 };
 
 export const TemplatePreviewModal = ({
   isOpen,
-  templateId,
+  templateKey,
+  templates,
+  storeHandle,
   onOpenChange,
   onChooseTemplate,
 }: TemplatePreviewModalProps) => {
-  const templateLabel =
-    STOREFRONT_TEMPLATES.find((t) => t.id === templateId)?.label ?? "Classic Store";
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const template = templates.find((item) => item.key === templateKey) ?? null;
+  const previewUrl = template?.preview_image_url ?? null;
+  const displayHandle = storeHandle?.trim() || "your-store";
+  const previewTitle = template?.name ?? "Template preview";
+
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [previewUrl, isOpen]);
 
   return (
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title={`Template Preview — ${templateLabel}`}
+      title={previewTitle}
+      subtitle={
+        template?.description ??
+        "This is how your customer-facing storefront could look."
+      }
       size="xl"
       footer={
         <>
@@ -40,7 +56,7 @@ export const TemplatePreviewModal = ({
             size="md"
             iconLeading={<Check />}
             onPress={() => {
-              if (templateId) onChooseTemplate(templateId);
+              if (templateKey) onChooseTemplate(templateKey);
               onOpenChange(false);
             }}
           >
@@ -49,19 +65,29 @@ export const TemplatePreviewModal = ({
         </>
       }
     >
-      <div className="flex flex-col gap-xl">
-        <div className="flex items-center justify-end">
-          <UtilityButton
-            icon={<SearchLg />}
-            aria-label="Search templates"
-            variant="tertiary"
-            size="md"
-          />
-        </div>
-        <BrowserFrame>
-          <StorefrontPlaceholder />
-        </BrowserFrame>
-      </div>
+      <BrowserFrame storeHandle={displayHandle}>
+        {previewUrl ? (
+          <div className="relative min-h-[420px] bg-bg-secondary">
+            {!imageLoaded && (
+              <div className="absolute inset-0 animate-pulse bg-bg-secondary" />
+            )}
+            <img
+              key={previewUrl}
+              src={previewUrl}
+              alt={`${previewTitle} preview`}
+              className={`
+                block h-auto w-full transition-opacity duration-300
+                ${imageLoaded ? "opacity-100" : "opacity-0"}
+              `}
+              onLoad={() => setImageLoaded(true)}
+            />
+          </div>
+        ) : (
+          <div className="flex min-h-[320px] items-center justify-center bg-bg-secondary px-xl text-center text-sm text-text-tertiary">
+            Preview image is not available for this template.
+          </div>
+        )}
+      </BrowserFrame>
     </Modal>
   );
 };

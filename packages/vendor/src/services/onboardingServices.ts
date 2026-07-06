@@ -112,6 +112,23 @@ export type CheckHandleResponse = {
   reason?: string;
 };
 
+export type StorefrontTemplate = {
+  id: string;
+  name: string;
+  key: string;
+  description: string | null;
+  preview_image_url: string | null;
+  is_active: boolean;
+  rank: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type ListStorefrontTemplatesResponse = {
+  storefront_templates: StorefrontTemplate[];
+};
+
 export const checkHandleAvailability = async (
   handle: string,
 ): Promise<CheckHandleResponse> => {
@@ -119,6 +136,12 @@ export const checkHandleAvailability = async (
     method: "GET",
     query: { handle },
   }) as Promise<CheckHandleResponse>;
+};
+
+export const listStorefrontTemplates = async (): Promise<ListStorefrontTemplatesResponse> => {
+  return fetchQuery("/vendor/storefront-templates", {
+    method: "GET",
+  }) as Promise<ListStorefrontTemplatesResponse>;
 };
 
 export const saveBusinessDetailsStep = async (
