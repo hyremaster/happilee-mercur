@@ -14,6 +14,12 @@ export type VendorProductCategoryListResponse = PaginatedResponse<{
   product_categories: ProductCategoryDTO[]
 }>
 
+export interface VendorProductCategoryDeleteResponse {
+  id: string
+  object: string
+  deleted: boolean
+}
+
 export type VendorProductCategoryProductsResponse = PaginatedResponse<{
   /**
    * The list of products in the category.

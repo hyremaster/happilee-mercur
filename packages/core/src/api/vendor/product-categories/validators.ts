@@ -5,6 +5,26 @@ import {
 } from "@medusajs/medusa/api/utils/validators"
 import { booleanString } from "@medusajs/medusa/api/utils/common-validators/common"
 
+export const VendorCreateProductCategoryBody = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  handle: z.string().optional(),
+  is_active: z.boolean().optional(),
+  is_internal: z.boolean().optional(),
+  rank: z.number().optional(),
+  parent_category_id: z.string().nullish(),
+  metadata: z.record(z.unknown()).optional(),
+})
+export type VendorCreateProductCategoryBodyType = z.infer<
+  typeof VendorCreateProductCategoryBody
+>
+
+export const VendorUpdateProductCategoryBody =
+  VendorCreateProductCategoryBody.partial()
+export type VendorUpdateProductCategoryBodyType = z.infer<
+  typeof VendorUpdateProductCategoryBody
+>
+
 export type VendorGetProductCategoryParamsType = z.infer<
   typeof VendorGetProductCategoryParams
 >

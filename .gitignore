@@ -38,6 +38,9 @@ yarn-error.log*
 .DS_Store
 *.pem
 
+# Vite dev cache
+vite.config.ts.timestamp-*.mjs
+
 apps/backend/.medusa
 packages/modules/*
 

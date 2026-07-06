@@ -323,6 +323,10 @@ export function getRouteMap({
                     },
                     children: [
                       {
+                        path: "create",
+                        lazy: () => import("./pages/categories/create"),
+                      },
+                      {
                         path: "organize",
                         lazy: () => import("./pages/categories/organize"),
                       },

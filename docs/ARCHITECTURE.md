@@ -44,7 +44,7 @@ The repository is a Turborepo monorepo managed with Bun. It contains the framewo
 Dashboards (separate Vite apps that talk to the API above):
 
 +-----------------------------------+   +---------------------------------+
-|  Admin (apps/admin-test :7000)    |   |  Vendor (apps/vendor :7001)     |
+|  Admin (apps/admin :7000)    |   |  Vendor (apps/vendor :7001)     |
 |  @mercurjs/admin pages            |   |  @mercurjs/vendor pages         |
 |  @mercurjs/dashboard-shared       |   |  @mercurjs/dashboard-shared     |
 |  @mercurjs/dashboard-sdk (Vite    |   |  @mercurjs/dashboard-sdk        |
@@ -103,7 +103,7 @@ Stripe Connect implementation for the `payout` module: creates connected account
 ## Apps (starters wired to the packages)
 
 - **`apps/api`** — Medusa 2.x server. `medusa-config.ts` calls `withMercur()` to mount the core plugin and RBAC module. Exposes `/admin`, `/vendor`, and `/store` routes. Scripts: `dev`, `start`, `test:integration:http`, `test:integration:modules`, `test:unit`.
-- **`apps/admin-test`** — Vite app on **port 7000**. Mounts `@mercurjs/admin`, runs `mercurDashboardPlugin` from `@mercurjs/dashboard-sdk`, and points at the API. Drop a `page.tsx` under `src/routes` to add an admin page.
+- **`apps/admin`** — Vite app on **port 7000**. Mounts `@mercurjs/admin`, runs `mercurDashboardPlugin` from `@mercurjs/dashboard-sdk`, and points at the API. Drop a `page.tsx` under `src/routes` to add an admin page.
 - **`apps/vendor`** — Vite app on **port 7001**. Same setup as admin but mounts `@mercurjs/vendor`. Used by sellers.
 - **`apps/docs`** — Mintlify documentation site.
 
@@ -140,7 +140,7 @@ Vendor UI (apps/vendor) form submit
 
 ### Operator approves a seller
 ```
-Admin UI (apps/admin-test) action
+Admin UI (apps/admin) action
   -> sdk.admin.sellers.$id.mutate({ $id, status: "approved" })
     -> POST /admin/sellers/:id on apps/api
       -> packages/core admin route
@@ -160,7 +160,7 @@ Storefront cart contains items from sellers A and B
 
 ## Extension Points
 
-1. **Custom pages** — drop `page.tsx` files under `apps/admin-test/src/routes` or `apps/vendor/src/routes`; `@mercurjs/dashboard-sdk` picks them up at build time.
+1. **Custom pages** — drop `page.tsx` files under `apps/admin/src/routes` or `apps/vendor/src/routes`; `@mercurjs/dashboard-sdk` picks them up at build time.
 2. **Blocks** — install with `mercurjs add <block>`; declared in `blocks.json`. Blocks can ship API routes, modules, workflows, and dashboard pages.
 3. **Workflows** — Medusa's workflow system lets you wrap or re-compose Mercur workflows in your own API routes.
 4. **Modules** — add new Medusa modules in `apps/api` alongside the core plugin.
@@ -172,7 +172,7 @@ Storefront cart contains items from sellers A and B
 apps/api
   └── @mercurjs/core ───────────────┐
                                     ├── @mercurjs/types
-apps/admin-test    apps/vendor      │
+apps/admin    apps/vendor      │
   ├── @mercurjs/admin / vendor      │
   ├── @mercurjs/dashboard-shared ───┤
   ├── @mercurjs/dashboard-sdk ──────┤

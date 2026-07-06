@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "@happilee-app/ui": "^0.2.0",
-    "@mercurjs/core": "workspace:*"
+    "@mercurjs/core": "workspace:*",
+    "@mercurjs/payment-razorpay": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
