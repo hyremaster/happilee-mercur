@@ -73,8 +73,11 @@ export const StoresPage = () => {
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
   return (
-    <StoreSetupLayout minHeight="h-screen" contentClassName="">
-      <div className="flex flex-col">
+    <StoreSetupLayout
+      minHeight="h-[calc(100vh-16px)]"
+      contentClassName="min-h-0"
+    >
+      <div className="flex shrink-0 flex-col">
         <div className="flex items-center gap-md px-3xl py-xl">
           <UtilityButton
             icon={<ArrowLeft />}
@@ -116,8 +119,8 @@ export const StoresPage = () => {
         <div className="h-px w-full border-b border-border-secondary" />
       </div>
 
-      <div className="flex flex-col gap-xl px-3xl py-2xl">
-        <div className="flex justify-end">
+      <div className="flex min-h-0 flex-1 flex-col gap-xl px-3xl py-2xl">
+        <div className="flex shrink-0 justify-end">
           <SearchAndFilters />
         </div>
 
@@ -171,10 +174,13 @@ export const StoresPage = () => {
             </CardBody>
           </Card>
         ) : (
-          <Card className="w-full">
-            <CardBody className="overflow-x-auto p-0">
-              <Table aria-label="Stores" className="min-w-[700px]">
-                <TableHeader>
+          <Card className="flex min-h-0 w-full flex-1 flex-col">
+            <CardBody className="min-h-0 flex-1 overflow-auto p-0">
+              <Table
+                aria-label="Stores"
+                className="min-w-[700px] border-separate border-spacing-0"
+              >
+                <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-bg-secondary">
                   <Column>Store name</Column>
                   <Column allowsSorting>Status</Column>
                   <Column>Industry</Column>
@@ -234,7 +240,7 @@ export const StoresPage = () => {
                 </TableBody>
               </Table>
             </CardBody>
-            <CardFooter className="p-0">
+            <CardFooter className="shrink-0 p-0">
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
