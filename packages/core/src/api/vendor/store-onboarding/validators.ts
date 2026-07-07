@@ -176,6 +176,26 @@ export const VendorUpdateStoreLocation = z.object({
   longitude: z.number().nullish(),
 })
 
+// ---- Area Sense delivery areas (wizard step 2) ----------------------------
+
+// GET /vendor/store-onboarding/area-sense/areas — proxy query params.
+export type VendorGetAreaSenseParamsType = z.infer<typeof VendorGetAreaSenseParams>
+export const VendorGetAreaSenseParams = z.object({
+  search: z.string().optional(),
+})
+
+// POST /vendor/store-onboarding/:id/delivery-areas — replace saved areas.
+export type VendorSaveDeliveryAreasType = z.infer<typeof VendorSaveDeliveryAreas>
+export const VendorSaveDeliveryAreas = z.object({
+  areas: z.array(
+    z.object({
+      area_sense_id: z.string(),
+      area_name: z.string(),
+      metadata: z.record(z.unknown()).nullable().optional(),
+    })
+  ),
+})
+
 export type VendorUpdateStoreType = z.infer<typeof VendorUpdateStore>
 export const VendorUpdateStore = z.object({
   industry: z.nativeEnum(StoreIndustry).nullable().optional(),

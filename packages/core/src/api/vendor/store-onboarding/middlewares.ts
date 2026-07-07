@@ -22,6 +22,8 @@ import {
   VendorCreateDraft,
   VendorSaveDraftStep,
   VendorSubmitDraft,
+  VendorGetAreaSenseParams,
+  VendorSaveDeliveryAreas,
 } from "./validators"
 
 export const vendorStoreOnboardingMiddlewares: MiddlewareRoute[] = [
@@ -47,6 +49,29 @@ export const vendorStoreOnboardingMiddlewares: MiddlewareRoute[] = [
         vendorStoreQueryConfig.retrieve
       ),
     ],
+  },
+  // GET /vendor/store-onboarding/area-sense/areas — proxy available areas
+  {
+    method: ["GET"],
+    matcher: "/vendor/store-onboarding/area-sense/areas",
+    middlewares: [validateAndTransformQuery(VendorGetAreaSenseParams, {})],
+  },
+  // GET/POST /vendor/store-onboarding/:id/delivery-areas — list/replace areas
+  {
+    method: ["GET"],
+    matcher: "/vendor/store-onboarding/:id/delivery-areas",
+    middlewares: [],
+  },
+  {
+    method: ["POST"],
+    matcher: "/vendor/store-onboarding/:id/delivery-areas",
+    middlewares: [validateAndTransformBody(VendorSaveDeliveryAreas)],
+  },
+  // DELETE /vendor/store-onboarding/:id/delivery-areas/:area_sense_id
+  {
+    method: ["DELETE"],
+    matcher: "/vendor/store-onboarding/:id/delivery-areas/:area_sense_id",
+    middlewares: [],
   },
   // GET /vendor/store-onboarding/default-statuses — list default order statuses
   {

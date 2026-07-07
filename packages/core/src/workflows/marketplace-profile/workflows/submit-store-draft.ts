@@ -20,6 +20,7 @@ import { createStoreWorkflow } from "./create-store"
 import {
   finalizeStoreExtrasStep,
   createStoreLocationDetailsStep,
+  createStoreDeliveryAreasStep,
   markDraftSubmittedStep,
 } from "../steps"
 
@@ -65,6 +66,11 @@ type SubmitStoreDraftWorkflowInput = {
     rank?: number
   }[] | null
   locations?: DraftLocation[] | null
+  delivery_areas?: {
+    area_sense_id: string
+    area_name: string
+    metadata?: Record<string, unknown> | null
+  }[] | null
 }
 
 export const submitStoreDraftWorkflow: ReturnType<typeof createWorkflow> =
@@ -128,6 +134,19 @@ export const submitStoreDraftWorkflow: ReturnType<typeof createWorkflow> =
               longitude: drafts[i]?.longitude ?? null,
             }))
           }
+        )
+      )
+
+      // 3b. Delivery areas (Area Sense selections) — seller-scoped, so they
+      //     materialize once the seller exists.
+      createStoreDeliveryAreasStep(
+        transform({ created, input }, ({ created, input }) =>
+          (input.delivery_areas ?? []).map((a) => ({
+            seller_id: created.seller.id,
+            area_sense_id: a.area_sense_id,
+            area_name: a.area_name,
+            metadata: a.metadata ?? null,
+          }))
         )
       )
 

@@ -14,6 +14,7 @@ import type {
   CreateStoreOrderStatusDTO,
   CreateStoreOrderStatusEventDTO,
   CreateStoreLocationDetailDTO,
+  CreateStoreDeliveryAreaDTO,
 } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../modules/marketplace-profile/service"
@@ -148,6 +149,32 @@ export const createStoreLocationDetailsStep = createStep(
       MercurModules.MARKETPLACE_PROFILE
     )
     await service.deleteStoreLocationDetails(ids)
+  }
+)
+
+export const createStoreDeliveryAreasStep = createStep(
+  "create-store-delivery-areas",
+  async (input: CreateStoreDeliveryAreaDTO[], { container }) => {
+    if (!input.length) {
+      return new StepResponse([], [])
+    }
+    const service = container.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+    const created = await service.createStoreDeliveryAreas(input)
+    return new StepResponse(
+      created,
+      created.map((a) => a.id)
+    )
+  },
+  async (ids, { container }) => {
+    if (!ids?.length) {
+      return
+    }
+    const service = container.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+    await service.deleteStoreDeliveryAreas(ids)
   }
 )
 

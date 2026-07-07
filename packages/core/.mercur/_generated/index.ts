@@ -768,9 +768,15 @@ export type Routes = {
         productVariants: typeof import("../../src/api/vendor/product-variants/route");
         storeOnboarding: typeof import("../../src/api/vendor/store-onboarding/route") & {
             $id: typeof import("../../src/api/vendor/store-onboarding/[id]/route") & {
+                deliveryAreas: typeof import("../../src/api/vendor/store-onboarding/[id]/delivery-areas/route") & {
+                    $areaSenseId: typeof import("../../src/api/vendor/store-onboarding/[id]/delivery-areas/[area_sense_id]/route");
+                };
                 locations: typeof import("../../src/api/vendor/store-onboarding/[id]/locations/route") & {
                     $locationId: typeof import("../../src/api/vendor/store-onboarding/[id]/locations/[location_id]/route");
                 };
+            };
+            areaSense: {
+                areas: typeof import("../../src/api/vendor/store-onboarding/area-sense/areas/route");
             };
             checkHandle: typeof import("../../src/api/vendor/store-onboarding/check-handle/route");
             defaultStatuses: typeof import("../../src/api/vendor/store-onboarding/default-statuses/route");
