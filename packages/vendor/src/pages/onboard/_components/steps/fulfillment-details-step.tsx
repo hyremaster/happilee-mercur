@@ -27,12 +27,19 @@ export function isFulfillmentValid(
 ) {
   if (centres.length === 0) return false;
   if (payment.methods.length === 0) return false;
-  if (payment.methods.includes("online") && !payment.paymentGateway) return false;
+  if (payment.methods.includes("online") && !payment.paymentGateway)
+    return false;
 
   if (payment.methods.includes("cod")) {
     const min = parseFloat(payment.codMin);
     const max = parseFloat(payment.codMax);
-    if (payment.codMin && payment.codMax && !Number.isNaN(min) && !Number.isNaN(max) && min > max) {
+    if (
+      payment.codMin &&
+      payment.codMax &&
+      !Number.isNaN(min) &&
+      !Number.isNaN(max) &&
+      min > max
+    ) {
       return false;
     }
   }
@@ -44,7 +51,13 @@ export function getCodError(payment: PaymentConfig) {
   if (!payment.methods.includes("cod")) return undefined;
   const min = parseFloat(payment.codMin);
   const max = parseFloat(payment.codMax);
-  if (payment.codMin && payment.codMax && !Number.isNaN(min) && !Number.isNaN(max) && min > max) {
+  if (
+    payment.codMin &&
+    payment.codMax &&
+    !Number.isNaN(min) &&
+    !Number.isNaN(max) &&
+    min > max
+  ) {
     return "Minimum value cannot exceed maximum value";
   }
   return undefined;
@@ -64,7 +77,9 @@ export const FulfillmentDetailsStep = ({
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-xxs text-sm font-medium text-text-secondary">
             <span>Fulfillment centres</span>
-            <span className="text-text-brand" aria-hidden="true">*</span>
+            <span className="text-text-brand" aria-hidden="true">
+              *
+            </span>
           </div>
           <Button
             hierarchy="primary"
@@ -84,12 +99,20 @@ export const FulfillmentDetailsStep = ({
             >
               <div className="flex flex-col gap-xxs">
                 <div className="flex items-center gap-sm">
-                  <span className="text-sm font-semibold text-text-primary">{centre.name}</span>
-                  <Badge color={centre.active ? "success" : "error"} withDot size="sm">
+                  <span className="text-sm font-semibold text-text-primary">
+                    {centre.name}
+                  </span>
+                  <Badge
+                    color={centre.active ? "success" : "error"}
+                    withDot
+                    size="sm"
+                  >
                     {centre.active ? "Active" : "Inactive"}
                   </Badge>
                 </div>
-                <span className="text-sm text-text-tertiary">{centre.address}</span>
+                <span className="text-sm text-text-tertiary">
+                  {centre.address}
+                </span>
               </div>
               <div className="flex shrink-0 items-center gap-xs">
                 <Button
@@ -119,7 +142,9 @@ export const FulfillmentDetailsStep = ({
       <div className="flex w-full flex-col gap-lg">
         <div className="flex items-center gap-xxs text-sm font-medium text-text-secondary">
           <span>Choose Payment method</span>
-          <span className="text-text-brand" aria-hidden="true">*</span>
+          <span className="text-text-brand" aria-hidden="true">
+            *
+          </span>
         </div>
 
         <CheckboxGroup
@@ -136,8 +161,8 @@ export const FulfillmentDetailsStep = ({
           >
             <ExpandableCheckboxCardSection label="Payment gateway" isRequired>
               <SelectField
-                aria-label="Choose payment gateway"
-                placeholder="Choose payment gateway"
+                aria-label="Choose payment method name"
+                placeholder="Choose payment method name"
                 size="sm"
                 selectedKey={payment.paymentGateway || undefined}
                 onSelectionChange={(key) =>

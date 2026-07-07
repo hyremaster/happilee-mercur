@@ -7,6 +7,11 @@ import {
   RadioCardGroup,
   Textarea,
 } from "@happilee-app/ui";
+import {
+  CountrySelectField,
+  resolveCountryIso2,
+  StateSelectField,
+} from "../address-select-fields";
 import { INDUSTRIES } from "../constants";
 import type { BusinessDetails } from "../types";
 
@@ -103,21 +108,30 @@ export const BusinessDetailsStep = ({
           />
 
           <div className="grid w-full grid-cols-4 gap-lg">
-            <InputField
+            <CountrySelectField
               label="Country"
               isRequired
-              placeholder="India"
+              placeholder="Select country"
               size="md"
               value={data.country}
-              onChange={(v) => onChange({ country: v })}
+              onChange={(country) => {
+                const previousIso2 = resolveCountryIso2(data.country);
+                const nextIso2 = resolveCountryIso2(country);
+
+                onChange({
+                  country,
+                  ...(previousIso2 !== nextIso2 ? { state: "" } : {}),
+                });
+              }}
             />
-            <InputField
+            <StateSelectField
               label="State"
               isRequired
-              placeholder="Maharashtra"
+              placeholder="Select state"
               size="md"
+              country={data.country}
               value={data.state}
-              onChange={(v) => onChange({ state: v })}
+              onChange={(state) => onChange({ state })}
             />
             <InputField
               label="City"

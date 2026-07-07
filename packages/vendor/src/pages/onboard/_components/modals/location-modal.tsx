@@ -1,5 +1,6 @@
 import { Mail01 } from "@happilee-app/icons";
 import { Button, InputField, Modal, Textarea } from "@happilee-app/ui";
+import { CountrySelectField, StateSelectField } from "../address-select-fields";
 import type { FulfillmentCentre } from "../types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as L from "leaflet";
@@ -427,9 +428,9 @@ export const LocationModal = ({
         />
 
         <div className="grid grid-cols-4 gap-lg">
-          <InputField
+          <CountrySelectField
             label="Country"
-            placeholder="India"
+            placeholder="Select country"
             value={country}
             onChange={(v) => {
               markInputsChange();
@@ -437,9 +438,10 @@ export const LocationModal = ({
               clearFromCountry();
             }}
           />
-          <InputField
+          <StateSelectField
             label="State"
-            placeholder="Maharashtra"
+            placeholder="Select state"
+            country={country}
             value={state}
             onChange={(v) => {
               markInputsChange();
