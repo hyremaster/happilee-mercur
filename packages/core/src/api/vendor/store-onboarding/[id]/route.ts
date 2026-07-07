@@ -15,7 +15,7 @@ import {
   updateSellerProfessionalDetailsWorkflow,
 } from "../../../../workflows/seller"
 import { VendorUpdateStoreType } from "../validators"
-import { assertStoreOwnership } from "../helpers"
+import { assertStoreOwnership, maskGateway } from "../helpers"
 
 // GET /vendor/store-onboarding/:id — store detail (seller + extension data).
 export const GET = async (
@@ -52,6 +52,9 @@ export const GET = async (
   const delivery_areas = await service.listStoreDeliveryAreas({
     seller_id: sellerId,
   })
+  const gateways = await service.listStorePaymentGateways({
+    seller_id: sellerId,
+  })
 
   res.json({
     store: {
@@ -59,6 +62,7 @@ export const GET = async (
       store_profile: store_profile ?? null,
       owner_handle: ownerProfile?.handle ?? null,
       delivery_areas,
+      payment_gateways: gateways.map(maskGateway),
     },
   })
 }
@@ -141,6 +145,32 @@ export const POST = async (
     }
   }
 
+  // Payment gateway (upsert by seller_id + gateway). Credentials stored raw;
+  // masked on read.
+  if (body.payment_gateway) {
+    const { gateway, is_active, credentials, metadata } = body.payment_gateway
+    const [existing] = await service.listStorePaymentGateways({
+      seller_id: sellerId,
+      gateway,
+    })
+    if (existing) {
+      await service.updateStorePaymentGateways({
+        id: existing.id,
+        is_active: is_active ?? existing.is_active,
+        credentials,
+        ...(metadata !== undefined ? { metadata } : {}),
+      })
+    } else {
+      await service.createStorePaymentGateways({
+        seller_id: sellerId,
+        gateway,
+        is_active: is_active ?? false,
+        credentials,
+        metadata: metadata ?? null,
+      })
+    }
+  }
+
   // Order statuses (full replace, e.g. "Reset to defaults" or reorder/rename).
   if (body.order_statuses) {
     const existing = await service.listStoreOrderStatuses({
@@ -191,6 +221,9 @@ export const POST = async (
   const delivery_areas = await service.listStoreDeliveryAreas({
     seller_id: sellerId,
   })
+  const gateways = await service.listStorePaymentGateways({
+    seller_id: sellerId,
+  })
 
   res.json({
     store: {
@@ -198,6 +231,7 @@ export const POST = async (
       store_profile: store_profile ?? null,
       owner_handle: ownerProfile?.handle ?? null,
       delivery_areas,
+      payment_gateways: gateways.map(maskGateway),
     },
   })
 }

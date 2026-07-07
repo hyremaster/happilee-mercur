@@ -8,6 +8,7 @@ import {
   StoreFulfillmentMethod,
   StoreIndustry,
   StoreOrderStatusType,
+  StorePaymentGatewayType,
 } from "@mercurjs/types"
 
 export type VendorGetStoresParamsType = z.infer<typeof VendorGetStoresParams>
@@ -53,6 +54,17 @@ const paymentConfigSchema = z.object({
   cod_min_amount: z.number().nullable().optional(),
   cod_max_amount: z.number().nullable().optional(),
   currency_code: z.string().nullable().optional(),
+})
+
+const paymentGatewaySchema = z.object({
+  gateway: z.nativeEnum(StorePaymentGatewayType),
+  is_active: z.boolean().optional(),
+  credentials: z.object({
+    key_id: z.string(),
+    key_secret: z.string(),
+    webhook_secret: z.string().optional(),
+  }),
+  metadata: z.record(z.unknown()).nullable().optional(),
 })
 
 const orderStatusSchema = z.object({
@@ -211,6 +223,7 @@ export const VendorUpdateStore = z.object({
   storefront_template: z.string().nullable().optional(),
   owner_handle: z.string().optional(),
   payment_config: paymentConfigSchema.optional(),
+  payment_gateway: paymentGatewaySchema.optional(),
   order_statuses: z.array(orderStatusSchema).optional(),
   metadata: z.record(z.unknown()).nullable().optional(),
 })

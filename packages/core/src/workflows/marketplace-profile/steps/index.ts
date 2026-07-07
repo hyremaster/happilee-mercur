@@ -8,6 +8,7 @@ import {
   MercurModules,
   StoreOnboardingDraftStatus,
   StoreOrderStatusType,
+  StorePaymentGatewayType,
 } from "@mercurjs/types"
 import type {
   CreateStoreProfileDTO,
@@ -15,6 +16,7 @@ import type {
   CreateStoreOrderStatusEventDTO,
   CreateStoreLocationDetailDTO,
   CreateStoreDeliveryAreaDTO,
+  StorePaymentGatewayCredentials,
 } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../modules/marketplace-profile/service"
@@ -175,6 +177,95 @@ export const createStoreDeliveryAreasStep = createStep(
       MercurModules.MARKETPLACE_PROFILE
     )
     await service.deleteStoreDeliveryAreas(ids)
+  }
+)
+
+type UpsertPaymentGatewayInput = {
+  seller_id: string
+  gateway: StorePaymentGatewayType
+  is_active?: boolean
+  credentials: StorePaymentGatewayCredentials
+  metadata?: Record<string, unknown> | null
+} | null
+
+/**
+ * Materialize a store's payment gateway (credentials) on draft submit. Upsert by
+ * (seller_id, gateway). Seller-scoped, so it runs after the seller exists.
+ * No-op when the draft carried no gateway.
+ */
+export const upsertStorePaymentGatewayStep = createStep(
+  "upsert-store-payment-gateway",
+  async (input: UpsertPaymentGatewayInput, { container }) => {
+    if (!input) {
+      return new StepResponse(null, null)
+    }
+    const service = container.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+    const [existing] = await service.listStorePaymentGateways({
+      seller_id: input.seller_id,
+      gateway: input.gateway,
+    })
+
+    type Rollback =
+      | { id: string; created: true }
+      | {
+          id: string
+          created: false
+          prev: {
+            is_active: boolean
+            credentials: Record<string, unknown>
+            metadata: Record<string, unknown> | null
+          }
+        }
+
+    if (existing) {
+      await service.updateStorePaymentGateways({
+        id: existing.id,
+        is_active: input.is_active ?? existing.is_active,
+        credentials: input.credentials,
+        metadata: input.metadata ?? existing.metadata ?? null,
+      })
+      return new StepResponse<null, Rollback>(null, {
+        id: existing.id,
+        created: false,
+        prev: {
+          is_active: existing.is_active,
+          credentials: existing.credentials,
+          metadata: existing.metadata,
+        },
+      })
+    }
+
+    const created = await service.createStorePaymentGateways({
+      seller_id: input.seller_id,
+      gateway: input.gateway,
+      is_active: input.is_active ?? false,
+      credentials: input.credentials,
+      metadata: input.metadata ?? null,
+    })
+    return new StepResponse<null, Rollback>(null, {
+      id: created.id,
+      created: true,
+    })
+  },
+  async (rollback, { container }) => {
+    if (!rollback) {
+      return
+    }
+    const service = container.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+    if (rollback.created) {
+      await service.deleteStorePaymentGateways(rollback.id)
+    } else {
+      await service.updateStorePaymentGateways({
+        id: rollback.id,
+        is_active: rollback.prev.is_active,
+        credentials: rollback.prev.credentials,
+        metadata: rollback.prev.metadata,
+      })
+    }
   }
 )
 

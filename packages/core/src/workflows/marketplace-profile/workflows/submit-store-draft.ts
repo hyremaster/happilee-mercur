@@ -11,6 +11,8 @@ import {
   StoreFulfillmentMethod,
   StoreIndustry,
   StoreOrderStatusType,
+  StorePaymentGatewayType,
+  StorePaymentGatewayCredentials,
   UpdateProfessionalDetailsDTO,
   UpdateSellerAddressDTO,
 } from "@mercurjs/types"
@@ -21,6 +23,7 @@ import {
   finalizeStoreExtrasStep,
   createStoreLocationDetailsStep,
   createStoreDeliveryAreasStep,
+  upsertStorePaymentGatewayStep,
   markDraftSubmittedStep,
 } from "../steps"
 
@@ -71,6 +74,12 @@ type SubmitStoreDraftWorkflowInput = {
     area_name: string
     metadata?: Record<string, unknown> | null
   }[] | null
+  payment_gateway?: {
+    gateway: StorePaymentGatewayType
+    is_active?: boolean
+    credentials: StorePaymentGatewayCredentials
+    metadata?: Record<string, unknown> | null
+  } | null
 }
 
 export const submitStoreDraftWorkflow: ReturnType<typeof createWorkflow> =
@@ -147,6 +156,21 @@ export const submitStoreDraftWorkflow: ReturnType<typeof createWorkflow> =
             area_name: a.area_name,
             metadata: a.metadata ?? null,
           }))
+        )
+      )
+
+      // 3c. Payment gateway (credentials) — seller-scoped, upsert after seller.
+      upsertStorePaymentGatewayStep(
+        transform({ created, input }, ({ created, input }) =>
+          input.payment_gateway
+            ? {
+                seller_id: created.seller.id,
+                gateway: input.payment_gateway.gateway,
+                is_active: input.payment_gateway.is_active,
+                credentials: input.payment_gateway.credentials,
+                metadata: input.payment_gateway.metadata ?? null,
+              }
+            : null
         )
       )
 
