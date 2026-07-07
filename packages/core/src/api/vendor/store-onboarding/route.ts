@@ -145,8 +145,18 @@ export const GET = async (
     }
   }
 
-  // 3. Merge (drafts first), then paginate in the app layer.
-  const all = [...draftRows, ...storeRows]
+  // 3. Merge (drafts first).
+  let all = [...draftRows, ...storeRows]
+
+  // 3a. Optional case-insensitive search on store name.
+  const rawSearch = req.query.search ?? req.query.q
+  const search = typeof rawSearch === "string" ? rawSearch.trim() : null
+  if (search) {
+    const needle = search.toLowerCase()
+    all = all.filter((r) => (r.name ?? "").toLowerCase().includes(needle))
+  }
+
+  // 3b. Paginate in the app layer.
   const skip = req.queryConfig.pagination.skip ?? 0
   const take = req.queryConfig.pagination.take ?? all.length
   const stores = all.slice(skip, skip + take)
