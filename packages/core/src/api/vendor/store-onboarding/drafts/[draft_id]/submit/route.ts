@@ -127,6 +127,16 @@ export const POST = async (
         latitude: typeof l.latitude === "number" ? l.latitude : null,
         longitude: typeof l.longitude === "number" ? l.longitude : null,
       })),
+      delivery_areas: Array.isArray(commerce.delivery_areas)
+        ? (commerce.delivery_areas as Record<string, unknown>[])
+            .map((a) => ({
+              area_sense_id: asString(a.area_sense_id) ?? "",
+              area_name: asString(a.area_name) ?? "",
+              metadata:
+                (a.metadata as Record<string, unknown> | undefined) ?? null,
+            }))
+            .filter((a) => a.area_sense_id && a.area_name)
+        : null,
     },
   })
 
