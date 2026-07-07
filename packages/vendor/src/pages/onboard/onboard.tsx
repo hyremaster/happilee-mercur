@@ -5,6 +5,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMe } from "../../hooks/api/members";
 import {
+  useCreateStoreOnboardingLocation,
+  useDeleteStoreOnboardingLocation,
+  useUpdateStoreOnboardingLocation,
+} from "../../hooks/api/store-onboarding-locations";
+import {
   createDraft,
   getDraft,
   saveDraftStep,
@@ -26,9 +31,11 @@ import { ReviewSubmitModal } from "./_components/modals/review-submit-modal";
 import { TemplatePreviewModal } from "./_components/modals/template-preview-modal";
 import {
   isBusinessDetailsValid,
+  mapApiLocationToCentre,
   mapBusinessDetailsToStep1Data,
   mapCommerceTypeToStep2Data,
   mapDraftToStoreSetupState,
+  mapFulfillmentCentreToLocationPayload,
   mapFulfillmentDetailsToStep3Data,
   mapStoreDetailToStoreSetupState,
   mapStorefrontToStep4Data,
@@ -89,9 +96,15 @@ export const OnboardPage = () => {
   );
   const [originalStorefrontHandle, setOriginalStorefrontHandle] = useState("");
 
-  useEffect(() => {
-    localStorage.removeItem("happilee-store-setup");
-  }, []);
+  const activeStoreId = state.storeId ?? "";
+  const { mutateAsync: createStoreLocation, isPending: isCreatingLocation } =
+    useCreateStoreOnboardingLocation(activeStoreId);
+  const { mutateAsync: updateStoreLocation, isPending: isUpdatingLocation } =
+    useUpdateStoreOnboardingLocation(activeStoreId);
+  const { mutateAsync: deleteStoreLocation, isPending: isDeletingLocation } =
+    useDeleteStoreOnboardingLocation(activeStoreId);
+  const isSavingLocation =
+    isCreatingLocation || isUpdatingLocation || isDeletingLocation;
 
   useEffect(() => {
     let cancelled = false;
@@ -277,19 +290,7 @@ export const OnboardPage = () => {
 
       try {
         if (state.storeId) {
-          const nextLocationIds = await saveActiveStoreStep3(
-            state.storeId,
-            state.fulfillmentCentres,
-            state.payment,
-            state.initialLocationIds,
-          );
-          updateState({
-            initialLocationIds: nextLocationIds,
-            fulfillmentCentres: state.fulfillmentCentres.map((centre, index) => ({
-              ...centre,
-              id: nextLocationIds[index] ?? centre.id,
-            })),
-          });
+          await saveActiveStoreStep3(state.storeId, state.payment);
           nextStep();
           return;
         }
@@ -396,10 +397,74 @@ export const OnboardPage = () => {
     }
   };
 
-  const handleDeleteCentre = (id: string) => {
+  const handleDeleteCentre = async (id: string) => {
+    if (state.storeId) {
+      try {
+        await deleteStoreLocation(id);
+        updateState({
+          fulfillmentCentres: state.fulfillmentCentres.filter((c) => c.id !== id),
+          initialLocationIds: state.initialLocationIds.filter(
+            (locationId) => locationId !== id,
+          ),
+        });
+        toast.success("Location deleted");
+      } catch {
+        toast.error("Failed to delete location. Please try again.");
+      }
+      return;
+    }
+
     updateState({
       fulfillmentCentres: state.fulfillmentCentres.filter((c) => c.id !== id),
     });
+  };
+
+  const handleSaveLocation = async (centre: FulfillmentCentre) => {
+    if (state.storeId) {
+      const payload = mapFulfillmentCentreToLocationPayload(centre);
+
+      try {
+        if (locationModal?.mode === "add") {
+          const { location } = await createStoreLocation(payload);
+          const saved = mapApiLocationToCentre(location);
+
+          updateState((prev) => ({
+            fulfillmentCentres: [...prev.fulfillmentCentres, saved],
+            initialLocationIds: [...prev.initialLocationIds, saved.id],
+          }));
+          toast.success("Location added");
+        } else {
+          const { location } = await updateStoreLocation({
+            locationId: centre.id,
+            payload,
+          });
+          const saved = mapApiLocationToCentre(location);
+
+          updateState((prev) => ({
+            fulfillmentCentres: prev.fulfillmentCentres.map((entry) =>
+              entry.id === centre.id ? saved : entry,
+            ),
+          }));
+          toast.success("Location updated");
+        }
+
+        setLocationModal(null);
+      } catch {
+        toast.error("Failed to save location. Please try again.");
+        throw new Error("Failed to save location");
+      }
+
+      return;
+    }
+
+    updateState((prev) => ({
+      fulfillmentCentres:
+        locationModal?.mode === "add"
+          ? [...prev.fulfillmentCentres, centre]
+          : prev.fulfillmentCentres.map((entry) =>
+              entry.id === centre.id ? centre : entry,
+            ),
+    }));
   };
 
   const handleUpdateStatus = (
@@ -508,7 +573,7 @@ export const OnboardPage = () => {
             onPaymentChange={(patch) =>
               updateState({ payment: { ...state.payment, ...patch } })
             }
-            onDeleteCentre={handleDeleteCentre}
+            onDeleteCentre={(id) => void handleDeleteCentre(id)}
             onAddLocation={() => setLocationModal({ mode: "add" })}
             onEditCentre={(centre) => setLocationModal({ mode: "edit", centre })}
           />
@@ -545,16 +610,8 @@ export const OnboardPage = () => {
           onOpenChange={(open) => {
             if (!open) setLocationModal(null);
           }}
-          onSave={(centre) => {
-            updateState((prev) => ({
-              fulfillmentCentres:
-                locationModal.mode === "add"
-                  ? [...prev.fulfillmentCentres, centre]
-                  : prev.fulfillmentCentres.map((c) =>
-                      c.id === centre.id ? centre : c,
-                    ),
-            }));
-          }}
+          onSave={(centre) => handleSaveLocation(centre)}
+          isSaving={isSavingLocation}
         />
       )}
 

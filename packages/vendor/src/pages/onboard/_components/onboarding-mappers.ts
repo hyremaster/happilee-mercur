@@ -111,7 +111,7 @@ const mapLocationToCentre = (
   };
 };
 
-const mapApiLocationToCentre = (
+export const mapApiLocationToCentre = (
   location: StoreLocationRow,
 ): FulfillmentCentre => {
   const address = location.address ?? {};
@@ -545,6 +545,22 @@ export const mapCommerceTypeToStep2Data = (
   };
 };
 
+export const mapFulfillmentCentreToLocationPayload = (
+  centre: FulfillmentCentre,
+) => ({
+  name: centre.name.trim(),
+  address: {
+    address_1: centre.address.trim() || null,
+    city: centre.city.trim() || null,
+    country_code: resolveCountryCode(centre.country),
+    province: centre.state.trim() || null,
+    postal_code: centre.pinCode.trim() || null,
+  },
+  is_active: centre.active,
+  latitude: centre.lat ?? null,
+  longitude: centre.lng ?? null,
+});
+
 export const mapFulfillmentDetailsToStep3Data = (
   centres: FulfillmentCentre[],
   payment: PaymentConfig,
@@ -561,19 +577,7 @@ export const mapFulfillmentDetailsToStep3Data = (
       cod_max_amount: codEnabled ? parseAmount(payment.codMax) : null,
       currency_code: "inr",
     },
-    locations: centres.map((centre) => ({
-      name: centre.name.trim(),
-      address: {
-        address_1: centre.address.trim() || null,
-        city: centre.city.trim() || null,
-        country_code: resolveCountryCode(centre.country),
-        province: centre.state.trim() || null,
-        postal_code: centre.pinCode.trim() || null,
-      },
-      is_active: centre.active,
-      latitude: centre.lat ?? null,
-      longitude: centre.lng ?? null,
-    })),
+    locations: centres.map(mapFulfillmentCentreToLocationPayload),
   };
 };
 

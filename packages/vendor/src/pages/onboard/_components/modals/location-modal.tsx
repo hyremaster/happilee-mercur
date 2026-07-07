@@ -40,7 +40,8 @@ type LocationModalProps = {
   onOpenChange: (open: boolean) => void;
   mode: "add" | "edit";
   centre?: FulfillmentCentre | null;
-  onSave: (centre: FulfillmentCentre) => void;
+  onSave: (centre: FulfillmentCentre) => void | Promise<void>;
+  isSaving?: boolean;
 };
 
 function createLocationId() {
@@ -111,6 +112,7 @@ export const LocationModal = ({
   mode,
   centre,
   onSave,
+  isSaving = false,
 }: LocationModalProps) => {
   const isEdit = mode === "edit" && centre != null;
 
@@ -357,7 +359,7 @@ export const LocationModal = ({
     onOpenChange(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (isEdit && !centre) return;
 
     const saved: FulfillmentCentre = {
@@ -373,8 +375,12 @@ export const LocationModal = ({
       lng: center.lng,
     };
 
-    onSave(saved);
-    handleClose();
+    try {
+      await onSave(saved);
+      handleClose();
+    } catch {
+      // Parent handles error feedback.
+    }
   };
 
   const title = mode === "edit" ? "Edit location" : "Add new location";
@@ -395,8 +401,9 @@ export const LocationModal = ({
           <Button
             hierarchy="primary"
             size="md"
-            onPress={handleSave}
-            isDisabled={!canSubmit}
+            onPress={() => void handleSave()}
+            isDisabled={!canSubmit || isSaving}
+            isLoading={isSaving}
           >
             {submitLabel}
           </Button>

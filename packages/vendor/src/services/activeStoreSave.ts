@@ -1,7 +1,6 @@
 import type {
   BusinessDetails,
   CommerceConfig,
-  FulfillmentCentre,
   PaymentConfig,
   StorefrontConfig,
 } from "../pages/onboard/_components/types";
@@ -13,7 +12,6 @@ import {
   mapStorefrontToStep4Data,
 } from "../pages/onboard/_components/onboarding-mappers";
 import { fetchQuery } from "../lib/client";
-import type { StoreLocationRow } from "./storeServices";
 
 const STORE_ONBOARDING_BASE = "/vendor/store-onboarding";
 
@@ -67,47 +65,6 @@ const saveDeliveryAreas = async (
   });
 };
 
-const createStoreLocation = async (
-  storeId: string,
-  body: Record<string, unknown>,
-): Promise<StoreLocationRow> => {
-  const response = (await fetchQuery(
-    `${STORE_ONBOARDING_BASE}/${storeId}/locations`,
-    {
-      method: "POST",
-      body,
-    },
-  )) as { location: StoreLocationRow };
-
-  return response.location;
-};
-
-const updateStoreLocation = async (
-  storeId: string,
-  locationId: string,
-  body: Record<string, unknown>,
-): Promise<void> => {
-  await fetchQuery(
-    `${STORE_ONBOARDING_BASE}/${storeId}/locations/${locationId}`,
-    {
-      method: "POST",
-      body,
-    },
-  );
-};
-
-const deleteStoreLocation = async (
-  storeId: string,
-  locationId: string,
-): Promise<void> => {
-  await fetchQuery(
-    `${STORE_ONBOARDING_BASE}/${storeId}/locations/${locationId}`,
-    {
-      method: "DELETE",
-    },
-  );
-};
-
 /** Step 1 — seller core fields, address, professional details, and industry only. */
 export const saveActiveStoreStep1 = async (
   storeId: string,
@@ -153,65 +110,16 @@ export const saveActiveStoreStep2 = async (
   }
 };
 
-/** Step 3 — payment config and fulfillment centre sync only. */
+/** Step 3 — payment config only (locations are synced via location APIs). */
 export const saveActiveStoreStep3 = async (
   storeId: string,
-  centres: FulfillmentCentre[],
   payment: PaymentConfig,
-  initialLocationIds: string[],
-): Promise<string[]> => {
-  const stepData = mapFulfillmentDetailsToStep3Data(centres, payment);
+): Promise<void> => {
+  const stepData = mapFulfillmentDetailsToStep3Data([], payment);
 
   await updateStoreProfile(storeId, {
     payment_config: stepData.payment,
   });
-
-  const currentPersistedIds = centres
-    .map((centre) => centre.id)
-    .filter((id) => initialLocationIds.includes(id));
-
-  const removedIds = initialLocationIds.filter(
-    (id) => !currentPersistedIds.includes(id),
-  );
-
-  await Promise.all(
-    removedIds.map((locationId) => deleteStoreLocation(storeId, locationId)),
-  );
-
-  const nextLocationIds: string[] = [];
-
-  for (let index = 0; index < centres.length; index += 1) {
-    const centre = centres[index];
-    const locationPayload = stepData.locations[index];
-
-    if (!locationPayload) {
-      continue;
-    }
-
-    if (initialLocationIds.includes(centre.id)) {
-      await updateStoreLocation(storeId, centre.id, {
-        name: locationPayload.name,
-        address: locationPayload.address,
-        is_active: locationPayload.is_active,
-        latitude: locationPayload.latitude,
-        longitude: locationPayload.longitude,
-      });
-      nextLocationIds.push(centre.id);
-      continue;
-    }
-
-    const created = await createStoreLocation(storeId, {
-      name: locationPayload.name,
-      address: locationPayload.address,
-      is_active: locationPayload.is_active,
-      latitude: locationPayload.latitude,
-      longitude: locationPayload.longitude,
-    });
-
-    nextLocationIds.push(created.id);
-  }
-
-  return nextLocationIds;
 };
 
 /** Step 4 — storefront template and store handle only. */

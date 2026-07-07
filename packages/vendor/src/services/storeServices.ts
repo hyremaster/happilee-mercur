@@ -110,6 +110,35 @@ export type StoreLocationsResponse = {
   count: number;
 };
 
+export type StoreLocationAddressPayload = {
+  address_1?: string | null;
+  city?: string | null;
+  country_code?: string | null;
+  province?: string | null;
+  postal_code?: string | null;
+  phone?: string | null;
+};
+
+export type CreateStoreLocationPayload = {
+  name: string;
+  address?: StoreLocationAddressPayload;
+  is_active?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
+export type UpdateStoreLocationPayload = Partial<CreateStoreLocationPayload>;
+
+export type StoreLocationResponse = {
+  location: StoreLocationRow;
+};
+
+export type DeleteStoreLocationResponse = {
+  id: string;
+  object: "store_location";
+  deleted: boolean;
+};
+
 const STORE_ONBOARDING_BASE = "/vendor/store-onboarding";
 
 export const listStores = async (
@@ -133,4 +162,40 @@ export const getStoreLocations = async (
   return fetchQuery(`${STORE_ONBOARDING_BASE}/${storeId}/locations`, {
     method: "GET",
   }) as Promise<StoreLocationsResponse>;
+};
+
+export const createStoreLocation = async (
+  storeId: string,
+  body: CreateStoreLocationPayload,
+): Promise<StoreLocationResponse> => {
+  return fetchQuery(`${STORE_ONBOARDING_BASE}/${storeId}/locations`, {
+    method: "POST",
+    body,
+  }) as Promise<StoreLocationResponse>;
+};
+
+export const updateStoreLocation = async (
+  storeId: string,
+  locationId: string,
+  body: UpdateStoreLocationPayload,
+): Promise<StoreLocationResponse> => {
+  return fetchQuery(
+    `${STORE_ONBOARDING_BASE}/${storeId}/locations/${locationId}`,
+    {
+      method: "POST",
+      body,
+    },
+  ) as Promise<StoreLocationResponse>;
+};
+
+export const deleteStoreLocation = async (
+  storeId: string,
+  locationId: string,
+): Promise<DeleteStoreLocationResponse> => {
+  return fetchQuery(
+    `${STORE_ONBOARDING_BASE}/${storeId}/locations/${locationId}`,
+    {
+      method: "DELETE",
+    },
+  ) as Promise<DeleteStoreLocationResponse>;
 };
