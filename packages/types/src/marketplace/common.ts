@@ -339,6 +339,43 @@ export interface UpdateStorePaymentGatewayDTO {
   metadata?: Record<string, unknown> | null
 }
 
+/**
+ * A delivery area a store serves (wizard step 2, Local delivery). Areas are
+ * sourced from the external Area Sense system (via OpenAPI) and persisted here
+ * so the marketplace keeps its own copy for future use. Seller-scoped standalone
+ * table (plain `seller_id` ref, no defineLink) — mirrors StorePaymentGateway.
+ */
+export interface StoreDeliveryAreaDTO {
+  id: string
+  seller_id: string
+  area_sense_id: string
+  area_name: string
+  metadata: Record<string, unknown> | null
+  created_at: Date
+  updated_at: Date
+  deleted_at: Date | null
+}
+
+export interface CreateStoreDeliveryAreaDTO {
+  seller_id: string
+  area_sense_id: string
+  area_name: string
+  metadata?: Record<string, unknown> | null
+}
+
+export interface UpdateStoreDeliveryAreaDTO {
+  area_sense_id?: string
+  area_name?: string
+  metadata?: Record<string, unknown> | null
+}
+
+/** Shape returned by the Area Sense proxy (one available external area). */
+export interface AreaSenseAreaDTO {
+  area_sense_id: string
+  area_name: string
+  metadata?: Record<string, unknown> | null
+}
+
 export interface MemberProfileDTO {
   id: string
   member_id: string

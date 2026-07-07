@@ -44,12 +44,16 @@ export const GET = async (
   const [ownerProfile] = await service.listMemberProfiles({
     member_id: memberId,
   })
+  const delivery_areas = await service.listStoreDeliveryAreas({
+    seller_id: sellerId,
+  })
 
   res.json({
     store: {
       ...seller,
       store_profile: store_profile ?? null,
       owner_handle: ownerProfile?.handle ?? null,
+      delivery_areas,
     },
   })
 }
