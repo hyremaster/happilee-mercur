@@ -198,6 +198,13 @@ export const VendorSaveDeliveryAreas = z.object({
 
 export type VendorUpdateStoreType = z.infer<typeof VendorUpdateStore>
 export const VendorUpdateStore = z.object({
+  // Step 1 — business details (seller-native fields).
+  name: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  address: addressSchema.optional(),
+  professional_details: professionalDetailsSchema.optional(),
   industry: z.nativeEnum(StoreIndustry).nullable().optional(),
   commerce_type: z.nativeEnum(StoreCommerceType).nullable().optional(),
   fulfillment_methods: z.array(z.nativeEnum(StoreFulfillmentMethod)).nullable().optional(),

@@ -9,6 +9,11 @@ import {
 import { MercurModules } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../modules/marketplace-profile/service"
+import {
+  updateSellersWorkflow,
+  updateSellerAddressWorkflow,
+  updateSellerProfessionalDetailsWorkflow,
+} from "../../../../workflows/seller"
 import { VendorUpdateStoreType } from "../validators"
 import { assertStoreOwnership } from "../helpers"
 
@@ -70,6 +75,33 @@ export const POST = async (
   const service = req.scope.resolve<MarketplaceProfileModuleService>(
     MercurModules.MARKETPLACE_PROFILE
   )
+
+  // Step 1 — business details on seller-native tables.
+  // Seller core fields (name/email/phone/description).
+  const sellerUpdate: Record<string, unknown> = {}
+  if (body.name !== undefined) sellerUpdate.name = body.name
+  if (body.email !== undefined) sellerUpdate.email = body.email
+  if (body.phone !== undefined) sellerUpdate.phone = body.phone
+  if (body.description !== undefined) sellerUpdate.description = body.description
+  if (Object.keys(sellerUpdate).length) {
+    await updateSellersWorkflow(req.scope).run({
+      input: { selector: { id: sellerId }, update: sellerUpdate },
+    })
+  }
+
+  // Address (upsert) — country/state/city/pincode + address line.
+  if (body.address) {
+    await updateSellerAddressWorkflow(req.scope).run({
+      input: { seller_id: sellerId, data: body.address },
+    })
+  }
+
+  // Professional details (upsert) — legal name + tax/GST.
+  if (body.professional_details) {
+    await updateSellerProfessionalDetailsWorkflow(req.scope).run({
+      input: { seller_id: sellerId, data: body.professional_details },
+    })
+  }
 
   let [profile] = await service.listStoreProfiles({ seller_id: sellerId })
   if (!profile) {
@@ -140,10 +172,32 @@ export const POST = async (
     }
   }
 
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const {
+    data: [seller],
+  } = await query.graph({
+    entity: "seller",
+    fields: req.queryConfig.fields,
+    filters: { id: sellerId },
+  })
+
   const [store_profile] = await service.listStoreProfiles(
     { seller_id: sellerId },
     { relations: ["order_statuses", "payment_config"] }
   )
+  const [ownerProfile] = await service.listMemberProfiles({
+    member_id: memberId,
+  })
+  const delivery_areas = await service.listStoreDeliveryAreas({
+    seller_id: sellerId,
+  })
 
-  res.json({ store: { id: sellerId, store_profile: store_profile ?? null } })
+  res.json({
+    store: {
+      ...seller,
+      store_profile: store_profile ?? null,
+      owner_handle: ownerProfile?.handle ?? null,
+      delivery_areas,
+    },
+  })
 }
