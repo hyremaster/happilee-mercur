@@ -10,6 +10,16 @@ import {
   saveDraftStep,
   submitDraft,
 } from "../../services/onboardingServices";
+import {
+  getStore,
+  getStoreLocations,
+} from "../../services/storeServices";
+import {
+  saveActiveStoreStep1,
+  saveActiveStoreStep2,
+  saveActiveStoreStep3,
+  saveActiveStoreStep4,
+} from "../../services/activeStoreSave";
 import { STEP_HEADINGS } from "./_components/constants";
 import { LocationModal } from "./_components/modals/location-modal";
 import { ReviewSubmitModal } from "./_components/modals/review-submit-modal";
@@ -20,6 +30,7 @@ import {
   mapCommerceTypeToStep2Data,
   mapDraftToStoreSetupState,
   mapFulfillmentDetailsToStep3Data,
+  mapStoreDetailToStoreSetupState,
   mapStorefrontToStep4Data,
 } from "./_components/onboarding-mappers";
 import { StoreSetupLayout } from "./_components/store-setup-layout";
@@ -44,6 +55,8 @@ export const OnboardPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const draftIdParam = searchParams.get("draftId");
+  const storeIdParam = searchParams.get("storeId");
+  const isEditingActiveStore = !!storeIdParam;
   const { seller_member } = useMe({
     retry: false,
     throwOnError: false,
@@ -71,7 +84,10 @@ export const OnboardPage = () => {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [isSavingStep, setIsSavingStep] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingDraft, setIsLoadingDraft] = useState(!!draftIdParam);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(
+    !!draftIdParam || !!storeIdParam,
+  );
+  const [originalStorefrontHandle, setOriginalStorefrontHandle] = useState("");
 
   useEffect(() => {
     localStorage.removeItem("happilee-store-setup");
@@ -81,6 +97,12 @@ export const OnboardPage = () => {
     let cancelled = false;
 
     const initializeOnboarding = async () => {
+      if (draftIdParam && storeIdParam) {
+        toast.error("Cannot edit a draft and an active store at the same time.");
+        navigate("/stores", { replace: true });
+        return;
+      }
+
       if (draftIdParam) {
         setIsLoadingDraft(true);
 
@@ -89,6 +111,7 @@ export const OnboardPage = () => {
 
           if (!cancelled) {
             hydrateState(mapDraftToStoreSetupState(draft));
+            setOriginalStorefrontHandle("");
           }
         } catch {
           if (!cancelled) {
@@ -104,7 +127,36 @@ export const OnboardPage = () => {
         return;
       }
 
+      if (storeIdParam) {
+        setIsLoadingDraft(true);
+
+        try {
+          const [{ store }, { locations }] = await Promise.all([
+            getStore(storeIdParam),
+            getStoreLocations(storeIdParam),
+          ]);
+
+          if (!cancelled) {
+            const nextState = mapStoreDetailToStoreSetupState(store, locations);
+            hydrateState(nextState);
+            setOriginalStorefrontHandle(nextState.storefront.handle);
+          }
+        } catch {
+          if (!cancelled) {
+            toast.error("Failed to load store details. Please try again.");
+            navigate("/stores", { replace: true });
+          }
+        } finally {
+          if (!cancelled) {
+            setIsLoadingDraft(false);
+          }
+        }
+
+        return;
+      }
+
       resetState();
+      setOriginalStorefrontHandle("");
       setIsLoadingDraft(false);
     };
 
@@ -113,7 +165,7 @@ export const OnboardPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [draftIdParam, hydrateState, navigate, resetState]);
+  }, [draftIdParam, storeIdParam, hydrateState, navigate, resetState]);
 
   useEffect(() => {
     if (state.isComplete && !justLaunched) {
@@ -129,6 +181,7 @@ export const OnboardPage = () => {
   const heading = STEP_HEADINGS[stepIndex];
   const handleAvailability = useHandleAvailability(
     state.currentStep === 3 ? state.storefront.handle : "",
+    isEditingActiveStore ? originalStorefrontHandle : undefined,
   );
   const {
     templates: storefrontTemplates,
@@ -151,6 +204,12 @@ export const OnboardPage = () => {
       setIsSavingStep(true);
 
       try {
+        if (state.storeId) {
+          await saveActiveStoreStep1(state.storeId, state.businessDetails);
+          nextStep();
+          return;
+        }
+
         const stepData = mapBusinessDetailsToStep1Data(state.businessDetails);
         let draftId = state.draftId;
 
@@ -177,7 +236,7 @@ export const OnboardPage = () => {
         return;
       }
 
-      if (!state.draftId) {
+      if (!state.draftId && !state.storeId) {
         toast.error("Draft not found. Please complete business details first.");
         return;
       }
@@ -185,8 +244,14 @@ export const OnboardPage = () => {
       setIsSavingStep(true);
 
       try {
+        if (state.storeId) {
+          await saveActiveStoreStep2(state.storeId, state.commerce);
+          nextStep();
+          return;
+        }
+
         const stepData = mapCommerceTypeToStep2Data(state.commerce);
-        await saveDraftStep(state.draftId, { step: 2, data: stepData });
+        await saveDraftStep(state.draftId!, { step: 2, data: stepData });
         nextStep();
       } catch {
         toast.error("Failed to save commerce type. Please try again.");
@@ -203,7 +268,7 @@ export const OnboardPage = () => {
         return;
       }
 
-      if (!state.draftId) {
+      if (!state.draftId && !state.storeId) {
         toast.error("Draft not found. Please complete the previous steps first.");
         return;
       }
@@ -211,11 +276,29 @@ export const OnboardPage = () => {
       setIsSavingStep(true);
 
       try {
+        if (state.storeId) {
+          const nextLocationIds = await saveActiveStoreStep3(
+            state.storeId,
+            state.fulfillmentCentres,
+            state.payment,
+            state.initialLocationIds,
+          );
+          updateState({
+            initialLocationIds: nextLocationIds,
+            fulfillmentCentres: state.fulfillmentCentres.map((centre, index) => ({
+              ...centre,
+              id: nextLocationIds[index] ?? centre.id,
+            })),
+          });
+          nextStep();
+          return;
+        }
+
         const stepData = mapFulfillmentDetailsToStep3Data(
           state.fulfillmentCentres,
           state.payment,
         );
-        await saveDraftStep(state.draftId, { step: 3, data: stepData });
+        await saveDraftStep(state.draftId!, { step: 3, data: stepData });
         nextStep();
       } catch {
         toast.error("Failed to save fulfillment details. Please try again.");
@@ -232,7 +315,7 @@ export const OnboardPage = () => {
         return;
       }
 
-      if (!state.draftId) {
+      if (!state.draftId && !state.storeId) {
         toast.error("Draft not found. Please complete the previous steps first.");
         return;
       }
@@ -240,8 +323,14 @@ export const OnboardPage = () => {
       setIsSavingStep(true);
 
       try {
+        if (state.storeId) {
+          await saveActiveStoreStep4(state.storeId, state.storefront);
+          setIsReviewOpen(true);
+          return;
+        }
+
         const stepData = mapStorefrontToStep4Data(state.storefront);
-        await saveDraftStep(state.draftId, { step: 4, data: stepData });
+        await saveDraftStep(state.draftId!, { step: 4, data: stepData });
         setIsReviewOpen(true);
       } catch {
         toast.error("Failed to save storefront details. Please try again.");
@@ -257,7 +346,11 @@ export const OnboardPage = () => {
 
   const handleBack = () => {
     if (state.currentStep === 0) {
-      navigate("/");
+      if (state.storeId) {
+        navigate("/stores");
+      } else {
+        navigate("/");
+      }
       return;
     }
     prevStep();
@@ -269,6 +362,20 @@ export const OnboardPage = () => {
   };
 
   const handleConfirmLaunch = async () => {
+    if (state.storeId) {
+      setIsSubmitting(true);
+
+      try {
+        setIsReviewOpen(false);
+        toast.success("Store updated successfully");
+        navigate("/stores");
+      } finally {
+        setIsSubmitting(false);
+      }
+
+      return;
+    }
+
     if (!state.draftId) {
       toast.error("Draft not found. Please complete all onboarding steps first.");
       return;
@@ -338,7 +445,13 @@ export const OnboardPage = () => {
         stepIndex={stepIndex}
         onBack={handleBack}
         onContinue={() => void handleContinue()}
-        continueLabel={state.currentStep === 3 ? "Review and submit" : "Continue"}
+        continueLabel={
+          state.currentStep === 3
+            ? isEditingActiveStore
+              ? "Review changes"
+              : "Review and submit"
+            : "Continue"
+        }
         continueIcon={
           state.currentStep === 3 ? <CheckCircle /> : <ArrowRight />
         }
@@ -379,7 +492,9 @@ export const OnboardPage = () => {
           <CommerceTypeStep
             data={state.commerce}
             onChange={(patch) =>
-              updateState({ commerce: { ...state.commerce, ...patch } })
+              updateState((prev) => ({
+                commerce: { ...prev.commerce, ...patch },
+              }))
             }
             onResetStatuses={resetOrderStatuses}
             onUpdateStatus={handleUpdateStatus}
@@ -457,6 +572,7 @@ export const OnboardPage = () => {
       <ReviewSubmitModal
         isOpen={isReviewOpen}
         state={state}
+        mode={isEditingActiveStore ? "edit" : "create"}
         onOpenChange={setIsReviewOpen}
         onEdit={handleEditFromReview}
         onConfirm={() => void handleConfirmLaunch()}

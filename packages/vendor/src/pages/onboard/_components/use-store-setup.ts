@@ -6,6 +6,8 @@ export function getDefaultStoreSetupState(): StoreSetupState {
   return {
     currentStep: 0,
     draftId: null,
+    storeId: null,
+    initialLocationIds: [],
     businessDetails: {
       industry: "restaurant",
       storeName: "",
@@ -24,6 +26,7 @@ export function getDefaultStoreSetupState(): StoreSetupState {
       localFulfillment: [],
       ecomFulfillment: [],
       deliveryArea: "",
+      deliveryAreaName: "",
       orderStatuses: DEFAULT_ORDER_STATUSES.map((status) => ({ ...status })),
     },
     fulfillmentCentres: [],

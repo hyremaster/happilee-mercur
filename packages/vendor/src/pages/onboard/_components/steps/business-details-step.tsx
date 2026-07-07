@@ -1,5 +1,12 @@
 import { Mail01 } from "@happilee-app/icons";
-import { InputField, RadioCard, RadioCardGroup, Textarea } from "@happilee-app/ui";
+import {
+  InputField,
+  PhoneNumberInput,
+  type PhoneNumberValue,
+  RadioCard,
+  RadioCardGroup,
+  Textarea,
+} from "@happilee-app/ui";
 import { INDUSTRIES } from "../constants";
 import type { BusinessDetails } from "../types";
 
@@ -72,13 +79,16 @@ export const BusinessDetailsStep = ({
               value={data.email}
               onChange={(v) => onChange({ email: v })}
             />
-            <InputField
+            <PhoneNumberInput
               label="Phone Number"
               isRequired
-              placeholder="+91 98765 43210"
+              placeholder="98765 43210"
               size="md"
+              defaultCountry="IN"
               value={data.phone}
-              onChange={(v) => onChange({ phone: v })}
+              onChange={(v: PhoneNumberValue | undefined) =>
+                onChange({ phone: v ?? "" })
+              }
             />
           </div>
 

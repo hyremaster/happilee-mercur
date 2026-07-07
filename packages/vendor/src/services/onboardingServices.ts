@@ -144,6 +144,29 @@ export const listStorefrontTemplates = async (): Promise<ListStorefrontTemplates
   }) as Promise<ListStorefrontTemplatesResponse>;
 };
 
+export type AreaSenseArea = {
+  area_sense_id: string;
+  area_name: string;
+  metadata?: Record<string, unknown> | null;
+};
+
+export type ListAreaSenseAreasResponse = {
+  areas: AreaSenseArea[];
+};
+
+export type ListAreaSenseAreasQuery = {
+  search?: string;
+};
+
+export const listAreaSenseAreas = async (
+  query?: ListAreaSenseAreasQuery,
+): Promise<ListAreaSenseAreasResponse> => {
+  return fetchQuery("/vendor/store-onboarding/area-sense/areas", {
+    method: "GET",
+    query,
+  }) as Promise<ListAreaSenseAreasResponse>;
+};
+
 export const saveBusinessDetailsStep = async (
   draftId: string | null,
   data: Record<string, unknown>,

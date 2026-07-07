@@ -30,6 +30,7 @@ export type CommerceConfig = {
   localFulfillment: string[];
   ecomFulfillment: string[];
   deliveryArea: string;
+  deliveryAreaName: string;
   orderStatuses: OrderStatusConfig[];
 };
 
@@ -61,6 +62,10 @@ export type StorefrontConfig = {
 export type StoreSetupState = {
   currentStep: WizardStep;
   draftId: string | null;
+  /** Set when editing an active (submitted) store. */
+  storeId: string | null;
+  /** Stock location ids loaded from the API — used to sync step 3 without touching other data. */
+  initialLocationIds: string[];
   businessDetails: BusinessDetails;
   commerce: CommerceConfig;
   fulfillmentCentres: FulfillmentCentre[];

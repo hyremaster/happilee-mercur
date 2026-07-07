@@ -6,6 +6,7 @@ import type { StoreSetupState, WizardStep } from "../types";
 type ReviewSubmitModalProps = {
   isOpen: boolean;
   state: StoreSetupState;
+  mode?: "create" | "edit";
   onOpenChange: (open: boolean) => void;
   onEdit: (step: WizardStep) => void;
   onConfirm: () => void;
@@ -15,17 +16,24 @@ type ReviewSubmitModalProps = {
 export const ReviewSubmitModal = ({
   isOpen,
   state,
+  mode = "create",
   onOpenChange,
   onEdit,
   onConfirm,
   isConfirmLoading = false,
 }: ReviewSubmitModalProps) => {
+  const isEditMode = mode === "edit";
+
   return (
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title="Review and Submit"
-      subtitle="Your store is ready to go."
+      title={isEditMode ? "Review changes" : "Review and Submit"}
+      subtitle={
+        isEditMode
+          ? "Confirm your updates before saving."
+          : "Your store is ready to go."
+      }
       size="xl"
       footer={
         <>
@@ -45,7 +53,13 @@ export const ReviewSubmitModal = ({
             isDisabled={isConfirmLoading}
             onPress={onConfirm}
           >
-            {isConfirmLoading ? "Launching..." : "Confirm & Launch"}
+            {isConfirmLoading
+              ? isEditMode
+                ? "Saving..."
+                : "Launching..."
+              : isEditMode
+                ? "Save changes"
+                : "Confirm & Launch"}
           </Button>
         </>
       }

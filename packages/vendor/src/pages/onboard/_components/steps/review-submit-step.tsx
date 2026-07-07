@@ -1,5 +1,4 @@
 import {
-  DELIVERY_AREAS,
   INDUSTRIES,
   PAYMENT_GATEWAYS,
 } from "../constants";
@@ -44,9 +43,7 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
 
   const activeStatusCount = commerce.orderStatuses.filter((s) => s.active).length;
 
-  const deliveryAreaLabel =
-    DELIVERY_AREAS.find((a) => a.id === commerce.deliveryArea)?.label ??
-    `${DELIVERY_AREAS.length} areas selected`;
+  const deliveryAreaLabel = commerce.deliveryAreaName || "—";
 
   const gatewayLabel =
     PAYMENT_GATEWAYS.find((g) => g.id === payment.paymentGateway)?.label ?? "—";

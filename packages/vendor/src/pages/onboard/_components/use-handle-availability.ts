@@ -10,13 +10,30 @@ export type HandleAvailabilityState = {
   message: string;
 };
 
-export function useHandleAvailability(handle: string): HandleAvailabilityState {
+export function useHandleAvailability(
+  handle: string,
+  currentHandle?: string,
+): HandleAvailabilityState {
   const formatStatus = getHandleFormatStatus(handle);
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
   const [apiMessage, setApiMessage] = useState("");
 
+  const normalizedCurrentHandle = currentHandle?.trim().toLowerCase() ?? "";
+  const normalizedHandle = handle.trim().toLowerCase();
+
   useEffect(() => {
+    if (
+      normalizedCurrentHandle &&
+      normalizedHandle &&
+      normalizedHandle === normalizedCurrentHandle
+    ) {
+      setIsChecking(false);
+      setIsAvailable(true);
+      setApiMessage("Handle is available");
+      return;
+    }
+
     if (!formatStatus.valid) {
       setIsChecking(false);
       setIsAvailable(false);
@@ -59,7 +76,7 @@ export function useHandleAvailability(handle: string): HandleAvailabilityState {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [handle, formatStatus.valid]);
+  }, [handle, formatStatus.valid, normalizedCurrentHandle, normalizedHandle]);
 
   if (!handle.trim()) {
     return { isChecking: false, isAvailable: false, message: "" };

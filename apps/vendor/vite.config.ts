@@ -1,8 +1,14 @@
+import { existsSync } from 'node:fs'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
 import { mercurDashboardPlugin } from '@mercurjs/dashboard-sdk'
+
+const defaultHappileeUiPath = resolve(
+  __dirname,
+  '../../../../Ecommerce components/happilee-ui/packages/ui',
+)
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -12,6 +18,13 @@ export default defineConfig(({ mode }) => {
   const vendorRoot = resolve(__dirname, '../../packages/vendor')
   const vendorSrc = resolve(vendorRoot, 'src')
   const useVendorSource = mode === 'development'
+
+  const happileeUiPath = env.VITE_HAPPILEE_UI_PATH
+    ? resolve(env.VITE_HAPPILEE_UI_PATH)
+    : defaultHappileeUiPath
+  const useLocalHappileeUi =
+    useVendorSource &&
+    existsSync(resolve(happileeUiPath, 'dist/index.js'))
 
   const vendorSourceAliases = useVendorSource
     ? {
@@ -23,6 +36,20 @@ export default defineConfig(({ mode }) => {
         '@pages': resolve(vendorSrc, 'pages'),
         '@providers': resolve(vendorSrc, 'providers'),
         '@assets': resolve(vendorSrc, 'assets'),
+      }
+    : {}
+
+  const happileeUiAliases = useLocalHappileeUi
+    ? {
+        '@happilee-app/ui/styles.css': resolve(
+          happileeUiPath,
+          'dist/styles.css',
+        ),
+        '@happilee-app/ui/ecommerce': resolve(
+          happileeUiPath,
+          'dist/ecommerce.js',
+        ),
+        '@happilee-app/ui': resolve(happileeUiPath, 'dist/index.js'),
       }
     : {}
 
@@ -41,15 +68,28 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': vendorSrc,
+        ...happileeUiAliases,
         ...vendorSourceAliases,
       },
     },
+    server: {
+      fs: {
+        allow: useLocalHappileeUi
+          ? [resolve(__dirname, '../..'), happileeUiPath]
+          : [resolve(__dirname, '../..')],
+      },
+    },
     optimizeDeps: {
-      include: [
-        '@happilee-app/ui',
-        '@happilee-app/ui/ecommerce',
-        '@happilee-app/icons',
-      ],
+      include: useLocalHappileeUi
+        ? ['@happilee-app/icons']
+        : [
+            '@happilee-app/ui',
+            '@happilee-app/ui/ecommerce',
+            '@happilee-app/icons',
+          ],
+      exclude: useLocalHappileeUi
+        ? ['@happilee-app/ui', '@happilee-app/ui/ecommerce']
+        : [],
     },
   }
 })

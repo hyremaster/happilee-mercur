@@ -214,19 +214,19 @@ export const StoresPage = () => {
                       <Cell>{store.commerceType}</Cell>
                       <Cell className="text-right">
                         <div className="inline-flex items-center justify-end gap-xxs">
-                          {store.isDraft ? (
-                            <UtilityButton
-                              icon={<Edit01 />}
-                              aria-label={`Edit ${store.name}`}
-                              variant="tertiary"
-                              size="xs"
-                              onPress={() =>
-                                navigate(
-                                  `/onboard?draftId=${encodeURIComponent(store.id)}`,
-                                )
-                              }
-                            />
-                          ) : null}
+                          <UtilityButton
+                            icon={<Edit01 />}
+                            aria-label={`Edit ${store.name}`}
+                            variant="tertiary"
+                            size="xs"
+                            onPress={() =>
+                              navigate(
+                                store.isDraft
+                                  ? `/onboard?draftId=${encodeURIComponent(store.id)}`
+                                  : `/onboard?storeId=${encodeURIComponent(store.id)}`,
+                              )
+                            }
+                          />
                           <UtilityButton
                             icon={<DotsVertical />}
                             aria-label={`More options for ${store.name}`}

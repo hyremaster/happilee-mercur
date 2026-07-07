@@ -1,10 +1,15 @@
 import { countries, getCountryByIso2 } from "../../../lib/data/countries";
 import type { StoreOnboardingDraft } from "../../../services/onboardingServices";
+import type {
+  StoreDetail,
+  StoreLocationRow,
+} from "../../../services/storeServices";
 import { DEFAULT_ORDER_STATUSES } from "./constants";
 import type {
   BusinessDetails,
   CommerceConfig,
   FulfillmentCentre,
+  OrderStatusConfig,
   PaymentConfig,
   StorefrontConfig,
   StoreSetupState,
@@ -90,9 +95,10 @@ const mapLocationToCentre = (
   index: number,
 ): StoreSetupState["fulfillmentCentres"][number] => {
   const address = asObject(location.address);
+  const locationId = asString(location.id);
 
   return {
-    id: `loc_${index}_${asString(location.name) ?? "centre"}`,
+    id: locationId ?? `loc_${index}_${asString(location.name) ?? "centre"}`,
     name: asString(location.name) ?? "",
     address: asString(address.address_1) ?? "",
     city: asString(address.city) ?? "",
@@ -102,6 +108,148 @@ const mapLocationToCentre = (
     active: asBoolean(location.is_active) ?? true,
     lat: asNumber(location.latitude),
     lng: asNumber(location.longitude),
+  };
+};
+
+const mapApiLocationToCentre = (
+  location: StoreLocationRow,
+): FulfillmentCentre => {
+  const address = location.address ?? {};
+
+  return {
+    id: location.id,
+    name: location.name ?? "",
+    address: address.address_1 ?? "",
+    city: address.city ?? "",
+    state: address.province ?? "",
+    country: resolveCountryDisplay(address.country_code),
+    pinCode: address.postal_code ?? "",
+    active: location.is_active,
+    lat: location.latitude ?? undefined,
+    lng: location.longitude ?? undefined,
+  };
+};
+
+const ORDER_STATUS_API_VALUES = new Set([
+  "order_placed",
+  "confirmed",
+  "preparing",
+  "ready_for_pickup",
+  "out_for_delivery",
+  "delivered",
+  "cancelled",
+]);
+
+const UI_ORDER_STATUS_TO_API: Record<string, string> = {
+  "order-placed": "order_placed",
+  confirmed: "confirmed",
+  preparing: "preparing",
+  "ready-pickup": "ready_for_pickup",
+  "out-delivery": "out_for_delivery",
+  delivered: "delivered",
+  cancelled: "cancelled",
+};
+
+const toApiOrderStatus = (statusId: string): string => {
+  if (ORDER_STATUS_API_VALUES.has(statusId)) {
+    return statusId;
+  }
+
+  return UI_ORDER_STATUS_TO_API[statusId] ?? statusId.replace(/-/g, "_");
+};
+
+export const mapOrderStatusesToApi = (
+  statuses: OrderStatusConfig[],
+): Array<{
+  status: string;
+  display_name: string;
+  color: string | null;
+  is_active: boolean;
+  is_required: boolean;
+  rank: number;
+}> => {
+  return statuses.map((status, index) => ({
+    status: toApiOrderStatus(status.id),
+    display_name: status.displayName,
+    color: status.color || null,
+    is_active: status.active,
+    is_required: status.required,
+    rank: index,
+  }));
+};
+
+export const mapStoreDetailToStoreSetupState = (
+  store: StoreDetail,
+  locations: StoreLocationRow[],
+): StoreSetupState => {
+  const profile = store.store_profile;
+  const address = store.address ?? {};
+  const professionalDetails = store.professional_details ?? {};
+  const paymentConfig = profile?.payment_config;
+  const deliveryAreas = store.delivery_areas ?? [];
+  const firstDeliveryArea = deliveryAreas[0];
+
+  const commerceType = fromApiCommerceType(profile?.commerce_type ?? undefined);
+  const fulfillmentMethods = profile?.fulfillment_methods ?? [];
+
+  const paymentMethods: string[] = [];
+
+  if (paymentConfig?.online_enabled) {
+    paymentMethods.push("online");
+  }
+
+  if (paymentConfig?.cod_enabled) {
+    paymentMethods.push("cod");
+  }
+
+  const codMin = paymentConfig?.cod_min_amount;
+  const codMax = paymentConfig?.cod_max_amount;
+
+  const locationCentres = locations.map(mapApiLocationToCentre);
+  const initialLocationIds = locations.map((location) => location.id);
+
+  return {
+    currentStep: 0,
+    draftId: null,
+    storeId: store.id,
+    initialLocationIds,
+    businessDetails: {
+      industry: profile?.industry ?? "restaurant",
+      storeName: store.name?.trim() ?? "",
+      businessLegalName: professionalDetails.corporate_name ?? "",
+      email: store.email ?? "",
+      phone: store.phone ?? address.phone ?? "",
+      address: address.address_1 ?? "",
+      country: resolveCountryDisplay(address.country_code),
+      state: address.province ?? "",
+      city: address.city ?? "",
+      pinCode: address.postal_code ?? "",
+      taxNumber: professionalDetails.tax_id ?? "",
+    },
+    commerce: {
+      commerceType,
+      localFulfillment:
+        commerceType === "local-delivery" ? fulfillmentMethods : [],
+      ecomFulfillment:
+        commerceType === "ecommerce-shipping" ? fulfillmentMethods : [],
+      deliveryArea: firstDeliveryArea?.area_sense_id ?? "",
+      deliveryAreaName: firstDeliveryArea?.area_name ?? "",
+      orderStatuses: mapOrderStatuses(profile?.order_statuses),
+    },
+    fulfillmentCentres: locationCentres,
+    payment: {
+      methods: paymentMethods,
+      paymentGateway: paymentConfig?.payment_provider_id ?? "",
+      codMin:
+        typeof codMin === "number" && !Number.isNaN(codMin) ? String(codMin) : "",
+      codMax:
+        typeof codMax === "number" && !Number.isNaN(codMax) ? String(codMax) : "",
+    },
+    storefront: {
+      handle: store.handle ?? "",
+      template: fromApiStorefrontTemplate(profile?.storefront_template ?? undefined),
+    },
+    isComplete: false,
   };
 };
 
@@ -129,6 +277,16 @@ export const mapDraftToStoreSetupState = (
       )
     : [];
 
+  const deliveryAreas = Array.isArray(commerce.delivery_areas)
+    ? commerce.delivery_areas.map((entry) => asObject(entry))
+    : [];
+  const firstDeliveryArea = deliveryAreas[0];
+  const deliveryArea =
+    asString(firstDeliveryArea?.area_sense_id) ??
+    asString(commerce.delivery_area) ??
+    "";
+  const deliveryAreaName = asString(firstDeliveryArea?.area_name) ?? "";
+
   const paymentMethods: string[] = [];
 
   if (asBoolean(payment.online_enabled)) {
@@ -145,6 +303,8 @@ export const mapDraftToStoreSetupState = (
   return {
     currentStep: draftStepToWizardStep(draft.onboarding_step),
     draftId: draft.id,
+    storeId: null,
+    initialLocationIds: [],
     businessDetails: {
       industry: asString(business.industry) ?? "restaurant",
       storeName: asString(business.name) ?? "",
@@ -164,7 +324,8 @@ export const mapDraftToStoreSetupState = (
         commerceType === "local-delivery" ? fulfillmentMethods : [],
       ecomFulfillment:
         commerceType === "ecommerce-shipping" ? fulfillmentMethods : [],
-      deliveryArea: asString(commerce.delivery_area) ?? "",
+      deliveryArea,
+      deliveryAreaName,
       orderStatuses: mapOrderStatuses(data.order_statuses),
     },
     fulfillmentCentres: locations,
@@ -207,6 +368,10 @@ export type BusinessDetailsDraftData = {
 export type CommerceTypeDraftData = {
   commerce_type: string;
   fulfillment_methods: string[];
+  delivery_areas?: Array<{
+    area_sense_id: string;
+    area_name: string;
+  }>;
 };
 
 export type FulfillmentDetailsDraftData = {
@@ -367,6 +532,16 @@ export const mapCommerceTypeToStep2Data = (
   return {
     commerce_type: toApiCommerceType(data.commerceType),
     fulfillment_methods: fulfillmentMethods,
+    ...(data.deliveryArea && data.deliveryAreaName
+      ? {
+          delivery_areas: [
+            {
+              area_sense_id: data.deliveryArea,
+              area_name: data.deliveryAreaName,
+            },
+          ],
+        }
+      : {}),
   };
 };
 

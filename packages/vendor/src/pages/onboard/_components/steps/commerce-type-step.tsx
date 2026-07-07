@@ -18,8 +18,9 @@ import {
   Cell,
   Toggle,
 } from "@happilee-app/ui";
-import { DELIVERY_AREAS } from "../constants";
+import type { AreaSenseArea } from "../../../services/onboardingServices";
 import type { CommerceConfig } from "../types";
+import { useAreaSenseAreas } from "../use-area-sense-areas";
 
 type CommerceTypeStepProps = {
   data: CommerceConfig;
@@ -27,6 +28,89 @@ type CommerceTypeStepProps = {
   onResetStatuses: () => void;
   onUpdateStatus: (id: string, patch: { displayName?: string; active?: boolean }) => void;
 };
+
+type DeliveryAreaSelectProps = {
+  ariaLabel: string;
+  deliveryArea: string;
+  deliveryAreaName: string;
+  areas: AreaSenseArea[];
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  onChange: (patch: Partial<CommerceConfig>) => void;
+};
+
+function DeliveryAreaSelect({
+  ariaLabel,
+  deliveryArea,
+  deliveryAreaName,
+  areas,
+  isLoading,
+  isError,
+  onRetry,
+  onChange,
+}: DeliveryAreaSelectProps) {
+  if (isError) {
+    return (
+      <div className="flex flex-col gap-sm rounded-md border border-border-secondary bg-bg-secondary px-lg py-md">
+        <p className="text-sm text-text-secondary">
+          We couldn&apos;t load delivery areas right now.
+        </p>
+        <Button
+          hierarchy="secondary"
+          size="sm"
+          iconLeading={<RefreshCw01 />}
+          onPress={onRetry}
+        >
+          Try again
+        </Button>
+      </div>
+    );
+  }
+
+  const selectedAreaMissingFromList =
+    !!deliveryArea &&
+    !!deliveryAreaName &&
+    !areas.some((entry) => entry.area_sense_id === deliveryArea);
+
+  return (
+    <SelectField
+      aria-label={ariaLabel}
+      placeholder={isLoading ? "Loading areas..." : "Choose from saved locations"}
+      size="sm"
+      selectedKey={deliveryArea || undefined}
+      isDisabled={isLoading}
+      onSelectionChange={(key) => {
+        if (key == null) {
+          return;
+        }
+
+        const areaId = String(key);
+        const area = areas.find((entry) => entry.area_sense_id === areaId);
+
+        onChange({
+          deliveryArea: areaId,
+          deliveryAreaName: area?.area_name ?? deliveryAreaName,
+        });
+      }}
+    >
+      {selectedAreaMissingFromList && (
+        <SelectItem id={deliveryArea} textValue={deliveryAreaName}>
+          {deliveryAreaName}
+        </SelectItem>
+      )}
+      {areas.map((area) => (
+        <SelectItem
+          key={area.area_sense_id}
+          id={area.area_sense_id}
+          textValue={area.area_name}
+        >
+          {area.area_name}
+        </SelectItem>
+      ))}
+    </SelectField>
+  );
+}
 
 export function isCommerceTypeValid(data: CommerceConfig) {
   if (!data.commerceType) return false;
@@ -54,6 +138,13 @@ export const CommerceTypeStep = ({
   onResetStatuses,
   onUpdateStatus,
 }: CommerceTypeStepProps) => {
+  const {
+    areas,
+    isLoading: isLoadingAreas,
+    isError: isAreasError,
+    refetch: refetchAreas,
+  } = useAreaSenseAreas();
+
   return (
     <div className="flex w-full flex-col items-start gap-4xl">
       <div className="flex w-full flex-col gap-md">
@@ -96,21 +187,18 @@ export const CommerceTypeStep = ({
                     <span> module)</span>
                     <span className="text-text-brand" aria-hidden="true">*</span>
                   </div>
-                  <SelectField
-                    aria-label="Choose from saved locations"
-                    placeholder="Choose from saved locations"
-                    size="sm"
-                    selectedKey={data.deliveryArea || undefined}
-                    onSelectionChange={(key) =>
-                      onChange({ deliveryArea: String(key ?? "") })
-                    }
-                  >
-                    {DELIVERY_AREAS.map((area) => (
-                      <SelectItem key={area.id} id={area.id}>
-                        {area.label}
-                      </SelectItem>
-                    ))}
-                  </SelectField>
+                  <DeliveryAreaSelect
+                    ariaLabel="Choose from saved locations"
+                    deliveryArea={data.deliveryArea}
+                    deliveryAreaName={data.deliveryAreaName}
+                    areas={areas}
+                    isLoading={isLoadingAreas}
+                    isError={isAreasError}
+                    onRetry={() => {
+                      void refetchAreas();
+                    }}
+                    onChange={onChange}
+                  />
                 </div>
               )}
             </ExpandableRadioCardSection>
@@ -147,21 +235,18 @@ export const CommerceTypeStep = ({
                     <span> module)</span>
                     <span className="text-text-brand" aria-hidden="true">*</span>
                   </div>
-                  <SelectField
-                    aria-label="Choose from saved locations (ecommerce)"
-                    placeholder="Choose from saved locations"
-                    size="sm"
-                    selectedKey={data.deliveryArea || undefined}
-                    onSelectionChange={(key) =>
-                      onChange({ deliveryArea: String(key ?? "") })
-                    }
-                  >
-                    {DELIVERY_AREAS.map((area) => (
-                      <SelectItem key={area.id} id={area.id}>
-                        {area.label}
-                      </SelectItem>
-                    ))}
-                  </SelectField>
+                  <DeliveryAreaSelect
+                    ariaLabel="Choose from saved locations (ecommerce)"
+                    deliveryArea={data.deliveryArea}
+                    deliveryAreaName={data.deliveryAreaName}
+                    areas={areas}
+                    isLoading={isLoadingAreas}
+                    isError={isAreasError}
+                    onRetry={() => {
+                      void refetchAreas();
+                    }}
+                    onChange={onChange}
+                  />
                 </div>
               )}
             </ExpandableRadioCardSection>

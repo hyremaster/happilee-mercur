@@ -37,7 +37,7 @@
     "@happilee-app/icons": "^0.2.0",
     "@happilee-app/tailwind-preset": "^0.1.0",
     "@happilee-app/tokens": "^0.1.0",
-    "@happilee-app/ui": "^0.2.0",
+    "@happilee-app/ui": "0.3.0",
     "@hookform/error-message": "^2.0.1",
     "@hookform/resolvers": "3.4.2",
     "@medusajs/admin-shared": "^2.13.4",
