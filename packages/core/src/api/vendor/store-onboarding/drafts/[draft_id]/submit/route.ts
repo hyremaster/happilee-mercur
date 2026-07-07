@@ -13,6 +13,8 @@ import {
   StoreIndustry,
   StoreOnboardingDraftStatus,
   StoreOrderStatusType,
+  StorePaymentGatewayType,
+  StorePaymentGatewayCredentials,
 } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../../../modules/marketplace-profile/service"
@@ -65,6 +67,31 @@ export const POST = async (
   const payment = data.payment
     ? asObject(data.payment)
     : asObject(fulfillment.payment)
+
+  // Payment gateway (credentials) — step 3, under fulfillment.payment_gateway.
+  const gatewayRaw = asObject(
+    (data.payment_gateway as unknown) ?? fulfillment.payment_gateway
+  )
+  const gatewayCreds = asObject(gatewayRaw.credentials)
+  const paymentGateway =
+    asString(gatewayRaw.gateway) && asString(gatewayCreds.key_id)
+      ? {
+          gateway: gatewayRaw.gateway as StorePaymentGatewayType,
+          is_active:
+            typeof gatewayRaw.is_active === "boolean"
+              ? gatewayRaw.is_active
+              : true,
+          credentials: {
+            key_id: String(gatewayCreds.key_id),
+            key_secret: asString(gatewayCreds.key_secret) ?? "",
+            ...(asString(gatewayCreds.webhook_secret)
+              ? { webhook_secret: String(gatewayCreds.webhook_secret) }
+              : {}),
+          } as StorePaymentGatewayCredentials,
+          metadata:
+            (gatewayRaw.metadata as Record<string, unknown> | undefined) ?? null,
+        }
+      : null
   const locations = Array.isArray(fulfillment.locations)
     ? (fulfillment.locations as Record<string, unknown>[])
     : Array.isArray(data.locations)
@@ -137,6 +164,7 @@ export const POST = async (
             }))
             .filter((a) => a.area_sense_id && a.area_name)
         : null,
+      payment_gateway: paymentGateway,
     },
   })
 

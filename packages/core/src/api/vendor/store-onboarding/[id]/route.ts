@@ -9,8 +9,13 @@ import {
 import { MercurModules } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../modules/marketplace-profile/service"
+import {
+  updateSellersWorkflow,
+  updateSellerAddressWorkflow,
+  updateSellerProfessionalDetailsWorkflow,
+} from "../../../../workflows/seller"
 import { VendorUpdateStoreType } from "../validators"
-import { assertStoreOwnership } from "../helpers"
+import { assertStoreOwnership, maskGateway } from "../helpers"
 
 // GET /vendor/store-onboarding/:id — store detail (seller + extension data).
 export const GET = async (
@@ -47,6 +52,9 @@ export const GET = async (
   const delivery_areas = await service.listStoreDeliveryAreas({
     seller_id: sellerId,
   })
+  const gateways = await service.listStorePaymentGateways({
+    seller_id: sellerId,
+  })
 
   res.json({
     store: {
@@ -54,6 +62,7 @@ export const GET = async (
       store_profile: store_profile ?? null,
       owner_handle: ownerProfile?.handle ?? null,
       delivery_areas,
+      payment_gateways: gateways.map(maskGateway),
     },
   })
 }
@@ -70,6 +79,33 @@ export const POST = async (
   const service = req.scope.resolve<MarketplaceProfileModuleService>(
     MercurModules.MARKETPLACE_PROFILE
   )
+
+  // Step 1 — business details on seller-native tables.
+  // Seller core fields (name/email/phone/description).
+  const sellerUpdate: Record<string, unknown> = {}
+  if (body.name !== undefined) sellerUpdate.name = body.name
+  if (body.email !== undefined) sellerUpdate.email = body.email
+  if (body.phone !== undefined) sellerUpdate.phone = body.phone
+  if (body.description !== undefined) sellerUpdate.description = body.description
+  if (Object.keys(sellerUpdate).length) {
+    await updateSellersWorkflow(req.scope).run({
+      input: { selector: { id: sellerId }, update: sellerUpdate },
+    })
+  }
+
+  // Address (upsert) — country/state/city/pincode + address line.
+  if (body.address) {
+    await updateSellerAddressWorkflow(req.scope).run({
+      input: { seller_id: sellerId, data: body.address },
+    })
+  }
+
+  // Professional details (upsert) — legal name + tax/GST.
+  if (body.professional_details) {
+    await updateSellerProfessionalDetailsWorkflow(req.scope).run({
+      input: { seller_id: sellerId, data: body.professional_details },
+    })
+  }
 
   let [profile] = await service.listStoreProfiles({ seller_id: sellerId })
   if (!profile) {
@@ -109,6 +145,32 @@ export const POST = async (
     }
   }
 
+  // Payment gateway (upsert by seller_id + gateway). Credentials stored raw;
+  // masked on read.
+  if (body.payment_gateway) {
+    const { gateway, is_active, credentials, metadata } = body.payment_gateway
+    const [existing] = await service.listStorePaymentGateways({
+      seller_id: sellerId,
+      gateway,
+    })
+    if (existing) {
+      await service.updateStorePaymentGateways({
+        id: existing.id,
+        is_active: is_active ?? existing.is_active,
+        credentials,
+        ...(metadata !== undefined ? { metadata } : {}),
+      })
+    } else {
+      await service.createStorePaymentGateways({
+        seller_id: sellerId,
+        gateway,
+        is_active: is_active ?? false,
+        credentials,
+        metadata: metadata ?? null,
+      })
+    }
+  }
+
   // Order statuses (full replace, e.g. "Reset to defaults" or reorder/rename).
   if (body.order_statuses) {
     const existing = await service.listStoreOrderStatuses({
@@ -140,10 +202,36 @@ export const POST = async (
     }
   }
 
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const {
+    data: [seller],
+  } = await query.graph({
+    entity: "seller",
+    fields: req.queryConfig.fields,
+    filters: { id: sellerId },
+  })
+
   const [store_profile] = await service.listStoreProfiles(
     { seller_id: sellerId },
     { relations: ["order_statuses", "payment_config"] }
   )
+  const [ownerProfile] = await service.listMemberProfiles({
+    member_id: memberId,
+  })
+  const delivery_areas = await service.listStoreDeliveryAreas({
+    seller_id: sellerId,
+  })
+  const gateways = await service.listStorePaymentGateways({
+    seller_id: sellerId,
+  })
 
-  res.json({ store: { id: sellerId, store_profile: store_profile ?? null } })
+  res.json({
+    store: {
+      ...seller,
+      store_profile: store_profile ?? null,
+      owner_handle: ownerProfile?.handle ?? null,
+      delivery_areas,
+      payment_gateways: gateways.map(maskGateway),
+    },
+  })
 }

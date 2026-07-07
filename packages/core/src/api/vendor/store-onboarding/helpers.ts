@@ -7,6 +7,64 @@ import { MercurModules, StoreOnboardingDraftDTO } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../modules/marketplace-profile/service"
 
+// Credential fields that must never be returned in an API response.
+const SECRET_CREDENTIAL_KEYS = ["key_secret", "webhook_secret"]
+const MASKED = "***"
+
+const isObject = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === "object" && !Array.isArray(v)
+
+/** Replace secret credential values with a mask (keeps public fields like key_id). */
+export function maskCredentials(credentials: unknown): unknown {
+  if (!isObject(credentials)) {
+    return credentials
+  }
+  const out: Record<string, unknown> = { ...credentials }
+  for (const key of SECRET_CREDENTIAL_KEYS) {
+    if (out[key] != null) {
+      out[key] = MASKED
+    }
+  }
+  return out
+}
+
+/** Mask the `credentials` of a store_payment_gateway row for safe return. */
+export function maskGateway<T>(gateway: T): T {
+  if (!isObject(gateway)) {
+    return gateway
+  }
+  return { ...gateway, credentials: maskCredentials(gateway.credentials) } as T
+}
+
+/**
+ * Mask any payment-gateway credentials embedded in a draft's `draft_data`
+ * (step 3 saves `fulfillment.payment_gateway` loosely). Returns a shallow copy
+ * so the stored value is untouched.
+ */
+export function maskDraftData(draftData: unknown): unknown {
+  if (!isObject(draftData)) {
+    return draftData
+  }
+  const data: Record<string, unknown> = { ...draftData }
+
+  const fulfillment = data.fulfillment
+  if (isObject(fulfillment) && fulfillment.payment_gateway) {
+    data.fulfillment = {
+      ...fulfillment,
+      payment_gateway: maskGateway(fulfillment.payment_gateway),
+    }
+  }
+  if (data.payment_gateway) {
+    data.payment_gateway = maskGateway(data.payment_gateway)
+  }
+  return data
+}
+
+/** Mask credentials on every draft in a list before returning. */
+export function maskDrafts<T extends { draft_data?: unknown }>(drafts: T[]): T[] {
+  return drafts.map((d) => ({ ...d, draft_data: maskDraftData(d.draft_data) }))
+}
+
 /**
  * Store-onboarding routes are exempt from the global vendor `ensureSeller`
  * guard (a vendor creates new sellers, so there is no single seller header).

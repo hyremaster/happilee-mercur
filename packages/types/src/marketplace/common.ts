@@ -313,12 +313,19 @@ export interface UpdateStorePaymentConfigDTO {
   metadata?: Record<string, unknown> | null
 }
 
+export interface StorePaymentGatewayCredentials {
+  key_id: string
+  key_secret: string
+  webhook_secret?: string
+  [key: string]: unknown
+}
+
 export interface StorePaymentGatewayDTO {
   id: string
   seller_id: string
   gateway: StorePaymentGatewayType
   is_active: boolean
-  credentials: { key_id: string; key_secret: string; webhook_secret?: string }
+  credentials: StorePaymentGatewayCredentials
   metadata: Record<string, unknown> | null
   created_at: Date
   updated_at: Date
@@ -329,7 +336,7 @@ export interface CreateStorePaymentGatewayDTO {
   seller_id: string
   gateway: StorePaymentGatewayType
   is_active?: boolean
-  credentials: { key_id: string; key_secret: string; webhook_secret?: string }
+  credentials: StorePaymentGatewayCredentials
   metadata?: Record<string, unknown> | null
 }
 

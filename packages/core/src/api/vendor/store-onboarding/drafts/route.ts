@@ -7,6 +7,7 @@ import { MercurModules, StoreOnboardingDraftStatus } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../modules/marketplace-profile/service"
 import { VendorCreateDraftType } from "../validators"
+import { maskDrafts } from "../helpers"
 
 // GET /vendor/store-onboarding/drafts — list the member's drafts (resume picker).
 export const GET = async (
@@ -43,7 +44,7 @@ export const GET = async (
   )
 
   res.json({
-    drafts,
+    drafts: maskDrafts(drafts),
     count,
     offset: req.queryConfig.pagination.skip,
     limit: req.queryConfig.pagination.take,

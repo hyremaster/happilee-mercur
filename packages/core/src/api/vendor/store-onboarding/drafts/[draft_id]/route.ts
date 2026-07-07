@@ -6,7 +6,7 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { MercurModules, StoreOnboardingDraftStatus } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../../modules/marketplace-profile/service"
-import { assertDraftOwnership } from "../../helpers"
+import { assertDraftOwnership, maskDraftData } from "../../helpers"
 import { VendorSaveDraftStepType } from "../../validators"
 
 // Wizard screen index -> draft_data key.
@@ -23,7 +23,7 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   const draft = await assertDraftOwnership(req, req.params.draft_id)
-  res.json({ draft })
+  res.json({ draft: { ...draft, draft_data: maskDraftData(draft.draft_data) } })
 }
 
 // POST /vendor/store-onboarding/drafts/:draft_id — save one screen.
@@ -58,7 +58,9 @@ export const POST = async (
     onboarding_step: Math.max(draft.onboarding_step ?? 0, step),
   })
 
-  res.json({ draft: updated })
+  res.json({
+    draft: { ...updated, draft_data: maskDraftData(updated.draft_data) },
+  })
 }
 
 // DELETE /vendor/store-onboarding/drafts/:draft_id — discard a draft.
