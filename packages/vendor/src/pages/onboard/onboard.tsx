@@ -20,10 +20,9 @@ import {
   getStoreLocations,
 } from "../../services/storeServices";
 import {
-  saveActiveStoreStep1,
-  saveActiveStoreStep2,
-  saveActiveStoreStep3,
-  saveActiveStoreStep4,
+  createActiveStoreBaseline,
+  saveActiveStoreStepSparse,
+  type ActiveStoreBaseline,
 } from "../../services/activeStoreSave";
 import { STEP_HEADINGS } from "./_components/constants";
 import { LocationModal } from "./_components/modals/location-modal";
@@ -103,6 +102,8 @@ export const OnboardPage = () => {
     !!draftIdParam || !!storeIdParam,
   );
   const [originalStorefrontHandle, setOriginalStorefrontHandle] = useState("");
+  const [activeStoreBaseline, setActiveStoreBaseline] =
+    useState<ActiveStoreBaseline | null>(null);
 
   const activeStoreId = state.storeId ?? "";
   const { mutateAsync: createStoreLocation, isPending: isCreatingLocation } =
@@ -133,6 +134,7 @@ export const OnboardPage = () => {
           if (!cancelled) {
             hydrateState(mapDraftToStoreSetupState(draft));
             setOriginalStorefrontHandle("");
+            setActiveStoreBaseline(null);
           }
         } catch {
           if (!cancelled) {
@@ -161,6 +163,7 @@ export const OnboardPage = () => {
             const nextState = mapStoreDetailToStoreSetupState(store, locations);
             hydrateState(nextState);
             setOriginalStorefrontHandle(nextState.storefront.handle);
+            setActiveStoreBaseline(createActiveStoreBaseline(nextState));
           }
         } catch {
           if (!cancelled) {
@@ -178,6 +181,7 @@ export const OnboardPage = () => {
 
       resetState();
       setOriginalStorefrontHandle("");
+      setActiveStoreBaseline(null);
       setIsLoadingDraft(false);
     };
 
@@ -197,22 +201,40 @@ export const OnboardPage = () => {
       return;
     }
 
-    updateState((prev) => {
-      if (prev.commerce.orderStatuses.length > 0) {
-        return {};
-      }
+    if (state.commerce.orderStatuses.length > 0) {
+      return;
+    }
 
-      return {
-        commerce: {
-          ...prev.commerce,
-          orderStatuses: defaultOrderStatuses.map((status) => ({ ...status })),
-        },
-      };
-    });
+    const nextOrderStatuses = defaultOrderStatuses.map((status) => ({
+      ...status,
+    }));
+
+    updateState((prev) => ({
+      commerce: {
+        ...prev.commerce,
+        orderStatuses: nextOrderStatuses,
+      },
+    }));
+
+    if (state.storeId) {
+      setActiveStoreBaseline((baseline) =>
+        baseline
+          ? {
+              ...baseline,
+              commerce: {
+                ...baseline.commerce,
+                orderStatuses: nextOrderStatuses.map((status) => ({ ...status })),
+              },
+            }
+          : baseline,
+      );
+    }
   }, [
     isLoadingDraft,
     isLoadingDefaultStatuses,
     defaultOrderStatuses,
+    state.commerce.orderStatuses.length,
+    state.storeId,
     updateState,
   ]);
 
@@ -254,7 +276,18 @@ export const OnboardPage = () => {
 
       try {
         if (state.storeId) {
-          await saveActiveStoreStep1(state.storeId, state.businessDetails);
+          if (!activeStoreBaseline) {
+            toast.error("Store baseline not loaded. Please reopen this store.");
+            return;
+          }
+
+          const nextBaseline = await saveActiveStoreStepSparse(
+            state.storeId,
+            1,
+            state,
+            activeStoreBaseline,
+          );
+          setActiveStoreBaseline(nextBaseline);
           nextStep();
           return;
         }
@@ -294,7 +327,18 @@ export const OnboardPage = () => {
 
       try {
         if (state.storeId) {
-          await saveActiveStoreStep2(state.storeId, state.commerce);
+          if (!activeStoreBaseline) {
+            toast.error("Store baseline not loaded. Please reopen this store.");
+            return;
+          }
+
+          const nextBaseline = await saveActiveStoreStepSparse(
+            state.storeId,
+            2,
+            state,
+            activeStoreBaseline,
+          );
+          setActiveStoreBaseline(nextBaseline);
           nextStep();
           return;
         }
@@ -326,7 +370,18 @@ export const OnboardPage = () => {
 
       try {
         if (state.storeId) {
-          await saveActiveStoreStep3(state.storeId, state.payment);
+          if (!activeStoreBaseline) {
+            toast.error("Store baseline not loaded. Please reopen this store.");
+            return;
+          }
+
+          const nextBaseline = await saveActiveStoreStepSparse(
+            state.storeId,
+            3,
+            state,
+            activeStoreBaseline,
+          );
+          setActiveStoreBaseline(nextBaseline);
           nextStep();
           return;
         }
@@ -361,7 +416,19 @@ export const OnboardPage = () => {
 
       try {
         if (state.storeId) {
-          await saveActiveStoreStep4(state.storeId, state.storefront);
+          if (!activeStoreBaseline) {
+            toast.error("Store baseline not loaded. Please reopen this store.");
+            return;
+          }
+
+          const nextBaseline = await saveActiveStoreStepSparse(
+            state.storeId,
+            4,
+            state,
+            activeStoreBaseline,
+          );
+          setActiveStoreBaseline(nextBaseline);
+          setOriginalStorefrontHandle(state.storefront.handle);
           setIsReviewOpen(true);
           return;
         }
