@@ -10,6 +10,7 @@ import {
   SelectItem,
 } from "@happilee-app/ui";
 import { PAYMENT_GATEWAYS } from "../constants";
+import { formatFulfillmentCentreAddress } from "../onboarding-mappers";
 import type { FulfillmentCentre, PaymentConfig } from "../types";
 
 type FulfillmentDetailsStepProps = {
@@ -111,7 +112,7 @@ export const FulfillmentDetailsStep = ({
                   </Badge>
                 </div>
                 <span className="text-sm text-text-tertiary">
-                  {centre.address}
+                  {formatFulfillmentCentreAddress(centre)}
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-xs">

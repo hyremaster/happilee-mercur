@@ -455,12 +455,30 @@ export const OnboardPage = () => {
     });
   };
 
-  const handleSaveLocation = async (centre: FulfillmentCentre) => {
+  const replaceFulfillmentCentre = (
+    centres: FulfillmentCentre[],
+    centre: FulfillmentCentre,
+  ) => {
+    const index = centres.findIndex((entry) => entry.id === centre.id);
+
+    if (index === -1) {
+      return [...centres, centre];
+    }
+
+    const next = [...centres];
+    next[index] = centre;
+    return next;
+  };
+
+  const handleSaveLocation = async (
+    centre: FulfillmentCentre,
+    mode: "add" | "edit",
+  ) => {
     if (state.storeId) {
       const payload = mapFulfillmentCentreToLocationPayload(centre);
 
       try {
-        if (locationModal?.mode === "add") {
+        if (mode === "add") {
           const { location } = await createStoreLocation(payload);
           const saved = mapApiLocationToCentre(location);
 
@@ -470,15 +488,15 @@ export const OnboardPage = () => {
           }));
           toast.success("Location added");
         } else {
-          const { location } = await updateStoreLocation({
+          await updateStoreLocation({
             locationId: centre.id,
             payload,
           });
-          const saved = mapApiLocationToCentre(location);
 
           updateState((prev) => ({
-            fulfillmentCentres: prev.fulfillmentCentres.map((entry) =>
-              entry.id === centre.id ? saved : entry,
+            fulfillmentCentres: replaceFulfillmentCentre(
+              prev.fulfillmentCentres,
+              centre,
             ),
           }));
           toast.success("Location updated");
@@ -495,12 +513,12 @@ export const OnboardPage = () => {
 
     updateState((prev) => ({
       fulfillmentCentres:
-        locationModal?.mode === "add"
+        mode === "add"
           ? [...prev.fulfillmentCentres, centre]
-          : prev.fulfillmentCentres.map((entry) =>
-              entry.id === centre.id ? centre : entry,
-            ),
+          : replaceFulfillmentCentre(prev.fulfillmentCentres, centre),
     }));
+    setLocationModal(null);
+    toast.success(mode === "add" ? "Location added" : "Location updated");
   };
 
   const handleUpdateStatus = (
@@ -624,7 +642,12 @@ export const OnboardPage = () => {
             }
             onDeleteCentre={(id) => void handleDeleteCentre(id)}
             onAddLocation={() => setLocationModal({ mode: "add" })}
-            onEditCentre={(centre) => setLocationModal({ mode: "edit", centre })}
+            onEditCentre={(centre) => {
+              const current =
+                state.fulfillmentCentres.find((entry) => entry.id === centre.id) ??
+                centre;
+              setLocationModal({ mode: "edit", centre: current });
+            }}
           />
         )}
 
@@ -659,7 +682,7 @@ export const OnboardPage = () => {
           onOpenChange={(open) => {
             if (!open) setLocationModal(null);
           }}
-          onSave={(centre) => handleSaveLocation(centre)}
+          onSave={(centre) => handleSaveLocation(centre, locationModal.mode)}
           isSaving={isSavingLocation}
         />
       )}

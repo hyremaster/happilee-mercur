@@ -594,6 +594,20 @@ export const mapCommerceTypeToStep2Data = (
   };
 };
 
+export const formatFulfillmentCentreAddress = (centre: FulfillmentCentre) => {
+  const parts = [
+    centre.address,
+    centre.city,
+    centre.state,
+    centre.pinCode,
+    centre.country,
+  ]
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return parts.join(", ");
+};
+
 export const mapFulfillmentCentreToLocationPayload = (
   centre: FulfillmentCentre,
 ) => ({
