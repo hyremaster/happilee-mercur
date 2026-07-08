@@ -8,7 +8,6 @@ import {
   mapBusinessDetailsToStep1Data,
   mapCommerceTypeToStep2Data,
   mapFulfillmentDetailsToStep3Data,
-  mapOrderStatusesToApi,
   mapStorefrontToStep4Data,
 } from "../pages/onboard/_components/onboarding-mappers";
 import { fetchQuery } from "../lib/client";
@@ -102,7 +101,7 @@ export const saveActiveStoreStep2 = async (
   await updateStoreProfile(storeId, {
     commerce_type: stepData.commerce_type,
     fulfillment_methods: stepData.fulfillment_methods,
-    order_statuses: mapOrderStatusesToApi(commerce.orderStatuses),
+    order_statuses: stepData.order_statuses,
   });
 
   if (stepData.delivery_areas?.length) {

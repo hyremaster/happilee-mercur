@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
-import { DEFAULT_ORDER_STATUSES } from "./constants";
-import type { StoreSetupState, WizardStep } from "./types";
+import type { OrderStatusConfig, StoreSetupState, WizardStep } from "./types";
 
 export function getDefaultStoreSetupState(): StoreSetupState {
   return {
@@ -27,7 +26,7 @@ export function getDefaultStoreSetupState(): StoreSetupState {
       ecomFulfillment: [],
       deliveryArea: "",
       deliveryAreaName: "",
-      orderStatuses: DEFAULT_ORDER_STATUSES.map((status) => ({ ...status })),
+      orderStatuses: [],
     },
     fulfillmentCentres: [],
     payment: {
@@ -95,12 +94,12 @@ export function useStoreSetup() {
     }));
   }, []);
 
-  const resetOrderStatuses = useCallback(() => {
+  const resetOrderStatuses = useCallback((defaults: OrderStatusConfig[]) => {
     setState((prev) => ({
       ...prev,
       commerce: {
         ...prev.commerce,
-        orderStatuses: DEFAULT_ORDER_STATUSES.map((status) => ({ ...status })),
+        orderStatuses: defaults.map((status) => ({ ...status })),
       },
     }));
   }, []);

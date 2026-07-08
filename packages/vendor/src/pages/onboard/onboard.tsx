@@ -54,6 +54,7 @@ import { StorefrontSetupStep, isStorefrontValid } from "./_components/steps/stor
 import { SuccessStep } from "./_components/steps/success-step";
 import type { FulfillmentCentre, WizardStep } from "./_components/types";
 import { useHandleAvailability } from "./_components/use-handle-availability";
+import { useDefaultOrderStatuses } from "./_components/use-default-order-statuses";
 import { useStorefrontTemplates } from "./_components/use-storefront-templates";
 import { useStoreSetup } from "./_components/use-store-setup";
 import { WizardShell } from "./_components/wizard-shell";
@@ -79,6 +80,13 @@ export const OnboardPage = () => {
     resetState,
     hydrateState,
   } = useStoreSetup();
+
+  const {
+    defaultOrderStatuses,
+    isLoading: isLoadingDefaultStatuses,
+    isError: isDefaultStatusesError,
+    refetch: refetchDefaultStatuses,
+  } = useDefaultOrderStatuses();
 
   const [justLaunched, setJustLaunched] = useState(false);
   const [locationModal, setLocationModal] = useState<
@@ -179,6 +187,34 @@ export const OnboardPage = () => {
       cancelled = true;
     };
   }, [draftIdParam, storeIdParam, hydrateState, navigate, resetState]);
+
+  useEffect(() => {
+    if (isLoadingDraft || isLoadingDefaultStatuses) {
+      return;
+    }
+
+    if (defaultOrderStatuses.length === 0) {
+      return;
+    }
+
+    updateState((prev) => {
+      if (prev.commerce.orderStatuses.length > 0) {
+        return {};
+      }
+
+      return {
+        commerce: {
+          ...prev.commerce,
+          orderStatuses: defaultOrderStatuses.map((status) => ({ ...status })),
+        },
+      };
+    });
+  }, [
+    isLoadingDraft,
+    isLoadingDefaultStatuses,
+    defaultOrderStatuses,
+    updateState,
+  ]);
 
   useEffect(() => {
     if (state.isComplete && !justLaunched) {
@@ -523,7 +559,10 @@ export const OnboardPage = () => {
         isContinueDisabled={
           (state.currentStep === 0 &&
             !isBusinessDetailsValid(state.businessDetails)) ||
-          (state.currentStep === 1 && !isCommerceTypeValid(state.commerce)) ||
+          (state.currentStep === 1 &&
+            (!isCommerceTypeValid(state.commerce) ||
+              isLoadingDefaultStatuses ||
+              isDefaultStatusesError)) ||
           (state.currentStep === 2 &&
             !isFulfillmentValid(state.fulfillmentCentres, state.payment)) ||
           (state.currentStep === 3 && !storefrontIsValid)
@@ -561,8 +600,18 @@ export const OnboardPage = () => {
                 commerce: { ...prev.commerce, ...patch },
               }))
             }
-            onResetStatuses={resetOrderStatuses}
+            onResetStatuses={() => resetOrderStatuses(defaultOrderStatuses)}
             onUpdateStatus={handleUpdateStatus}
+            isLoadingStatuses={isLoadingDefaultStatuses}
+            isStatusesError={isDefaultStatusesError}
+            onRetryStatuses={() => {
+              void refetchDefaultStatuses();
+            }}
+            isResetDisabled={
+              isLoadingDefaultStatuses ||
+              isDefaultStatusesError ||
+              defaultOrderStatuses.length === 0
+            }
           />
         )}
 

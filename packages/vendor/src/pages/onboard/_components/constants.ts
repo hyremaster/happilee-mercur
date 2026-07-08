@@ -13,7 +13,6 @@ import {
   Stars02,
 } from "@happilee-app/icons";
 import type { StepDef } from "@happilee-app/ui";
-import type { OrderStatusConfig } from "./types";
 
 export const WIZARD_STEPS: Omit<StepDef, "state">[] = [
   {
@@ -88,65 +87,6 @@ export const INDUSTRIES = [
     icon: Cube01,
   },
 ] as const;
-
-export const DEFAULT_ORDER_STATUSES: OrderStatusConfig[] = [
-  {
-    id: "order-placed",
-    label: "Order placed",
-    required: true,
-    color: "var(--colors-brand-600)",
-    displayName: "Order placed",
-    active: false,
-  },
-  {
-    id: "confirmed",
-    label: "Confirmed",
-    required: false,
-    color: "var(--colors-green-700)",
-    displayName: "Confirmed",
-    active: true,
-  },
-  {
-    id: "preparing",
-    label: "Preparing",
-    required: false,
-    color: "var(--colors-amber-700)",
-    displayName: "Preparing",
-    active: true,
-  },
-  {
-    id: "ready-pickup",
-    label: "Ready for pickup",
-    required: false,
-    color: "var(--colors-violet-600)",
-    displayName: "Ready for pickup",
-    active: true,
-  },
-  {
-    id: "out-delivery",
-    label: "Out for delivery",
-    required: false,
-    color: "var(--colors-brand-700)",
-    displayName: "Out for delivery",
-    active: true,
-  },
-  {
-    id: "delivered",
-    label: "Delivered",
-    required: true,
-    color: "var(--colors-green-600)",
-    displayName: "Delivered",
-    active: false,
-  },
-  {
-    id: "cancelled",
-    label: "Cancelled",
-    required: true,
-    color: "var(--colors-red-700)",
-    displayName: "Cancelled",
-    active: false,
-  },
-];
 
 export const DELIVERY_AREAS = [
   { id: "whitefield", label: "Whitefield outlet" },

@@ -1,4 +1,5 @@
 import { RefreshCw01 } from "@happilee-app/icons";
+import { Spinner } from "@medusajs/icons";
 import {
   Button,
   CheckboxCard,
@@ -27,6 +28,10 @@ type CommerceTypeStepProps = {
   onChange: (patch: Partial<CommerceConfig>) => void;
   onResetStatuses: () => void;
   onUpdateStatus: (id: string, patch: { displayName?: string; active?: boolean }) => void;
+  isLoadingStatuses: boolean;
+  isStatusesError: boolean;
+  onRetryStatuses: () => void;
+  isResetDisabled: boolean;
 };
 
 type DeliveryAreaSelectProps = {
@@ -129,7 +134,125 @@ export function isCommerceTypeValid(data: CommerceConfig) {
 
   if (needsArea && !data.deliveryArea) return false;
 
+  if (data.orderStatuses.length === 0) return false;
+
   return true;
+}
+
+type OrderStatusesTableProps = {
+  orderStatuses: CommerceConfig["orderStatuses"];
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  onResetStatuses: () => void;
+  onUpdateStatus: (id: string, patch: { displayName?: string; active?: boolean }) => void;
+  isResetDisabled: boolean;
+};
+
+function OrderStatusesTable({
+  orderStatuses,
+  isLoading,
+  isError,
+  onRetry,
+  onResetStatuses,
+  onUpdateStatus,
+  isResetDisabled,
+}: OrderStatusesTableProps) {
+  return (
+    <div className="flex w-full flex-col gap-lg">
+      <div className="flex w-full items-center justify-between">
+        <div className="flex items-center gap-xxs text-sm font-medium text-text-secondary">
+          <span>Set order statuses</span>
+          <span className="text-text-brand" aria-hidden="true">*</span>
+        </div>
+        <Button
+          hierarchy="ghost"
+          size="sm"
+          iconLeading={<RefreshCw01 />}
+          onPress={onResetStatuses}
+          isDisabled={isResetDisabled}
+        >
+          Reset to defaults
+        </Button>
+      </div>
+
+      {isError ? (
+        <div className="flex flex-col gap-sm rounded-md border border-border-secondary bg-bg-secondary px-lg py-md">
+          <p className="text-sm text-text-secondary">
+            We couldn&apos;t load order statuses right now.
+          </p>
+          <Button
+            hierarchy="secondary"
+            size="sm"
+            iconLeading={<RefreshCw01 />}
+            onPress={onRetry}
+          >
+            Try again
+          </Button>
+        </div>
+      ) : (
+        <div className="w-full overflow-hidden rounded-md border border-border-secondary">
+          <Table aria-label="Order statuses">
+            <TableHeader>
+              <Column isRowHeader allowsSorting>
+                Standard status
+              </Column>
+              <Column helpText="The name customers will see for this status">
+                Display name
+              </Column>
+              <Column>Active</Column>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <Row>
+                  <Cell colSpan={3}>
+                    <div className="flex items-center justify-center gap-sm py-lg">
+                      <Spinner className="animate-spin text-text-tertiary" />
+                      <span className="text-sm text-text-secondary">Loading statuses...</span>
+                    </div>
+                  </Cell>
+                </Row>
+              ) : (
+                orderStatuses.map((row) => (
+                  <Row key={row.id}>
+                    <Cell>
+                      <span className="inline-flex items-center gap-xs">
+                        <StatusDot color={row.color} />
+                        <span className="text-sm font-medium text-text-secondary">{row.label}</span>
+                        {row.required ? (
+                          <span className="text-text-brand" aria-hidden="true">*</span>
+                        ) : (
+                          <span className="font-normal text-text-tertiary">(optional)</span>
+                        )}
+                      </span>
+                    </Cell>
+                    <Cell>
+                      <InputField
+                        aria-label={`Display name for ${row.label}`}
+                        value={row.displayName}
+                        onChange={(v) => onUpdateStatus(row.id, { displayName: v })}
+                        size="sm"
+                        isDisabled={row.required}
+                      />
+                    </Cell>
+                    <Cell>
+                      <Toggle
+                        aria-label={`${row.label} active`}
+                        isSelected={row.active}
+                        onChange={(active) => onUpdateStatus(row.id, { active })}
+                        isDisabled={row.required}
+                        size="sm"
+                      />
+                    </Cell>
+                  </Row>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export const CommerceTypeStep = ({
@@ -137,6 +260,10 @@ export const CommerceTypeStep = ({
   onChange,
   onResetStatuses,
   onUpdateStatus,
+  isLoadingStatuses,
+  isStatusesError,
+  onRetryStatuses,
+  isResetDisabled,
 }: CommerceTypeStepProps) => {
   const {
     areas,
@@ -254,66 +381,15 @@ export const CommerceTypeStep = ({
         </RadioGroup>
       </div>
 
-      <div className="flex w-full flex-col gap-lg">
-        <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-xxs text-sm font-medium text-text-secondary">
-            <span>Set order statuses</span>
-            <span className="text-text-brand" aria-hidden="true">*</span>
-          </div>
-          <Button hierarchy="ghost" size="sm" iconLeading={<RefreshCw01 />} onPress={onResetStatuses}>
-            Reset to defaults
-          </Button>
-        </div>
-
-        <div className="w-full overflow-hidden rounded-md border border-border-secondary">
-          <Table aria-label="Order statuses">
-            <TableHeader>
-              <Column isRowHeader allowsSorting>
-                Standard status
-              </Column>
-              <Column helpText="The name customers will see for this status">
-                Display name
-              </Column>
-              <Column>Active</Column>
-            </TableHeader>
-            <TableBody>
-              {data.orderStatuses.map((row) => (
-                <Row key={row.id}>
-                  <Cell>
-                    <span className="inline-flex items-center gap-xs">
-                      <StatusDot color={row.color} />
-                      <span className="text-sm font-medium text-text-secondary">{row.label}</span>
-                      {row.required ? (
-                        <span className="text-text-brand" aria-hidden="true">*</span>
-                      ) : (
-                        <span className="font-normal text-text-tertiary">(optional)</span>
-                      )}
-                    </span>
-                  </Cell>
-                  <Cell>
-                    <InputField
-                      aria-label={`Display name for ${row.label}`}
-                      value={row.displayName}
-                      onChange={(v) => onUpdateStatus(row.id, { displayName: v })}
-                      size="sm"
-                      isDisabled={row.required}
-                    />
-                  </Cell>
-                  <Cell>
-                    <Toggle
-                      aria-label={`${row.label} active`}
-                      isSelected={row.active}
-                      onChange={(active) => onUpdateStatus(row.id, { active })}
-                      isDisabled={row.required}
-                      size="sm"
-                    />
-                  </Cell>
-                </Row>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      <OrderStatusesTable
+        orderStatuses={data.orderStatuses}
+        isLoading={isLoadingStatuses}
+        isError={isStatusesError}
+        onRetry={onRetryStatuses}
+        onResetStatuses={onResetStatuses}
+        onUpdateStatus={onUpdateStatus}
+        isResetDisabled={isResetDisabled}
+      />
     </div>
   );
 };

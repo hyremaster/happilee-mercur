@@ -1,5 +1,10 @@
 import { CheckCircle, Copy01, RefreshCw01 } from "@happilee-app/icons";
-import { Button, InputField, RadioCardGroup, StorefrontTemplateCard } from "@happilee-app/ui";
+import {
+  Button,
+  InputField,
+  RadioCardGroup,
+  StorefrontTemplateCard,
+} from "@happilee-app/ui";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "@medusajs/ui";
 import type { StorefrontTemplate } from "../../../../services/onboardingServices";
@@ -43,7 +48,9 @@ export const StorefrontSetupStep = ({
   onPreviewTemplate,
 }: StorefrontSetupStepProps) => {
   const [didCopy, setDidCopy] = useState(false);
-  const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   useEffect(() => {
     return () => {
@@ -132,18 +139,24 @@ export const StorefrontSetupStep = ({
           This is your unique storefront URL.
         </span>
         {handleAvailability.isChecking && (
-          <span className="text-sm text-text-tertiary">Checking availability...</span>
+          <span className="text-sm text-text-tertiary">
+            Checking availability...
+          </span>
         )}
         {!handleAvailability.isChecking && handleAvailability.isAvailable && (
           <div className="flex items-center gap-xs">
             <CheckCircle size={16} className="text-fg-success" />
-            <span className="text-sm text-text-success">{handleAvailability.message}</span>
+            <span className="text-sm text-text-success">
+              {handleAvailability.message}
+            </span>
           </div>
         )}
         {!handleAvailability.isChecking &&
           !handleAvailability.isAvailable &&
           handleAvailability.message && (
-            <span className="text-sm text-text-error">{handleAvailability.message}</span>
+            <span className="text-sm text-text-error">
+              {handleAvailability.message}
+            </span>
           )}
       </div>
 

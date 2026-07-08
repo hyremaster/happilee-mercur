@@ -167,6 +167,26 @@ export const listAreaSenseAreas = async (
   }) as Promise<ListAreaSenseAreasResponse>;
 };
 
+export type DefaultOrderStatus = {
+  status: string;
+  display_name: string;
+  color?: string | null;
+  is_active?: boolean;
+  is_required?: boolean;
+  rank?: number;
+};
+
+export type ListDefaultOrderStatusesResponse = {
+  order_statuses: DefaultOrderStatus[];
+};
+
+export const listDefaultOrderStatuses =
+  async (): Promise<ListDefaultOrderStatusesResponse> => {
+    return fetchQuery("/vendor/store-onboarding/default-statuses", {
+      method: "GET",
+    }) as Promise<ListDefaultOrderStatusesResponse>;
+  };
+
 export const saveBusinessDetailsStep = async (
   draftId: string | null,
   data: Record<string, unknown>,

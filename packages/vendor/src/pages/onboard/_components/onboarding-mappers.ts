@@ -4,7 +4,7 @@ import type {
   StoreDetail,
   StoreLocationRow,
 } from "../../../services/storeServices";
-import { DEFAULT_ORDER_STATUSES } from "./constants";
+import type { DefaultOrderStatus } from "../../../services/onboardingServices";
 import type {
   BusinessDetails,
   CommerceConfig,
@@ -69,22 +69,95 @@ const draftStepToWizardStep = (onboardingStep: number): WizardStep => {
   return step as WizardStep;
 };
 
+const ORDER_STATUS_API_VALUES = new Set([
+  "order_placed",
+  "confirmed",
+  "preparing",
+  "ready_for_pickup",
+  "out_for_delivery",
+  "delivered",
+  "cancelled",
+]);
+
+const UI_ORDER_STATUS_TO_API: Record<string, string> = {
+  "order-placed": "order_placed",
+  confirmed: "confirmed",
+  preparing: "preparing",
+  "ready-pickup": "ready_for_pickup",
+  "out-delivery": "out_for_delivery",
+  delivered: "delivered",
+  cancelled: "cancelled",
+};
+
+const API_ORDER_STATUS_TO_UI: Record<string, string> = Object.fromEntries(
+  Object.entries(UI_ORDER_STATUS_TO_API).map(([uiId, apiStatus]) => [
+    apiStatus,
+    uiId,
+  ]),
+);
+
+const toApiOrderStatus = (statusId: string): string => {
+  if (ORDER_STATUS_API_VALUES.has(statusId)) {
+    return statusId;
+  }
+
+  return UI_ORDER_STATUS_TO_API[statusId] ?? statusId.replace(/-/g, "_");
+};
+
+const formatApiStatusLabel = (apiStatus: string): string =>
+  apiStatus
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const resolveUiOrderStatus = (
+  apiStatus: string,
+  row: Record<string, unknown>,
+) => {
+  const uiId = API_ORDER_STATUS_TO_UI[apiStatus] ?? apiStatus;
+  const displayName = asString(row.display_name);
+
+  return {
+    id: uiId,
+    label: displayName ?? formatApiStatusLabel(apiStatus),
+    required: asBoolean(row.is_required) ?? false,
+    color: asString(row.color) ?? "var(--colors-brand-600)",
+  };
+};
+
+export const mapApiOrderStatusesToConfig = (
+  orderStatuses: DefaultOrderStatus[],
+): OrderStatusConfig[] => {
+  return [...orderStatuses]
+    .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
+    .map((row, index) => {
+      const apiStatus = row.status || `status-${index}`;
+      const uiStatus = resolveUiOrderStatus(apiStatus, row);
+
+      return {
+        ...uiStatus,
+        displayName: uiStatus.label,
+        active: row.is_active ?? true,
+      };
+    });
+};
+
 const mapOrderStatuses = (
   orderStatuses: unknown,
 ): StoreSetupState["commerce"]["orderStatuses"] => {
   if (!Array.isArray(orderStatuses) || orderStatuses.length === 0) {
-    return DEFAULT_ORDER_STATUSES.map((status) => ({ ...status }));
+    return [];
   }
 
   return orderStatuses.map((entry, index) => {
     const row = asObject(entry);
+    const apiStatus = asString(row.status) ?? `status-${index}`;
+    const uiStatus = resolveUiOrderStatus(apiStatus, row);
 
     return {
-      id: asString(row.status) ?? `status-${index}`,
-      label: asString(row.status) ?? "Status",
-      required: asBoolean(row.is_required) ?? false,
-      color: asString(row.color) ?? "var(--colors-brand-600)",
-      displayName: asString(row.display_name) ?? asString(row.status) ?? "Status",
+      ...uiStatus,
+      displayName:
+        asString(row.display_name) ?? uiStatus.label ?? apiStatus ?? "Status",
       active: asBoolean(row.is_active) ?? true,
     };
   });
@@ -128,34 +201,6 @@ export const mapApiLocationToCentre = (
     lat: location.latitude ?? undefined,
     lng: location.longitude ?? undefined,
   };
-};
-
-const ORDER_STATUS_API_VALUES = new Set([
-  "order_placed",
-  "confirmed",
-  "preparing",
-  "ready_for_pickup",
-  "out_for_delivery",
-  "delivered",
-  "cancelled",
-]);
-
-const UI_ORDER_STATUS_TO_API: Record<string, string> = {
-  "order-placed": "order_placed",
-  confirmed: "confirmed",
-  preparing: "preparing",
-  "ready-pickup": "ready_for_pickup",
-  "out-delivery": "out_for_delivery",
-  delivered: "delivered",
-  cancelled: "cancelled",
-};
-
-const toApiOrderStatus = (statusId: string): string => {
-  if (ORDER_STATUS_API_VALUES.has(statusId)) {
-    return statusId;
-  }
-
-  return UI_ORDER_STATUS_TO_API[statusId] ?? statusId.replace(/-/g, "_");
 };
 
 export const mapOrderStatusesToApi = (
@@ -326,7 +371,9 @@ export const mapDraftToStoreSetupState = (
         commerceType === "ecommerce-shipping" ? fulfillmentMethods : [],
       deliveryArea,
       deliveryAreaName,
-      orderStatuses: mapOrderStatuses(data.order_statuses),
+      orderStatuses: mapOrderStatuses(
+        commerce.order_statuses ?? data.order_statuses,
+      ),
     },
     fulfillmentCentres: locations,
     payment: {
@@ -368,6 +415,7 @@ export type BusinessDetailsDraftData = {
 export type CommerceTypeDraftData = {
   commerce_type: string;
   fulfillment_methods: string[];
+  order_statuses: ReturnType<typeof mapOrderStatusesToApi>;
   delivery_areas?: Array<{
     area_sense_id: string;
     area_name: string;
@@ -532,6 +580,7 @@ export const mapCommerceTypeToStep2Data = (
   return {
     commerce_type: toApiCommerceType(data.commerceType),
     fulfillment_methods: fulfillmentMethods,
+    order_statuses: mapOrderStatusesToApi(data.orderStatuses),
     ...(data.deliveryArea && data.deliveryAreaName
       ? {
           delivery_areas: [
