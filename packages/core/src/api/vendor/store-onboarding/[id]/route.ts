@@ -17,6 +17,7 @@ import {
 import { VendorUpdateStoreType } from "../validators"
 import {
   assertStoreOwnership,
+  deactivateSiblingGateways,
   maskGateway,
   sanitizeStoreProfile,
 } from "../helpers"
@@ -149,29 +150,37 @@ export const POST = async (
     }
   }
 
-  // Payment gateway (upsert by seller_id + gateway). Credentials stored raw;
-  // masked on read.
-  if (body.payment_gateway) {
-    const { gateway, is_active, credentials, metadata } = body.payment_gateway
-    const [existing] = await service.listStorePaymentGateways({
-      seller_id: sellerId,
-      gateway,
-    })
-    if (existing) {
-      await service.updateStorePaymentGateways({
-        id: existing.id,
-        is_active: is_active ?? existing.is_active,
-        credentials,
-        ...(metadata !== undefined ? { metadata } : {}),
-      })
-    } else {
-      await service.createStorePaymentGateways({
-        seller_id: sellerId,
-        gateway,
-        is_active: is_active ?? false,
-        credentials,
-        metadata: metadata ?? null,
-      })
+  // Payment gateways (many-of-same-type). Each entry with `id` updates that
+  // row; without `id` creates one. Legacy singular `payment_gateway` is folded
+  // into the array. Credentials stored raw; masked on read.
+  const gatewayEntries =
+    body.payment_gateways ??
+    (body.payment_gateway ? [body.payment_gateway] : undefined)
+  if (gatewayEntries) {
+    for (const entry of gatewayEntries) {
+      const { id, gateway, label, is_active, credentials, metadata } = entry
+      // Single-active invariant: deactivate siblings before activating this one.
+      if (is_active) {
+        await deactivateSiblingGateways(service, sellerId, gateway, id)
+      }
+      if (id) {
+        await service.updateStorePaymentGateways({
+          id,
+          label,
+          is_active: is_active ?? false,
+          credentials,
+          ...(metadata !== undefined ? { metadata } : {}),
+        })
+      } else {
+        await service.createStorePaymentGateways({
+          seller_id: sellerId,
+          gateway,
+          label,
+          is_active: is_active ?? false,
+          credentials,
+          metadata: metadata ?? null,
+        })
+      }
     }
   }
 

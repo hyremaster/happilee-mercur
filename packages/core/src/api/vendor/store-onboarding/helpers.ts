@@ -47,17 +47,56 @@ export function maskDraftData(draftData: unknown): unknown {
   }
   const data: Record<string, unknown> = { ...draftData }
 
+  const maskGatewayField = (v: unknown): unknown =>
+    Array.isArray(v) ? v.map(maskGateway) : maskGateway(v)
+
   const fulfillment = data.fulfillment
-  if (isObject(fulfillment) && fulfillment.payment_gateway) {
-    data.fulfillment = {
-      ...fulfillment,
-      payment_gateway: maskGateway(fulfillment.payment_gateway),
+  if (isObject(fulfillment)) {
+    const next = { ...fulfillment }
+    let changed = false
+    if (next.payment_gateway) {
+      next.payment_gateway = maskGatewayField(next.payment_gateway)
+      changed = true
+    }
+    if (next.payment_gateways) {
+      next.payment_gateways = maskGatewayField(next.payment_gateways)
+      changed = true
+    }
+    if (changed) {
+      data.fulfillment = next
     }
   }
   if (data.payment_gateway) {
-    data.payment_gateway = maskGateway(data.payment_gateway)
+    data.payment_gateway = maskGatewayField(data.payment_gateway)
+  }
+  if (data.payment_gateways) {
+    data.payment_gateways = maskGatewayField(data.payment_gateways)
   }
   return data
+}
+
+/**
+ * Enforce the single-active-per-gateway invariant before activating a row:
+ * deactivate every other active account of the same (seller_id, gateway).
+ * `exceptId` (the row about to be activated) is left untouched. Call this
+ * BEFORE the activating write so the partial-unique index never rejects two
+ * simultaneously-active rows.
+ */
+export async function deactivateSiblingGateways(
+  service: MarketplaceProfileModuleService,
+  sellerId: string,
+  gateway: string,
+  exceptId?: string
+): Promise<void> {
+  const active = await service.listStorePaymentGateways({
+    seller_id: sellerId,
+    gateway,
+    is_active: true,
+  })
+  const stale = active.filter((g) => g.id !== exceptId)
+  for (const g of stale) {
+    await service.updateStorePaymentGateways({ id: g.id, is_active: false })
+  }
 }
 
 /**

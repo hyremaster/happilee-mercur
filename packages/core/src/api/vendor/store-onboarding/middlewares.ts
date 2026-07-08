@@ -24,6 +24,8 @@ import {
   VendorSubmitDraft,
   VendorGetAreaSenseParams,
   VendorSaveDeliveryAreas,
+  VendorCreatePaymentGateway,
+  VendorUpdatePaymentGateway,
 } from "./validators"
 
 export const vendorStoreOnboardingMiddlewares: MiddlewareRoute[] = [
@@ -71,6 +73,28 @@ export const vendorStoreOnboardingMiddlewares: MiddlewareRoute[] = [
   {
     method: ["DELETE"],
     matcher: "/vendor/store-onboarding/:id/delivery-areas/:area_sense_id",
+    middlewares: [],
+  },
+  // GET/POST /vendor/store-onboarding/:id/payment-gateways — list/add accounts
+  {
+    method: ["GET"],
+    matcher: "/vendor/store-onboarding/:id/payment-gateways",
+    middlewares: [],
+  },
+  {
+    method: ["POST"],
+    matcher: "/vendor/store-onboarding/:id/payment-gateways",
+    middlewares: [validateAndTransformBody(VendorCreatePaymentGateway)],
+  },
+  // POST/DELETE /vendor/store-onboarding/:id/payment-gateways/:gateway_id
+  {
+    method: ["POST"],
+    matcher: "/vendor/store-onboarding/:id/payment-gateways/:gateway_id",
+    middlewares: [validateAndTransformBody(VendorUpdatePaymentGateway)],
+  },
+  {
+    method: ["DELETE"],
+    matcher: "/vendor/store-onboarding/:id/payment-gateways/:gateway_id",
     middlewares: [],
   },
   // GET /vendor/store-onboarding/default-statuses — list default order statuses

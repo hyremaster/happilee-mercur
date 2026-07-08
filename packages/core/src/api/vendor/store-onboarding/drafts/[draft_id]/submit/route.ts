@@ -68,30 +68,43 @@ export const POST = async (
     ? asObject(data.payment)
     : asObject(fulfillment.payment)
 
-  // Payment gateway (credentials) — step 3, under fulfillment.payment_gateway.
-  const gatewayRaw = asObject(
-    (data.payment_gateway as unknown) ?? fulfillment.payment_gateway
-  )
-  const gatewayCreds = asObject(gatewayRaw.credentials)
-  const paymentGateway =
-    asString(gatewayRaw.gateway) && asString(gatewayCreds.key_id)
-      ? {
-          gateway: gatewayRaw.gateway as StorePaymentGatewayType,
-          is_active:
-            typeof gatewayRaw.is_active === "boolean"
-              ? gatewayRaw.is_active
-              : true,
-          credentials: {
-            key_id: String(gatewayCreds.key_id),
-            key_secret: asString(gatewayCreds.key_secret) ?? "",
-            ...(asString(gatewayCreds.webhook_secret)
-              ? { webhook_secret: String(gatewayCreds.webhook_secret) }
-              : {}),
-          } as StorePaymentGatewayCredentials,
-          metadata:
-            (gatewayRaw.metadata as Record<string, unknown> | undefined) ?? null,
-        }
-      : null
+  // Payment gateways (credentials, many-of-same-type) — step 3, under
+  // fulfillment.payment_gateways. Legacy singular `payment_gateway` (either
+  // top-level or under fulfillment) is folded into the array.
+  const gatewaySources: unknown[] = Array.isArray(fulfillment.payment_gateways)
+    ? (fulfillment.payment_gateways as unknown[])
+    : Array.isArray(data.payment_gateways)
+      ? (data.payment_gateways as unknown[])
+      : [data.payment_gateway ?? fulfillment.payment_gateway]
+
+  const paymentGateways = gatewaySources
+    .map((raw) => {
+      const gatewayRaw = asObject(raw)
+      const gatewayCreds = asObject(gatewayRaw.credentials)
+      if (!asString(gatewayRaw.gateway) || !asString(gatewayCreds.key_id)) {
+        return null
+      }
+      return {
+        gateway: gatewayRaw.gateway as StorePaymentGatewayType,
+        label: asString(gatewayRaw.label) ?? "default",
+        is_active:
+          typeof gatewayRaw.is_active === "boolean"
+            ? gatewayRaw.is_active
+            : true,
+        credentials: {
+          key_id: String(gatewayCreds.key_id),
+          key_secret: asString(gatewayCreds.key_secret) ?? "",
+          ...(asString(gatewayCreds.webhook_secret)
+            ? { webhook_secret: String(gatewayCreds.webhook_secret) }
+            : {}),
+        } as StorePaymentGatewayCredentials,
+        metadata:
+          (gatewayRaw.metadata as Record<string, unknown> | undefined) ?? null,
+      }
+    })
+    .filter(
+      (g): g is NonNullable<typeof g> => g !== null
+    )
   const locations = Array.isArray(fulfillment.locations)
     ? (fulfillment.locations as Record<string, unknown>[])
     : Array.isArray(data.locations)
@@ -167,7 +180,7 @@ export const POST = async (
             }))
             .filter((a) => a.area_sense_id && a.area_name)
         : null,
-      payment_gateway: paymentGateway,
+      payment_gateways: paymentGateways.length ? paymentGateways : null,
     },
   })
 

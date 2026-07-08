@@ -23,7 +23,7 @@ import {
   finalizeStoreExtrasStep,
   createStoreLocationDetailsStep,
   createStoreDeliveryAreasStep,
-  upsertStorePaymentGatewayStep,
+  createStorePaymentGatewaysStep,
   markDraftSubmittedStep,
 } from "../steps"
 
@@ -75,12 +75,13 @@ type SubmitStoreDraftWorkflowInput = {
     area_name: string
     metadata?: Record<string, unknown> | null
   }[] | null
-  payment_gateway?: {
+  payment_gateways?: {
     gateway: StorePaymentGatewayType
+    label: string
     is_active?: boolean
     credentials: StorePaymentGatewayCredentials
     metadata?: Record<string, unknown> | null
-  } | null
+  }[] | null
 }
 
 export const submitStoreDraftWorkflow: ReturnType<typeof createWorkflow> =
@@ -160,18 +161,18 @@ export const submitStoreDraftWorkflow: ReturnType<typeof createWorkflow> =
         )
       )
 
-      // 3c. Payment gateway (credentials) — seller-scoped, upsert after seller.
-      upsertStorePaymentGatewayStep(
+      // 3c. Payment gateways (credentials, many-of-same-type) — seller-scoped,
+      //     created after the seller exists.
+      createStorePaymentGatewaysStep(
         transform({ created, input }, ({ created, input }) =>
-          input.payment_gateway
-            ? {
-                seller_id: created.seller.id,
-                gateway: input.payment_gateway.gateway,
-                is_active: input.payment_gateway.is_active,
-                credentials: input.payment_gateway.credentials,
-                metadata: input.payment_gateway.metadata ?? null,
-              }
-            : null
+          (input.payment_gateways ?? []).map((g) => ({
+            seller_id: created.seller.id,
+            gateway: g.gateway,
+            label: g.label,
+            is_active: g.is_active,
+            credentials: g.credentials,
+            metadata: g.metadata ?? null,
+          }))
         )
       )
 

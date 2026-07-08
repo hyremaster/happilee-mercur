@@ -327,6 +327,7 @@ export interface StorePaymentGatewayDTO {
   id: string
   seller_id: string
   gateway: StorePaymentGatewayType
+  label: string
   is_active: boolean
   credentials: StorePaymentGatewayCredentials
   metadata: Record<string, unknown> | null
@@ -338,12 +339,14 @@ export interface StorePaymentGatewayDTO {
 export interface CreateStorePaymentGatewayDTO {
   seller_id: string
   gateway: StorePaymentGatewayType
+  label: string
   is_active?: boolean
   credentials: StorePaymentGatewayCredentials
   metadata?: Record<string, unknown> | null
 }
 
 export interface UpdateStorePaymentGatewayDTO {
+  label?: string
   is_active?: boolean
   credentials?: { key_id?: string; key_secret?: string; webhook_secret?: string }
   metadata?: Record<string, unknown> | null
