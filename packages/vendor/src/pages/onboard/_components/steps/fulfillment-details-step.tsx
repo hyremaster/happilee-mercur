@@ -13,6 +13,35 @@ import { PAYMENT_GATEWAYS } from "../constants";
 import { formatFulfillmentCentreAddress } from "../onboarding-mappers";
 import type { FulfillmentCentre, PaymentConfig } from "../types";
 
+const sanitizePositiveAmountInput = (value: string): string => {
+  let sanitized = value.replace(/[^\d.]/g, "");
+  const dotIndex = sanitized.indexOf(".");
+
+  if (dotIndex !== -1) {
+    sanitized =
+      sanitized.slice(0, dotIndex + 1) +
+      sanitized.slice(dotIndex + 1).replace(/\./g, "");
+  }
+
+  return sanitized;
+};
+
+const parsePositiveAmount = (value: string): number | null => {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const amount = Number.parseFloat(trimmed);
+
+  if (Number.isNaN(amount) || amount <= 0) {
+    return null;
+  }
+
+  return amount;
+};
+
 type FulfillmentDetailsStepProps = {
   centres: FulfillmentCentre[];
   payment: PaymentConfig;
@@ -32,15 +61,10 @@ export function isFulfillmentValid(
     return false;
 
   if (payment.methods.includes("cod")) {
-    const min = parseFloat(payment.codMin);
-    const max = parseFloat(payment.codMax);
-    if (
-      payment.codMin &&
-      payment.codMax &&
-      !Number.isNaN(min) &&
-      !Number.isNaN(max) &&
-      min > max
-    ) {
+    const min = parsePositiveAmount(payment.codMin);
+    const max = parsePositiveAmount(payment.codMax);
+
+    if (min === null || max === null || max <= min) {
       return false;
     }
   }
@@ -48,19 +72,34 @@ export function isFulfillmentValid(
   return true;
 }
 
-export function getCodError(payment: PaymentConfig) {
-  if (!payment.methods.includes("cod")) return undefined;
-  const min = parseFloat(payment.codMin);
-  const max = parseFloat(payment.codMax);
-  if (
-    payment.codMin &&
-    payment.codMax &&
-    !Number.isNaN(min) &&
-    !Number.isNaN(max) &&
-    min > max
-  ) {
-    return "Minimum value cannot exceed maximum value";
+export function getCodMinError(payment: PaymentConfig) {
+  if (!payment.methods.includes("cod")) {
+    return undefined;
   }
+
+  if (payment.codMin.trim() && parsePositiveAmount(payment.codMin) === null) {
+    return "Enter a positive number";
+  }
+
+  return undefined;
+}
+
+export function getCodMaxError(payment: PaymentConfig) {
+  if (!payment.methods.includes("cod")) {
+    return undefined;
+  }
+
+  if (payment.codMax.trim() && parsePositiveAmount(payment.codMax) === null) {
+    return "Enter a positive number";
+  }
+
+  const min = parsePositiveAmount(payment.codMin);
+  const max = parsePositiveAmount(payment.codMax);
+
+  if (min !== null && max !== null && max <= min) {
+    return "Maximum must be greater than minimum";
+  }
+
   return undefined;
 }
 
@@ -72,6 +111,9 @@ export const FulfillmentDetailsStep = ({
   onAddLocation,
   onEditCentre,
 }: FulfillmentDetailsStepProps) => {
+  const codMinError = getCodMinError(payment);
+  const codMaxError = getCodMaxError(payment);
+
   return (
     <div className="flex w-full flex-col items-start gap-4xl">
       <div className="flex w-full flex-col gap-lg">
@@ -196,15 +238,31 @@ export const FulfillmentDetailsStep = ({
                 label="Minimum order value"
                 placeholder="Enter value"
                 size="sm"
+                isRequired
+                inputMode="decimal"
                 value={payment.codMin}
-                onChange={(v) => onPaymentChange({ codMin: v })}
+                onChange={(v) =>
+                  onPaymentChange({
+                    codMin: sanitizePositiveAmountInput(v),
+                  })
+                }
+                isInvalid={!!codMinError}
+                errorMessage={codMinError}
               />
               <InputField
                 label="Maximum order value"
                 placeholder="Enter value"
                 size="sm"
+                isRequired
+                inputMode="decimal"
                 value={payment.codMax}
-                onChange={(v) => onPaymentChange({ codMax: v })}
+                onChange={(v) =>
+                  onPaymentChange({
+                    codMax: sanitizePositiveAmountInput(v),
+                  })
+                }
+                isInvalid={!!codMaxError}
+                errorMessage={codMaxError}
               />
             </div>
           </ExpandableCheckboxCard>
