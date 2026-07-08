@@ -18,6 +18,7 @@ export const VendorGetStoresParams = createFindParams({
 }).merge(
   z.object({
     q: z.string().optional(),
+    search: z.string().optional(),
     industry: z.union([z.string(), z.array(z.string())]).optional(),
     commerce_type: z.union([z.string(), z.array(z.string())]).optional(),
     status: z.union([z.string(), z.array(z.string())]).optional(),
