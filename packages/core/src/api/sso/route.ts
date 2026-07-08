@@ -226,7 +226,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const vendorUrl =
     process.env.MERCUR_VENDOR_URL?.replace(/\/$/, "") || "http://localhost:7001"
 
-  return res.redirect(`${vendorUrl}/store-select?sso_token=${mercurToken}`)
+  return res.redirect(`${vendorUrl}/stores?sso_token=${mercurToken}`)
 }
 
 export const POST = GET
