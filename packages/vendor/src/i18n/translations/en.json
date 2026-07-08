@@ -1213,6 +1213,17 @@
     "return": "Return",
     "cancelWarning": "You are about to cancel the order {{id}}. This action cannot be undone.",
     "orderCanceled": "Order canceled successfully",
+    "storeStatus": {
+      "title": "Order status",
+      "selectPlaceholder": "Select next status",
+      "update": "Update",
+      "history": "Status history",
+      "terminal": "This order has reached a final status and can no longer be changed.",
+      "updated": "Order status updated",
+      "cancelTitle": "Cancel this order?",
+      "cancelWarning": "You are about to cancel order {{id}}. This action cannot be undone.",
+      "changedBySystem": "System"
+    },
     "onDateFromSalesChannel": "{{date}} from {{salesChannel}}",
     "list": {
       "noRecordsMessage": "Your orders will show up here."
@@ -1291,6 +1302,9 @@
       "capturePaymentSuccess": "Payment of {{amount}} successfully captured",
       "markAsPaidPayment": "Payment of {{amount}} will be marked as paid.",
       "markAsPaidPaymentSuccess": "Payment of {{amount}} successfully marked as paid",
+      "markAsPaidConfirmTitle": "Mark payment as paid?",
+      "markAsPaidConfirmBody": "This confirms the Cash on Delivery payment was collected and captures it. This cannot be undone.",
+      "markedAsPaid": "Payment marked as paid",
       "createRefund": "Create Refund",
       "refundPaymentSuccess": "Refund of amount {{amount}} successful",
       "createRefundWrongQuantity": "Quantity should be a number between 1 and {{number}}",

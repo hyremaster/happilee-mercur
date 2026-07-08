@@ -553,7 +553,9 @@ export type Routes = {
             $id: typeof import("../../src/api/store/order-groups/[id]/route");
         };
         sellers: typeof import("../../src/api/store/sellers/route") & {
-            $id: typeof import("../../src/api/store/sellers/[id]/route");
+            $id: typeof import("../../src/api/store/sellers/[id]/route") & {
+                products: typeof import("../../src/api/store/sellers/[id]/products/route");
+            };
         };
     };
     vendor: {
@@ -604,6 +606,10 @@ export type Routes = {
                     };
                 };
                 preview: typeof import("../../src/api/vendor/orders/[id]/preview/route");
+                payment: {
+                    markAsPaid: typeof import("../../src/api/vendor/orders/[id]/payment/mark-as-paid/route");
+                };
+                storeStatus: typeof import("../../src/api/vendor/orders/[id]/store-status/route");
             };
         };
         payments: typeof import("../../src/api/vendor/payments/route") & {
@@ -760,10 +766,32 @@ export type Routes = {
             me: typeof import("../../src/api/vendor/members/me/route");
         };
         productVariants: typeof import("../../src/api/vendor/product-variants/route");
+        storeOnboarding: typeof import("../../src/api/vendor/store-onboarding/route") & {
+            $id: typeof import("../../src/api/vendor/store-onboarding/[id]/route") & {
+                deliveryAreas: typeof import("../../src/api/vendor/store-onboarding/[id]/delivery-areas/route") & {
+                    $areaSenseId: typeof import("../../src/api/vendor/store-onboarding/[id]/delivery-areas/[area_sense_id]/route");
+                };
+                locations: typeof import("../../src/api/vendor/store-onboarding/[id]/locations/route") & {
+                    $locationId: typeof import("../../src/api/vendor/store-onboarding/[id]/locations/[location_id]/route");
+                };
+            };
+            areaSense: {
+                areas: typeof import("../../src/api/vendor/store-onboarding/area-sense/areas/route");
+            };
+            checkHandle: typeof import("../../src/api/vendor/store-onboarding/check-handle/route");
+            defaultStatuses: typeof import("../../src/api/vendor/store-onboarding/default-statuses/route");
+            drafts: typeof import("../../src/api/vendor/store-onboarding/drafts/route") & {
+                $draftId: typeof import("../../src/api/vendor/store-onboarding/drafts/[draft_id]/route") & {
+                    submit: typeof import("../../src/api/vendor/store-onboarding/drafts/[draft_id]/submit/route");
+                };
+            };
+        };
+        storefrontTemplates: typeof import("../../src/api/vendor/storefront-templates/route");
         stores: typeof import("../../src/api/vendor/stores/route");
         subscription: typeof import("../../src/api/vendor/subscription/route");
     };
     hooks: {
         payout: typeof import("../../src/api/hooks/payout/route");
     };
+    sso: typeof import("../../src/api/sso/route");
 };
