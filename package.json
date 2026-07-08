@@ -3,11 +3,12 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=!@mercurjs/core",
     "lint": "oxlint --quiet",
     "test:integration:http": "cd integration-tests && bun run test:integration:http"
   },
   "dependencies": {
+    "@happilee-app/ui": "0.3.0",
     "@mercurjs/core": "workspace:*",
     "@mercurjs/payment-razorpay": "workspace:*"
   },

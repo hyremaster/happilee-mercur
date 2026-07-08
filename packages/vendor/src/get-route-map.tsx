@@ -1442,6 +1442,18 @@ export function getRouteMap({
                 return { Component: StoreSelectPage };
               },
             },
+            {
+              path: "/sample",
+              lazy: () => import("./pages/sample"),
+            },
+            {
+              path: "/onboard",
+              lazy: () => import("./pages/onboard"),
+            },
+            {
+              path: "/stores",
+              lazy: () => import("./pages/stores"),
+            },
             ...customPublicRoutes,
             {
               path: "*",

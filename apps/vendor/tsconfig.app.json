@@ -15,6 +15,9 @@
     "skipLibCheck": true,
     "ignoreDeprecations": "5.0",
     "baseUrl": ".",
+    "paths": {
+      "@/*": ["../../packages/vendor/src/*"]
+    },
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
