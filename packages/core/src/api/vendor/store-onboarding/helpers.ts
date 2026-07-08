@@ -9,7 +9,7 @@ import type MarketplaceProfileModuleService from "../../../modules/marketplace-p
 
 // Credential fields that must never be returned in an API response.
 const SECRET_CREDENTIAL_KEYS = ["key_secret", "webhook_secret"]
-const MASKED = "***"
+export const MASKED = "***"
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v)
