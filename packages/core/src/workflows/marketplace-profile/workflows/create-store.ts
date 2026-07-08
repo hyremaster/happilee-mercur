@@ -36,6 +36,7 @@ type CreateStoreWorkflowInput = {
     commerce_type?: StoreCommerceType | null
     fulfillment_methods?: StoreFulfillmentMethod[] | null
     storefront_template?: string | null
+    happilee_api_key?: string | null
     metadata?: Record<string, unknown> | null
   }
 }
@@ -65,6 +66,7 @@ export const createStoreWorkflow: ReturnType<typeof createWorkflow> = createWork
         commerce_type: input.store_profile?.commerce_type ?? null,
         fulfillment_methods: input.store_profile?.fulfillment_methods ?? null,
         storefront_template: input.store_profile?.storefront_template ?? null,
+        happilee_api_key: input.store_profile?.happilee_api_key ?? null,
         metadata: input.store_profile?.metadata ?? null,
       }))
     )

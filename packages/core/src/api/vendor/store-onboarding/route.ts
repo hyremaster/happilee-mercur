@@ -15,6 +15,7 @@ import {
 import type MarketplaceProfileModuleService from "../../../modules/marketplace-profile/service"
 import { createStoreWorkflow } from "../../../workflows/marketplace-profile"
 import { VendorCreateStoreType } from "./validators"
+import { sanitizeStoreProfile } from "./helpers"
 
 const asObject = (v: unknown): Record<string, unknown> =>
   v && typeof v === "object" && !Array.isArray(v)
@@ -110,7 +111,7 @@ export const GET = async (
         industry: profile?.industry ?? null,
         commerce_type: profile?.commerce_type ?? null,
         handle: seller.handle ?? null,
-        store_profile: profile ?? null,
+        store_profile: sanitizeStoreProfile(profile),
         created_at: seller.created_at,
         updated_at: seller.updated_at,
       })
@@ -215,7 +216,10 @@ export const POST = async (
     },
   })
 
-  const { seller } = result as { seller: { id: string } }
+  const { seller } = result as {
+    seller: { id: string }
+    store_profile?: { happilee_api_key?: unknown }
+  }
 
   // Set the owner @handle (member_profile). The owner member may have been
   // created inside the workflow, so resolve it from the seller ownership link
@@ -253,5 +257,11 @@ export const POST = async (
     }
   }
 
-  res.status(201).json({ store: result })
+  const { store_profile, ...restStore } = result as {
+    store_profile?: { happilee_api_key?: unknown }
+    [key: string]: unknown
+  }
+  res.status(201).json({
+    store: { ...restStore, store_profile: sanitizeStoreProfile(store_profile) },
+  })
 }

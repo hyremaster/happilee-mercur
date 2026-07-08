@@ -51,6 +51,7 @@ type SubmitStoreDraftWorkflowInput = {
     commerce_type?: StoreCommerceType | null
     fulfillment_methods?: StoreFulfillmentMethod[] | null
     storefront_template?: string | null
+    happilee_api_key?: string | null
   }
   payment?: {
     online_enabled?: boolean

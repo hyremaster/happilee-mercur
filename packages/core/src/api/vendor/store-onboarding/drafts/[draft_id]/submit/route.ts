@@ -19,7 +19,7 @@ import {
 
 import type MarketplaceProfileModuleService from "../../../../../../modules/marketplace-profile/service"
 import { submitStoreDraftWorkflow } from "../../../../../../workflows/marketplace-profile"
-import { assertDraftOwnership } from "../../../helpers"
+import { assertDraftOwnership, sanitizeStoreProfile } from "../../../helpers"
 
 const asObject = (v: unknown): Record<string, unknown> =>
   v && typeof v === "object" && !Array.isArray(v)
@@ -126,6 +126,9 @@ export const POST = async (
           null,
         storefront_template:
           (storefront.storefront_template as string | undefined) ?? null,
+        // Secret seeded server-side from the SSO token (dedicated draft column,
+        // not draft_data) — carried into store_profile on submit.
+        happilee_api_key: draft.happilee_api_key ?? null,
       },
       payment: Object.keys(payment).length
         ? (payment as {
@@ -168,7 +171,10 @@ export const POST = async (
     },
   })
 
-  const { seller } = result as { seller: { id: string } }
+  const { seller } = result as {
+    seller: { id: string }
+    store_profile?: { happilee_api_key?: unknown }
+  }
 
   // Owner @handle (member_profile) upsert — mirrors the M2 create route. The
   // owner member may have been created during submit, so resolve it from the
@@ -206,5 +212,12 @@ export const POST = async (
     }
   }
 
-  res.status(201).json({ store: result, seller_id: seller.id })
+  const { store_profile, ...restStore } = result as {
+    store_profile?: { happilee_api_key?: unknown }
+    [key: string]: unknown
+  }
+  res.status(201).json({
+    store: { ...restStore, store_profile: sanitizeStoreProfile(store_profile) },
+    seller_id: seller.id,
+  })
 }

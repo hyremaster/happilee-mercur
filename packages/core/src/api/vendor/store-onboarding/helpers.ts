@@ -60,9 +60,39 @@ export function maskDraftData(draftData: unknown): unknown {
   return data
 }
 
-/** Mask credentials on every draft in a list before returning. */
-export function maskDrafts<T extends { draft_data?: unknown }>(drafts: T[]): T[] {
-  return drafts.map((d) => ({ ...d, draft_data: maskDraftData(d.draft_data) }))
+/**
+ * Prepare a single draft for return to the vendor SPA: mask any embedded
+ * payment-gateway credentials in `draft_data` AND drop the secret
+ * `happilee_api_key` column (seeded server-side from SSO, must never reach the
+ * client). Use this in every draft response instead of spreading the raw row.
+ */
+export function sanitizeDraft<
+  T extends { draft_data?: unknown; happilee_api_key?: unknown },
+>(draft: T): Omit<T, "happilee_api_key"> {
+  const { happilee_api_key: _secret, ...rest } = draft
+  return { ...rest, draft_data: maskDraftData(draft.draft_data) }
+}
+
+/** Sanitize every draft in a list before returning. */
+export function maskDrafts<
+  T extends { draft_data?: unknown; happilee_api_key?: unknown },
+>(drafts: T[]): Omit<T, "happilee_api_key">[] {
+  return drafts.map(sanitizeDraft)
+}
+
+/**
+ * Drop the secret `happilee_api_key` column from a store_profile before it is
+ * returned to the vendor SPA. The key is a backend credential for the Happilee
+ * Area Sense API and must never reach the client. Pass-through for null.
+ */
+export function sanitizeStoreProfile<
+  T extends { happilee_api_key?: unknown },
+>(profile: T | null | undefined): Omit<T, "happilee_api_key"> | null {
+  if (!profile) {
+    return null
+  }
+  const { happilee_api_key: _secret, ...rest } = profile
+  return rest
 }
 
 /**

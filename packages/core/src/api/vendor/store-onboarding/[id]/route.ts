@@ -15,7 +15,11 @@ import {
   updateSellerProfessionalDetailsWorkflow,
 } from "../../../../workflows/seller"
 import { VendorUpdateStoreType } from "../validators"
-import { assertStoreOwnership, maskGateway } from "../helpers"
+import {
+  assertStoreOwnership,
+  maskGateway,
+  sanitizeStoreProfile,
+} from "../helpers"
 
 // GET /vendor/store-onboarding/:id — store detail (seller + extension data).
 export const GET = async (
@@ -59,7 +63,7 @@ export const GET = async (
   res.json({
     store: {
       ...seller,
-      store_profile: store_profile ?? null,
+      store_profile: sanitizeStoreProfile(store_profile),
       owner_handle: ownerProfile?.handle ?? null,
       delivery_areas,
       payment_gateways: gateways.map(maskGateway),
@@ -228,7 +232,7 @@ export const POST = async (
   res.json({
     store: {
       ...seller,
-      store_profile: store_profile ?? null,
+      store_profile: sanitizeStoreProfile(store_profile),
       owner_handle: ownerProfile?.handle ?? null,
       delivery_areas,
       payment_gateways: gateways.map(maskGateway),
