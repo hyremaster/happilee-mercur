@@ -145,9 +145,26 @@ export const POST = async (
     }
   }
 
-  // Payment gateway (upsert by seller_id + gateway). Credentials stored raw;
-  // masked on read.
-  if (body.payment_gateway) {
+  // Payment gateways — full replace when `payment_gateways` is sent.
+  // Legacy singular `payment_gateway` upsert kept for compatibility.
+  if (body.payment_gateways) {
+    const existing = await service.listStorePaymentGateways({
+      seller_id: sellerId,
+    })
+    if (existing.length) {
+      await service.deleteStorePaymentGateways(existing.map((row) => row.id))
+    }
+
+    for (const entry of body.payment_gateways) {
+      await service.createStorePaymentGateways({
+        seller_id: sellerId,
+        gateway: entry.gateway,
+        is_active: entry.is_active ?? false,
+        credentials: entry.credentials,
+        metadata: entry.metadata ?? null,
+      })
+    }
+  } else if (body.payment_gateway) {
     const { gateway, is_active, credentials, metadata } = body.payment_gateway
     const [existing] = await service.listStorePaymentGateways({
       seller_id: sellerId,

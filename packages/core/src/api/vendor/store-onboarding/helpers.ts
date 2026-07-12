@@ -38,8 +38,8 @@ export function maskGateway<T>(gateway: T): T {
 
 /**
  * Mask any payment-gateway credentials embedded in a draft's `draft_data`
- * (step 3 saves `fulfillment.payment_gateway` loosely). Returns a shallow copy
- * so the stored value is untouched.
+ * (step 3 saves `fulfillment.payment_gateways` / legacy `payment_gateway`).
+ * Returns a shallow copy so the stored value is untouched.
  */
 export function maskDraftData(draftData: unknown): unknown {
   if (!isObject(draftData)) {
@@ -48,16 +48,102 @@ export function maskDraftData(draftData: unknown): unknown {
   const data: Record<string, unknown> = { ...draftData }
 
   const fulfillment = data.fulfillment
-  if (isObject(fulfillment) && fulfillment.payment_gateway) {
-    data.fulfillment = {
-      ...fulfillment,
-      payment_gateway: maskGateway(fulfillment.payment_gateway),
+  if (isObject(fulfillment)) {
+    const nextFulfillment: Record<string, unknown> = { ...fulfillment }
+
+    if (Array.isArray(fulfillment.payment_gateways)) {
+      nextFulfillment.payment_gateways =
+        fulfillment.payment_gateways.map(maskGateway)
     }
+    if (fulfillment.payment_gateway) {
+      nextFulfillment.payment_gateway = maskGateway(fulfillment.payment_gateway)
+    }
+
+    data.fulfillment = nextFulfillment
+  }
+
+  if (Array.isArray(data.payment_gateways)) {
+    data.payment_gateways = data.payment_gateways.map(maskGateway)
   }
   if (data.payment_gateway) {
     data.payment_gateway = maskGateway(data.payment_gateway)
   }
   return data
+}
+
+const isMaskedSecret = (value: unknown): boolean => value === MASKED
+
+/**
+ * When re-saving step 3, clients may echo masked secrets (`***`). Preserve the
+ * previously stored raw secrets for those fields so we don't wipe credentials.
+ */
+export function mergePaymentGatewaySecrets(
+  incoming: unknown,
+  previous: unknown
+): unknown {
+  if (!Array.isArray(incoming)) {
+    return incoming
+  }
+
+  const previousList = Array.isArray(previous) ? previous : []
+
+  return incoming.map((entry) => {
+    if (!isObject(entry)) {
+      return entry
+    }
+
+    const credentials = asObject(entry.credentials)
+    if (!credentials) {
+      return entry
+    }
+
+    const metadata = asObject(entry.metadata)
+    const clientId =
+      typeof metadata?.client_id === "string" ? metadata.client_id : undefined
+    const keyId =
+      typeof credentials.key_id === "string" ? credentials.key_id : undefined
+
+    const previousMatch = previousList.find((prev) => {
+      if (!isObject(prev)) return false
+      const prevMeta = asObject(prev.metadata)
+      const prevCreds = asObject(prev.credentials)
+      if (
+        clientId &&
+        typeof prevMeta?.client_id === "string" &&
+        prevMeta.client_id === clientId
+      ) {
+        return true
+      }
+      return (
+        !!keyId &&
+        typeof prevCreds?.key_id === "string" &&
+        prevCreds.key_id === keyId &&
+        prev.gateway === entry.gateway
+      )
+    })
+
+    const previousCredentials = isObject(previousMatch)
+      ? asObject(previousMatch.credentials)
+      : undefined
+
+    const nextCredentials: Record<string, unknown> = { ...credentials }
+
+    if (isMaskedSecret(credentials.key_secret) && previousCredentials) {
+      nextCredentials.key_secret = previousCredentials.key_secret
+    }
+    if (isMaskedSecret(credentials.webhook_secret) && previousCredentials) {
+      nextCredentials.webhook_secret = previousCredentials.webhook_secret
+    }
+
+    return {
+      ...entry,
+      credentials: nextCredentials,
+    }
+  })
+}
+
+function asObject(value: unknown): Record<string, unknown> | undefined {
+  return isObject(value) ? value : undefined
 }
 
 /** Mask credentials on every draft in a list before returning. */

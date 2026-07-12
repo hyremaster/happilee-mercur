@@ -9,6 +9,7 @@ import type {
   BusinessDetails,
   CommerceConfig,
   FulfillmentCentre,
+  OnlinePaymentMethod,
   OrderStatusConfig,
   PaymentConfig,
   StorefrontConfig,
@@ -29,6 +30,90 @@ const asNumber = (value: unknown): number | undefined =>
 
 const asBoolean = (value: unknown): boolean | undefined =>
   typeof value === "boolean" ? value : undefined;
+
+const formatGatewayLabel = (gateway: string) => {
+  if (!gateway) return gateway;
+  return gateway.charAt(0).toUpperCase() + gateway.slice(1);
+};
+
+const createClientPaymentMethodId = () => {
+  const cryptoAny = crypto as unknown as Partial<{ randomUUID: () => string }>;
+  if (cryptoAny.randomUUID) return cryptoAny.randomUUID();
+  return `pm_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+};
+
+export type PaymentGatewayApiPayload = {
+  gateway: string;
+  is_active: boolean;
+  credentials: {
+    key_id: string;
+    key_secret: string;
+  };
+  metadata?: {
+    method_name?: string;
+    client_id?: string;
+  } | null;
+};
+
+const mapApiPaymentGatewaysToMethods = (
+  gateways: unknown,
+): OnlinePaymentMethod[] => {
+  if (!Array.isArray(gateways)) {
+    return [];
+  }
+
+  const methods = gateways.map((entry, index) => {
+    const row = asObject(entry);
+    const credentials = asObject(row.credentials);
+    const metadata = asObject(row.metadata);
+    const gateway = asString(row.gateway) ?? "razorpay";
+    const methodName =
+      asString(metadata.method_name) ??
+      `${formatGatewayLabel(gateway)} ${String(index + 1).padStart(2, "0")}`;
+    const id =
+      asString(row.id) ??
+      asString(metadata.client_id) ??
+      createClientPaymentMethodId();
+
+    return {
+      id,
+      title: methodName,
+      gateway: formatGatewayLabel(gateway),
+      isActive: asBoolean(row.is_active) ?? false,
+      credentials: {
+        methodName,
+        gateway,
+        keyId: asString(credentials.key_id) ?? "",
+        keySecret: asString(credentials.key_secret) ?? "",
+      },
+    } satisfies OnlinePaymentMethod;
+  });
+
+  if (methods.length > 0 && !methods.some((method) => method.isActive)) {
+    methods[0] = { ...methods[0]!, isActive: true };
+  }
+
+  return methods;
+};
+
+const mapOnlineMethodsToPaymentGateways = (
+  methods: OnlinePaymentMethod[],
+): PaymentGatewayApiPayload[] => {
+  return methods.map((method) => {
+    return {
+      gateway: method.credentials.gateway || "razorpay",
+      is_active: method.isActive,
+      credentials: {
+        key_id: method.credentials.keyId,
+        key_secret: method.credentials.keySecret,
+      },
+      metadata: {
+        method_name: method.title || method.credentials.methodName,
+        client_id: method.id,
+      },
+    };
+  });
+};
 
 const resolveCountryDisplay = (code: string | null | undefined): string => {
   if (!code) {
@@ -284,7 +369,9 @@ export const mapStoreDetailToStoreSetupState = (
     fulfillmentCentres: locationCentres,
     payment: {
       methods: paymentMethods,
-      paymentGateway: paymentConfig?.payment_provider_id ?? "",
+      onlinePaymentMethods: mapApiPaymentGatewaysToMethods(
+        store.payment_gateways,
+      ),
       codMin:
         typeof codMin === "number" && !Number.isNaN(codMin) ? String(codMin) : "",
       codMax:
@@ -345,6 +432,9 @@ export const mapDraftToStoreSetupState = (
   const codMin = payment.cod_min_amount;
   const codMax = payment.cod_max_amount;
 
+  const paymentGateways =
+    fulfillment.payment_gateways ?? data.payment_gateways;
+
   return {
     currentStep: draftStepToWizardStep(draft.onboarding_step),
     draftId: draft.id,
@@ -378,7 +468,7 @@ export const mapDraftToStoreSetupState = (
     fulfillmentCentres: locations,
     payment: {
       methods: paymentMethods,
-      paymentGateway: asString(payment.payment_provider_id) ?? "",
+      onlinePaymentMethods: mapApiPaymentGatewaysToMethods(paymentGateways),
       codMin:
         typeof codMin === "number" && !Number.isNaN(codMin) ? String(codMin) : "",
       codMax:
@@ -431,6 +521,7 @@ export type FulfillmentDetailsDraftData = {
     cod_max_amount?: number | null;
     currency_code: string;
   };
+  payment_gateways: PaymentGatewayApiPayload[];
   locations: Array<{
     name: string;
     address: {
@@ -630,16 +721,23 @@ export const mapFulfillmentDetailsToStep3Data = (
 ): FulfillmentDetailsDraftData => {
   const onlineEnabled = payment.methods.includes("online");
   const codEnabled = payment.methods.includes("cod");
+  const paymentGateways = onlineEnabled
+    ? mapOnlineMethodsToPaymentGateways(payment.onlinePaymentMethods)
+    : [];
+  const activeGateway = paymentGateways.find((gateway) => gateway.is_active);
 
   return {
     payment: {
       online_enabled: onlineEnabled,
-      payment_provider_id: onlineEnabled ? payment.paymentGateway || null : null,
+      payment_provider_id: onlineEnabled
+        ? (activeGateway?.gateway ?? null)
+        : null,
       cod_enabled: codEnabled,
       cod_min_amount: codEnabled ? parseAmount(payment.codMin) : null,
       cod_max_amount: codEnabled ? parseAmount(payment.codMax) : null,
       currency_code: "inr",
     },
+    payment_gateways: paymentGateways,
     locations: centres.map(mapFulfillmentCentreToLocationPayload),
   };
 };

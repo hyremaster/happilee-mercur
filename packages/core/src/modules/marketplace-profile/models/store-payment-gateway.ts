@@ -12,12 +12,6 @@ const StorePaymentGateway = model
   })
   .indexes([
     {
-      name: "IDX_store_payment_gateway_seller_gateway_unique",
-      on: ["seller_id", "gateway"],
-      unique: true,
-      where: "deleted_at IS NULL",
-    },
-    {
       name: "IDX_store_payment_gateway_seller_id",
       on: ["seller_id"],
       where: "deleted_at IS NULL",

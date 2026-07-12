@@ -1,6 +1,5 @@
 import {
   INDUSTRIES,
-  PAYMENT_GATEWAYS,
 } from "../constants";
 import {
   ReadyToGoLiveBanner,
@@ -45,8 +44,13 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
 
   const deliveryAreaLabel = commerce.deliveryAreaName || "—";
 
+  const selectedOnlineMethod = payment.onlinePaymentMethods.find(
+    (method) => method.isActive,
+  );
   const gatewayLabel =
-    PAYMENT_GATEWAYS.find((g) => g.id === payment.paymentGateway)?.label ?? "—";
+    selectedOnlineMethod?.title ??
+    selectedOnlineMethod?.gateway ??
+    "—";
 
   const paymentMethods = payment.methods
     .map((m) => {

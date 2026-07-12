@@ -37,6 +37,10 @@ export const createActiveStoreBaseline = (
   payment: {
     ...state.payment,
     methods: [...state.payment.methods],
+    onlinePaymentMethods: state.payment.onlinePaymentMethods.map((method) => ({
+      ...method,
+      credentials: { ...method.credentials },
+    })),
   },
   storefront: { ...state.storefront },
 });
@@ -73,6 +77,7 @@ export type VendorUpdateStorePayload = {
   storefront_template?: string | null;
   owner_handle?: string;
   payment_config?: Record<string, unknown>;
+  payment_gateways?: Array<Record<string, unknown>>;
   order_statuses?: ReturnType<typeof mapOrderStatusesToApi>;
   metadata?: Record<string, unknown> | null;
 };
@@ -193,15 +198,37 @@ const buildStep3ProfilePatch = (
   current: PaymentConfig,
   baseline: PaymentConfig,
 ): VendorUpdateStorePayload => {
-  const currentPayment = mapFulfillmentDetailsToStep3Data([], current).payment;
-  const baselinePayment = mapFulfillmentDetailsToStep3Data([], baseline).payment;
+  const currentStep = mapFulfillmentDetailsToStep3Data([], current);
+  const baselineStep = mapFulfillmentDetailsToStep3Data([], baseline);
 
-  if (areEqual(currentPayment, baselinePayment)) {
+  const paymentConfigChanged = !areEqual(
+    currentStep.payment,
+    baselineStep.payment,
+  );
+  const paymentGatewaysChanged = !areEqual(
+    currentStep.payment_gateways,
+    baselineStep.payment_gateways,
+  );
+
+  if (!paymentConfigChanged && !paymentGatewaysChanged) {
     return {};
   }
 
   return {
-    payment_config: currentPayment as unknown as Record<string, unknown>,
+    ...(paymentConfigChanged
+      ? {
+          payment_config:
+            currentStep.payment as unknown as Record<string, unknown>,
+        }
+      : {}),
+    ...(paymentGatewaysChanged
+      ? {
+          payment_gateways:
+            currentStep.payment_gateways as unknown as Array<
+              Record<string, unknown>
+            >,
+        }
+      : {}),
   };
 };
 
@@ -296,6 +323,12 @@ export const saveActiveStoreStepSparse = async (
     nextBaseline.payment = {
       ...current.payment,
       methods: [...current.payment.methods],
+      onlinePaymentMethods: current.payment.onlinePaymentMethods.map(
+        (method) => ({
+          ...method,
+          credentials: { ...method.credentials },
+        }),
+      ),
     };
     return nextBaseline;
   }

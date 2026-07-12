@@ -59,7 +59,7 @@ export const BusinessDetailsStep = ({
             <InputField
               label="Store Name"
               isRequired
-              placeholder="e.g. GreenMart"
+              placeholder="Store name"
               size="md"
               value={data.storeName}
               onChange={(v) => onChange({ storeName: v })}
@@ -67,7 +67,7 @@ export const BusinessDetailsStep = ({
             <InputField
               label="Business Legal Name"
               isRequired
-              placeholder="e.g. GreenMart"
+              placeholder="Business legal name"
               size="md"
               value={data.businessLegalName}
               onChange={(v) => onChange({ businessLegalName: v })}
@@ -78,7 +78,7 @@ export const BusinessDetailsStep = ({
             <InputField
               label="Email"
               isRequired
-              placeholder="store@example.com"
+              placeholder="Email"
               iconLeading={<Mail01 />}
               size="md"
               value={data.email}
@@ -87,7 +87,7 @@ export const BusinessDetailsStep = ({
             <PhoneNumberInput
               label="Phone Number"
               isRequired
-              placeholder="98765 43210"
+              placeholder="Phone number"
               size="md"
               defaultCountry="IN"
               value={data.phone}
@@ -100,7 +100,7 @@ export const BusinessDetailsStep = ({
           <Textarea
             label="Address"
             isRequired
-            placeholder="123 Commerce Street, Floor 4"
+            placeholder="Address"
             rows={3}
             className="w-full"
             value={data.address}
@@ -136,7 +136,7 @@ export const BusinessDetailsStep = ({
             <InputField
               label="City"
               isRequired
-              placeholder="Mumbai"
+              placeholder="City"
               size="md"
               value={data.city}
               onChange={(v) => onChange({ city: v })}
@@ -144,7 +144,7 @@ export const BusinessDetailsStep = ({
             <InputField
               label="Pincode"
               isRequired
-              placeholder="400001"
+              placeholder="Pincode"
               size="md"
               value={data.pinCode}
               onChange={(v) => onChange({ pinCode: v })}
@@ -153,7 +153,7 @@ export const BusinessDetailsStep = ({
 
           <InputField
             label="Tax/GST number"
-            placeholder="27AAACC1234B1Z5"
+            placeholder="Tax/GST number"
             size="md"
             className="w-full"
             value={data.taxNumber}

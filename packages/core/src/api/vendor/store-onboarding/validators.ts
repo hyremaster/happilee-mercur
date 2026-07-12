@@ -68,6 +68,8 @@ const paymentGatewaySchema = z.object({
   metadata: z.record(z.unknown()).nullable().optional(),
 })
 
+const paymentGatewaysSchema = z.array(paymentGatewaySchema)
+
 const orderStatusSchema = z.object({
   status: z.nativeEnum(StoreOrderStatusType),
   display_name: z.string(),
@@ -225,6 +227,7 @@ export const VendorUpdateStore = z.object({
   owner_handle: z.string().optional(),
   payment_config: paymentConfigSchema.optional(),
   payment_gateway: paymentGatewaySchema.optional(),
+  payment_gateways: paymentGatewaysSchema.optional(),
   order_statuses: z.array(orderStatusSchema).optional(),
   metadata: z.record(z.unknown()).nullable().optional(),
 })

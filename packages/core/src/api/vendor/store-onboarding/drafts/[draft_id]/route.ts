@@ -6,7 +6,11 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { MercurModules, StoreOnboardingDraftStatus } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../../modules/marketplace-profile/service"
-import { assertDraftOwnership, maskDraftData } from "../../helpers"
+import {
+  assertDraftOwnership,
+  maskDraftData,
+  mergePaymentGatewaySecrets,
+} from "../../helpers"
 import { VendorSaveDraftStepType } from "../../validators"
 
 // Wizard screen index -> draft_data key.
@@ -16,6 +20,9 @@ const STEP_KEY: Record<number, string> = {
   3: "fulfillment",
   4: "storefront",
 }
+
+const isObject = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === "object" && !Array.isArray(v)
 
 // GET /vendor/store-onboarding/drafts/:draft_id — resume a draft.
 export const GET = async (
@@ -42,10 +49,26 @@ export const POST = async (
 
   const { step, data } = req.validatedBody
   const key = STEP_KEY[step]
+  let stepData: Record<string, unknown> = { ...data }
+
+  if (step === 3) {
+    const previousDraft = isObject(draft.draft_data) ? draft.draft_data : {}
+    const previousFulfillment = isObject(previousDraft.fulfillment)
+      ? previousDraft.fulfillment
+      : {}
+
+    stepData = {
+      ...stepData,
+      payment_gateways: mergePaymentGatewaySecrets(
+        stepData.payment_gateways,
+        previousFulfillment.payment_gateways
+      ),
+    }
+  }
 
   const nextDraftData = {
     ...(draft.draft_data ?? {}),
-    [key]: data,
+    [key]: stepData,
   }
 
   const service = req.scope.resolve<MarketplaceProfileModuleService>(

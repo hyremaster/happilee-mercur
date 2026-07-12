@@ -188,10 +188,22 @@ type UpsertPaymentGatewayInput = {
   metadata?: Record<string, unknown> | null
 } | null
 
+type SyncPaymentGatewaysInput = {
+  seller_id: string
+  gateways: Array<{
+    gateway: StorePaymentGatewayType
+    is_active?: boolean
+    credentials: StorePaymentGatewayCredentials
+    metadata?: Record<string, unknown> | null
+  }>
+} | null
+
 /**
  * Materialize a store's payment gateway (credentials) on draft submit. Upsert by
  * (seller_id, gateway). Seller-scoped, so it runs after the seller exists.
  * No-op when the draft carried no gateway.
+ *
+ * @deprecated Prefer syncStorePaymentGatewaysStep for multi-gateway payloads.
  */
 export const upsertStorePaymentGatewayStep = createStep(
   "upsert-store-payment-gateway",
@@ -264,6 +276,76 @@ export const upsertStorePaymentGatewayStep = createStep(
         is_active: rollback.prev.is_active,
         credentials: rollback.prev.credentials,
         metadata: rollback.prev.metadata,
+      })
+    }
+  }
+)
+
+/**
+ * Full-replace sync for payment gateways. Add / edit / delete all happen by
+ * sending the complete list in one API call.
+ */
+export const syncStorePaymentGatewaysStep = createStep(
+  "sync-store-payment-gateways",
+  async (input: SyncPaymentGatewaysInput, { container }) => {
+    if (!input) {
+      return new StepResponse(null, null)
+    }
+
+    const service = container.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+    const existing = await service.listStorePaymentGateways({
+      seller_id: input.seller_id,
+    })
+
+    if (existing.length) {
+      await service.deleteStorePaymentGateways(existing.map((row) => row.id))
+    }
+
+    const createdIds: string[] = []
+    for (const gateway of input.gateways) {
+      const created = await service.createStorePaymentGateways({
+        seller_id: input.seller_id,
+        gateway: gateway.gateway,
+        is_active: gateway.is_active ?? false,
+        credentials: gateway.credentials,
+        metadata: gateway.metadata ?? null,
+      })
+      createdIds.push(created.id)
+    }
+
+    return new StepResponse(null, {
+      createdIds,
+      previous: existing.map((row) => ({
+        seller_id: row.seller_id,
+        gateway: row.gateway,
+        is_active: row.is_active,
+        credentials: row.credentials,
+        metadata: row.metadata,
+      })),
+    })
+  },
+  async (rollback, { container }) => {
+    if (!rollback) {
+      return
+    }
+
+    const service = container.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+
+    if (rollback.createdIds.length) {
+      await service.deleteStorePaymentGateways(rollback.createdIds)
+    }
+
+    for (const row of rollback.previous) {
+      await service.createStorePaymentGateways({
+        seller_id: row.seller_id,
+        gateway: row.gateway,
+        is_active: row.is_active,
+        credentials: row.credentials,
+        metadata: row.metadata,
       })
     }
   }

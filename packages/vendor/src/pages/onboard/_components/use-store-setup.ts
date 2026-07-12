@@ -31,7 +31,7 @@ export function getDefaultStoreSetupState(): StoreSetupState {
     fulfillmentCentres: [],
     payment: {
       methods: [],
-      paymentGateway: "",
+      onlinePaymentMethods: [],
       codMin: "",
       codMax: "",
     },
