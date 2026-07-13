@@ -20,13 +20,29 @@ interface HappileeSSOPayload {
   name: string
   organization?: string
   phone?: string
+  // Per-project Happilee (Area Sense) API key. Secret — consumed server-side
+  // only, persisted to the draft/store_profile, never re-emitted to the SPA.
+  api_key?: string
+  // JWT id — required when `api_key` is present so a captured token cannot be
+  // replayed (the key rides a browser-redirect URL). Enforced one-time-use.
+  jti?: string
+  iat?: number
+  exp?: number
 }
+
+// One-time-use window for a key-bearing SSO token. The token is also bounded by
+// `jwt.verify({ maxAge })`; the consumed-jti cache TTL matches so a replayed
+// token is rejected for as long as it could otherwise still verify.
+const SSO_MAX_AGE_SECONDS = Number(
+  process.env.HAPPILEE_SSO_MAX_AGE_SECONDS || 300
+)
 
 async function ensureProjectDraft(
   service: MarketplaceProfileModuleService,
   authIdentityId: string,
   externalId: string,
-  businessDraftData: Record<string, unknown>
+  businessDraftData: Record<string, unknown>,
+  apiKey?: string
 ) {
   const [existing] = await service.listStoreOnboardingDrafts(
     {
@@ -36,15 +52,55 @@ async function ensureProjectDraft(
     } as Record<string, unknown>,
     { take: 1 }
   )
-  if (existing) return
+  if (existing) {
+    // Idempotent re-entry: refresh the key if it rotated. Never clear it when
+    // the token omits one.
+    if (apiKey && existing.happilee_api_key !== apiKey) {
+      await service.updateStoreOnboardingDrafts({
+        id: existing.id,
+        happilee_api_key: apiKey,
+      })
+    }
+    return
+  }
 
   await service.createStoreOnboardingDrafts({
     auth_identity_id: authIdentityId,
     draft_data: { business: businessDraftData },
     onboarding_step: 1,
     status: StoreOnboardingDraftStatus.DRAFT,
+    happilee_api_key: apiKey ?? null,
     metadata: { happilee_external_id: externalId },
   })
+}
+
+/**
+ * Persist the Happilee API key on an existing seller's store_profile (SSO cases
+ * where the seller already exists, so there is no draft to carry it). Upserts
+ * the profile when absent, mirroring the vendor store-detail route. No-op when
+ * the token carried no key.
+ */
+async function upsertStoreProfileApiKey(
+  service: MarketplaceProfileModuleService,
+  sellerId: string,
+  apiKey?: string
+) {
+  if (!apiKey) return
+
+  const [profile] = await service.listStoreProfiles({ seller_id: sellerId })
+  if (profile) {
+    if (profile.happilee_api_key !== apiKey) {
+      await service.updateStoreProfiles({
+        id: profile.id,
+        happilee_api_key: apiKey,
+      })
+    }
+  } else {
+    await service.createStoreProfiles({
+      seller_id: sellerId,
+      happilee_api_key: apiKey,
+    })
+  }
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
@@ -61,12 +117,42 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   let payload: HappileeSSOPayload
   try {
-    payload = jwt.verify(token, ssoSecret) as HappileeSSOPayload
+    // Bound the token lifetime: reject anything older than SSO_MAX_AGE_SECONDS
+    // even if a long/absent `exp` was signed in. Small clock skew tolerated.
+    payload = jwt.verify(token, ssoSecret, {
+      maxAge: SSO_MAX_AGE_SECONDS,
+      clockTolerance: 5,
+    }) as HappileeSSOPayload
   } catch {
     return res.status(401).json({ error: "Invalid or expired SSO token" })
   }
 
-  const { project_id, email, name, organization, phone } = payload
+  const {
+    project_id,
+    email,
+    name,
+    organization,
+    phone,
+    api_key: apiKey,
+    jti,
+  } = payload
+
+  // A key-bearing token carries a secret through a browser-redirect URL, so it
+  // must be single-use: require a jti and reject any replay within the token's
+  // validity window.
+  if (apiKey) {
+    if (!jti) {
+      return res
+        .status(400)
+        .json({ error: "SSO token carrying an api_key must include a jti" })
+    }
+    const cache = req.scope.resolve(Modules.CACHE)
+    const consumedKey = `happilee_sso_jti:${jti}`
+    if (await cache.get(consumedKey)) {
+      return res.status(401).json({ error: "SSO token has already been used" })
+    }
+    await cache.set(consumedKey, "1", SSO_MAX_AGE_SECONDS)
+  }
 
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const authService = req.scope.resolve(Modules.AUTH)
@@ -132,7 +218,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       marketplaceProfileService,
       authIdentityId,
       externalId,
-      businessDraftData
+      businessDraftData,
+      apiKey
     )
 
   } else if (!existingSeller && existingMember) {
@@ -151,7 +238,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       marketplaceProfileService,
       authIdentityId,
       externalId,
-      businessDraftData
+      businessDraftData,
+      apiKey
     )
 
   } else if (existingSeller && !existingMember) {
@@ -175,6 +263,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     await sellerService.updateMembers([
       { id: memberId, metadata: { auth_identity_id: authIdentityId } },
     ])
+
+    await upsertStoreProfileApiKey(marketplaceProfileService, sellerId, apiKey)
 
   } else {
     // Case D: returning user, existing project — ensure seller_member link exists
@@ -207,6 +297,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         },
       ])
     }
+
+    await upsertStoreProfileApiKey(marketplaceProfileService, sellerId, apiKey)
   }
 
   const mercurToken = generateJwtToken(
@@ -226,7 +318,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const vendorUrl =
     process.env.MERCUR_VENDOR_URL?.replace(/\/$/, "") || "http://localhost:7001"
 
-  return res.redirect(`${vendorUrl}/store-select?sso_token=${mercurToken}`)
+  return res.redirect(`${vendorUrl}/stores?sso_token=${mercurToken}`)
 }
 
 export const POST = GET

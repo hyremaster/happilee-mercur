@@ -3,6 +3,7 @@ import { MedusaContainer } from "@medusajs/framework/types"
 import { createAdminUser, adminHeaders } from "../../../helpers/create-admin-user"
 import { createSellerUser } from "../../../helpers/create-seller-user"
 import { createSellerDefaultsWorkflow } from "@mercurjs/core/workflows"
+import { MercurModules } from "@mercurjs/types"
 
 jest.setTimeout(50000)
 
@@ -155,6 +156,54 @@ medusaIntegrationTestRunner({
           ).rejects.toMatchObject({
             response: { status: 400 },
           })
+        })
+
+        it("uses the store_profile happilee_api_key over the env fallback", async () => {
+          const service = appContainer.resolve(
+            MercurModules.MARKETPLACE_PROFILE
+          )
+          await service.createStoreProfiles({
+            seller_id: sellerA.id,
+            happilee_api_key: "seller-key",
+          })
+
+          process.env.AREASENSE_API_URL = "https://area-sense.example"
+          process.env.AREASENSE_API_KEY = "env-key"
+
+          const fetchMock = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ message: "ok", data: [], total_count: "0" }),
+          })
+          global.fetch = fetchMock as unknown as typeof fetch
+
+          const res = await api.get(
+            "/vendor/store-onboarding/area-sense/areas",
+            headersA
+          )
+          expect(res.status).toBe(200)
+
+          const [, init] = fetchMock.mock.calls[0]
+          expect(init.headers["x-api-key"]).toBe("seller-key")
+        })
+
+        it("falls back to the env key when the store has no key (draft mode)", async () => {
+          process.env.AREASENSE_API_URL = "https://area-sense.example"
+          process.env.AREASENSE_API_KEY = "env-key"
+
+          const fetchMock = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ message: "ok", data: [], total_count: "0" }),
+          })
+          global.fetch = fetchMock as unknown as typeof fetch
+
+          const res = await api.get(
+            "/vendor/store-onboarding/area-sense/areas",
+            headersA
+          )
+          expect(res.status).toBe(200)
+
+          const [, init] = fetchMock.mock.calls[0]
+          expect(init.headers["x-api-key"]).toBe("env-key")
         })
       })
     })

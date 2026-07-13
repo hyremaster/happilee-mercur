@@ -1,6 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import "@happilee-app/tokens/tokens.css";
+import "@happilee-app/ui/styles.css";
+import "leaflet/dist/leaflet.css";
 import "@mercurjs/vendor/index.css";
+import "@/styles/globals.css";
 import App from "@mercurjs/vendor";
 
 declare const __BACKEND_URL__: string;
@@ -27,7 +31,7 @@ async function bootstrap() {
     }
 
     // Redirect to store-select so the user picks their store manually
-    window.history.replaceState({}, "", "/store-select");
+    window.history.replaceState({}, "", "/stores");
   }
 
   createRoot(document.getElementById("root")!).render(

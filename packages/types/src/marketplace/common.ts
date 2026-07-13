@@ -53,6 +53,7 @@ export interface StoreProfileDTO {
   commerce_type: string | null
   fulfillment_methods: string[] | null
   storefront_template: string | null
+  happilee_api_key: string | null
   payment_config?: StorePaymentConfigDTO | null
   metadata: Record<string, unknown> | null
   created_at: Date
@@ -66,6 +67,7 @@ export interface CreateStoreProfileDTO {
   commerce_type?: StoreCommerceType | null
   fulfillment_methods?: StoreFulfillmentMethod[] | null
   storefront_template?: string | null
+  happilee_api_key?: string | null
   metadata?: Record<string, unknown> | null
 }
 
@@ -75,6 +77,7 @@ export interface UpdateStoreProfileDTO {
   commerce_type?: StoreCommerceType | null
   fulfillment_methods?: StoreFulfillmentMethod[] | null
   storefront_template?: string | null
+  happilee_api_key?: string | null
   metadata?: Record<string, unknown> | null
 }
 
@@ -324,6 +327,7 @@ export interface StorePaymentGatewayDTO {
   id: string
   seller_id: string
   gateway: StorePaymentGatewayType
+  label: string
   is_active: boolean
   credentials: StorePaymentGatewayCredentials
   metadata: Record<string, unknown> | null
@@ -335,12 +339,14 @@ export interface StorePaymentGatewayDTO {
 export interface CreateStorePaymentGatewayDTO {
   seller_id: string
   gateway: StorePaymentGatewayType
+  label: string
   is_active?: boolean
   credentials: StorePaymentGatewayCredentials
   metadata?: Record<string, unknown> | null
 }
 
 export interface UpdateStorePaymentGatewayDTO {
+  label?: string
   is_active?: boolean
   credentials?: { key_id?: string; key_secret?: string; webhook_secret?: string }
   metadata?: Record<string, unknown> | null
@@ -417,6 +423,9 @@ export interface StoreOnboardingDraftDTO {
   onboarding_step: number
   status: string
   submitted_seller_id: string | null
+  // Secret: per-project Happilee API key seeded server-side from the SSO token.
+  // Never serialize this to the vendor SPA — strip it in every draft response.
+  happilee_api_key: string | null
   metadata: Record<string, unknown> | null
   created_at: Date
   updated_at: Date
@@ -429,6 +438,7 @@ export interface CreateStoreOnboardingDraftDTO {
   onboarding_step?: number
   status?: StoreOnboardingDraftStatus
   submitted_seller_id?: string | null
+  happilee_api_key?: string | null
   metadata?: Record<string, unknown> | null
 }
 
@@ -437,5 +447,6 @@ export interface UpdateStoreOnboardingDraftDTO {
   onboarding_step?: number
   status?: StoreOnboardingDraftStatus
   submitted_seller_id?: string | null
+  happilee_api_key?: string | null
   metadata?: Record<string, unknown> | null
 }

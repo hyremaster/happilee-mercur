@@ -9,7 +9,7 @@ import type MarketplaceProfileModuleService from "../../../modules/marketplace-p
 
 // Credential fields that must never be returned in an API response.
 const SECRET_CREDENTIAL_KEYS = ["key_secret", "webhook_secret"]
-const MASKED = "***"
+export const MASKED = "***"
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v)
@@ -47,22 +47,91 @@ export function maskDraftData(draftData: unknown): unknown {
   }
   const data: Record<string, unknown> = { ...draftData }
 
+  const maskGatewayField = (v: unknown): unknown =>
+    Array.isArray(v) ? v.map(maskGateway) : maskGateway(v)
+
   const fulfillment = data.fulfillment
-  if (isObject(fulfillment) && fulfillment.payment_gateway) {
-    data.fulfillment = {
-      ...fulfillment,
-      payment_gateway: maskGateway(fulfillment.payment_gateway),
+  if (isObject(fulfillment)) {
+    const next = { ...fulfillment }
+    let changed = false
+    if (next.payment_gateway) {
+      next.payment_gateway = maskGatewayField(next.payment_gateway)
+      changed = true
+    }
+    if (next.payment_gateways) {
+      next.payment_gateways = maskGatewayField(next.payment_gateways)
+      changed = true
+    }
+    if (changed) {
+      data.fulfillment = next
     }
   }
   if (data.payment_gateway) {
-    data.payment_gateway = maskGateway(data.payment_gateway)
+    data.payment_gateway = maskGatewayField(data.payment_gateway)
+  }
+  if (data.payment_gateways) {
+    data.payment_gateways = maskGatewayField(data.payment_gateways)
   }
   return data
 }
 
-/** Mask credentials on every draft in a list before returning. */
-export function maskDrafts<T extends { draft_data?: unknown }>(drafts: T[]): T[] {
-  return drafts.map((d) => ({ ...d, draft_data: maskDraftData(d.draft_data) }))
+/**
+ * Enforce the single-active-per-gateway invariant before activating a row:
+ * deactivate every other active account of the same (seller_id, gateway).
+ * `exceptId` (the row about to be activated) is left untouched. Call this
+ * BEFORE the activating write so the partial-unique index never rejects two
+ * simultaneously-active rows.
+ */
+export async function deactivateSiblingGateways(
+  service: MarketplaceProfileModuleService,
+  sellerId: string,
+  gateway: string,
+  exceptId?: string
+): Promise<void> {
+  const active = await service.listStorePaymentGateways({
+    seller_id: sellerId,
+    gateway,
+    is_active: true,
+  })
+  const stale = active.filter((g) => g.id !== exceptId)
+  for (const g of stale) {
+    await service.updateStorePaymentGateways({ id: g.id, is_active: false })
+  }
+}
+
+/**
+ * Prepare a single draft for return to the vendor SPA: mask any embedded
+ * payment-gateway credentials in `draft_data` AND drop the secret
+ * `happilee_api_key` column (seeded server-side from SSO, must never reach the
+ * client). Use this in every draft response instead of spreading the raw row.
+ */
+export function sanitizeDraft<
+  T extends { draft_data?: unknown; happilee_api_key?: unknown },
+>(draft: T): Omit<T, "happilee_api_key"> {
+  const { happilee_api_key: _secret, ...rest } = draft
+  return { ...rest, draft_data: maskDraftData(draft.draft_data) }
+}
+
+/** Sanitize every draft in a list before returning. */
+export function maskDrafts<
+  T extends { draft_data?: unknown; happilee_api_key?: unknown },
+>(drafts: T[]): Omit<T, "happilee_api_key">[] {
+  return drafts.map(sanitizeDraft)
+}
+
+/**
+ * Drop the secret `happilee_api_key` column from a store_profile before it is
+ * returned to the vendor SPA. The key is a backend credential for the Happilee
+ * Area Sense API and must never reach the client. Pass-through for null.
+ */
+export function sanitizeStoreProfile<
+  T extends { happilee_api_key?: unknown },
+>(profile: T | null | undefined): Omit<T, "happilee_api_key"> | null {
+  if (!profile) {
+    return null
+  }
+  const { happilee_api_key: _secret, ...rest } = profile
+  return rest
 }
 
 /**
