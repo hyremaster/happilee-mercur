@@ -4,14 +4,21 @@ import {
   Button,
   CheckboxGroup,
   ExpandableCheckboxCard,
-  ExpandableCheckboxCardSection,
   InputField,
-  SelectField,
-  SelectItem,
+  PaymentMethodRadioCard,
+  PaymentMethodRadioCardGroup,
 } from "@happilee-app/ui";
-import { PAYMENT_GATEWAYS } from "../constants";
+import { useState } from "react";
+import {
+  PaymentGatewayModal,
+  type PaymentGatewayFormValues,
+} from "../modals/payment-gateway-modal";
 import { formatFulfillmentCentreAddress } from "../onboarding-mappers";
-import type { FulfillmentCentre, PaymentConfig } from "../types";
+import type {
+  FulfillmentCentre,
+  OnlinePaymentMethod,
+  PaymentConfig,
+} from "../types";
 
 const sanitizePositiveAmountInput = (value: string): string => {
   let sanitized = value.replace(/[^\d.]/g, "");
@@ -42,6 +49,38 @@ const parsePositiveAmount = (value: string): number | null => {
   return amount;
 };
 
+const formatGatewayLabel = (gateway: string) => {
+  if (!gateway) return gateway;
+  return gateway.charAt(0).toUpperCase() + gateway.slice(1);
+};
+
+const createPaymentMethodId = () => {
+  const cryptoAny = crypto as unknown as Partial<{ randomUUID: () => string }>;
+  if (cryptoAny.randomUUID) return cryptoAny.randomUUID();
+  return `pm_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+};
+
+/** Ensure exactly one primary (`isActive`) gateway when the list is non-empty. */
+function withPrimarySelection(
+  methods: OnlinePaymentMethod[],
+  primaryId: string,
+): OnlinePaymentMethod[] {
+  if (methods.length === 0) return methods;
+
+  const resolvedPrimaryId =
+    methods.find((method) => method.id === primaryId)?.id ?? methods[0]?.id;
+
+  return methods.map((method) => ({
+    ...method,
+    isActive: method.id === resolvedPrimaryId,
+  }));
+}
+
+type PaymentGatewayModalState =
+  | { open: false }
+  | { open: true; mode: "add" }
+  | { open: true; mode: "edit"; paymentMethodId: string };
+
 type FulfillmentDetailsStepProps = {
   centres: FulfillmentCentre[];
   payment: PaymentConfig;
@@ -57,8 +96,13 @@ export function isFulfillmentValid(
 ) {
   if (centres.length === 0) return false;
   if (payment.methods.length === 0) return false;
-  if (payment.methods.includes("online") && !payment.paymentGateway)
-    return false;
+
+  if (payment.methods.includes("online")) {
+    if (payment.onlinePaymentMethods.length === 0) return false;
+    if (!payment.onlinePaymentMethods.some((method) => method.isActive)) {
+      return false;
+    }
+  }
 
   if (payment.methods.includes("cod")) {
     const min = parsePositiveAmount(payment.codMin);
@@ -113,6 +157,96 @@ export const FulfillmentDetailsStep = ({
 }: FulfillmentDetailsStepProps) => {
   const codMinError = getCodMinError(payment);
   const codMaxError = getCodMaxError(payment);
+  const [paymentGatewayModal, setPaymentGatewayModal] =
+    useState<PaymentGatewayModalState>({ open: false });
+
+  const selectedOnlinePaymentMethodId =
+    payment.onlinePaymentMethods.find((method) => method.isActive)?.id ?? "";
+
+  const editingPaymentMethod =
+    paymentGatewayModal.open && paymentGatewayModal.mode === "edit"
+      ? payment.onlinePaymentMethods.find(
+          (method) => method.id === paymentGatewayModal.paymentMethodId,
+        )
+      : undefined;
+
+  function openAddPaymentGatewayModal() {
+    setPaymentGatewayModal({ open: true, mode: "add" });
+  }
+
+  function openEditPaymentGatewayModal(paymentMethodId: string) {
+    setPaymentGatewayModal({ open: true, mode: "edit", paymentMethodId });
+  }
+
+  function handlePaymentGatewaySave(values: PaymentGatewayFormValues) {
+    const gatewayLabel = formatGatewayLabel(values.gateway);
+    const credentials = {
+      methodName: values.methodName,
+      gateway: values.gateway,
+      keyId: values.keyId,
+      keySecret: values.keySecret,
+    };
+
+    if (paymentGatewayModal.open && paymentGatewayModal.mode === "edit") {
+      const nextMethods = payment.onlinePaymentMethods.map((method) =>
+        method.id === paymentGatewayModal.paymentMethodId
+          ? {
+              ...method,
+              title: values.methodName,
+              gateway: gatewayLabel,
+              credentials,
+            }
+          : method,
+      );
+
+      onPaymentChange({
+        onlinePaymentMethods: withPrimarySelection(
+          nextMethods,
+          selectedOnlinePaymentMethodId,
+        ),
+      });
+      return;
+    }
+
+    const newMethod: OnlinePaymentMethod = {
+      id: createPaymentMethodId(),
+      title: values.methodName,
+      gateway: gatewayLabel,
+      isActive: payment.onlinePaymentMethods.length === 0,
+      credentials,
+    };
+    const nextMethods = [...payment.onlinePaymentMethods, newMethod];
+
+    onPaymentChange({
+      onlinePaymentMethods: withPrimarySelection(
+        nextMethods,
+        selectedOnlinePaymentMethodId || newMethod.id,
+      ),
+    });
+  }
+
+  function handleDeletePaymentMethod(paymentMethodId: string) {
+    const nextMethods = payment.onlinePaymentMethods.filter(
+      (method) => method.id !== paymentMethodId,
+    );
+    const nextPrimaryId =
+      selectedOnlinePaymentMethodId === paymentMethodId
+        ? (nextMethods[0]?.id ?? "")
+        : selectedOnlinePaymentMethodId;
+
+    onPaymentChange({
+      onlinePaymentMethods: withPrimarySelection(nextMethods, nextPrimaryId),
+    });
+  }
+
+  function handleSelectPaymentMethod(paymentMethodId: string) {
+    onPaymentChange({
+      onlinePaymentMethods: withPrimarySelection(
+        payment.onlinePaymentMethods,
+        paymentMethodId,
+      ),
+    });
+  }
 
   return (
     <div className="flex w-full flex-col items-start gap-4xl">
@@ -202,29 +336,54 @@ export const FulfillmentDetailsStep = ({
             description="Accept UPI, cards, netbanking, and wallets via your connected payment gateway."
             indicator="radio"
           >
-            <ExpandableCheckboxCardSection label="Payment gateway" isRequired>
-              <SelectField
-                aria-label="Choose payment method name"
-                placeholder="Choose payment method name"
-                size="sm"
-                selectedKey={payment.paymentGateway || undefined}
-                onSelectionChange={(key) =>
-                  onPaymentChange({ paymentGateway: String(key ?? "") })
-                }
+            {payment.onlinePaymentMethods.length > 0 && (
+              <PaymentMethodRadioCardGroup
+                aria-label="Payment gateway"
+                value={selectedOnlinePaymentMethodId || undefined}
+                onChange={handleSelectPaymentMethod}
               >
-                {PAYMENT_GATEWAYS.map((gw) => (
-                  <SelectItem key={gw.id} id={gw.id}>
-                    {gw.label}
-                  </SelectItem>
+                {payment.onlinePaymentMethods.map((method) => (
+                  <PaymentMethodRadioCard
+                    key={method.id}
+                    value={method.id}
+                    title={method.title}
+                    gateway={method.gateway}
+                    actions={
+                      <>
+                        <Button
+                          hierarchy="ghost"
+                          size="sm"
+                          iconOnly
+                          iconLeading={<Edit01 size={16} />}
+                          aria-label="Edit payment method"
+                          className="text-fg-brand"
+                          onPress={() => openEditPaymentGatewayModal(method.id)}
+                        />
+                        {!method.isActive ? (
+                          <Button
+                            hierarchy="ghost-destructive"
+                            size="sm"
+                            iconOnly
+                            iconLeading={<Trash01 size={16} />}
+                            aria-label="Delete payment method"
+                            onPress={() => handleDeletePaymentMethod(method.id)}
+                          />
+                        ) : null}
+                      </>
+                    }
+                  />
                 ))}
-              </SelectField>
-              <div className="flex items-center gap-xxs text-sm text-text-tertiary">
-                <span>Don&apos;t see your payment gateway?</span>
-                <span className="cursor-pointer text-text-brand underline">
-                  Add new payment gateway
-                </span>
-              </div>
-            </ExpandableCheckboxCardSection>
+              </PaymentMethodRadioCardGroup>
+            )}
+            <Button
+              hierarchy="secondary"
+              size="sm"
+              iconLeading={<Plus />}
+              className="w-fit"
+              onPress={openAddPaymentGatewayModal}
+            >
+              Add payment gateway
+            </Button>
           </ExpandableCheckboxCard>
 
           <ExpandableCheckboxCard
@@ -268,6 +427,20 @@ export const FulfillmentDetailsStep = ({
           </ExpandableCheckboxCard>
         </CheckboxGroup>
       </div>
+
+      <PaymentGatewayModal
+        isOpen={paymentGatewayModal.open}
+        onOpenChange={(open) => {
+          if (!open) setPaymentGatewayModal({ open: false });
+        }}
+        mode={paymentGatewayModal.open ? paymentGatewayModal.mode : "add"}
+        initialValues={
+          paymentGatewayModal.open && paymentGatewayModal.mode === "edit"
+            ? editingPaymentMethod?.credentials
+            : undefined
+        }
+        onSave={handlePaymentGatewaySave}
+      />
     </div>
   );
 };

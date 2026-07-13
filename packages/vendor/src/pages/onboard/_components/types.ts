@@ -1,4 +1,5 @@
-export type WizardStep = 0 | 1 | 2 | 3 | 4;
+/** Wizard screens 1–4 match API `onboarding_step` / save step; 5 = success. */
+export type WizardStep = 1 | 2 | 3 | 4 | 5;
 
 export type BusinessDetails = {
   industry: string;
@@ -47,9 +48,26 @@ export type FulfillmentCentre = {
   lng?: number;
 };
 
+export type OnlinePaymentMethodCredentials = {
+  methodName: string;
+  gateway: string;
+  keyId: string;
+  keySecret: string;
+};
+
+export type OnlinePaymentMethod = {
+  id: string;
+  title: string;
+  /** Display label for the gateway (e.g. "Razorpay"). */
+  gateway: string;
+  /** Primary gateway among the list — maps to API `is_active`. */
+  isActive: boolean;
+  credentials: OnlinePaymentMethodCredentials;
+};
+
 export type PaymentConfig = {
   methods: string[];
-  paymentGateway: string;
+  onlinePaymentMethods: OnlinePaymentMethod[];
   codMin: string;
   codMax: string;
 };
