@@ -22,6 +22,7 @@ import {
   UtilityButton,
 } from "@happilee-app/ui";
 import { Spinner } from "@medusajs/icons";
+import { useSelectSeller } from "@hooks/api";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { listStores } from "../../services/storeServices";
@@ -34,6 +35,8 @@ const PAGE_SIZE = 50;
 
 export const StoresPage = () => {
   const navigate = useNavigate();
+  const { mutateAsync: selectSeller, isPending: isSelecting } =
+    useSelectSeller();
   const [stores, setStores] = useState<StoreTableRow[]>([]);
   const [count, setCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,6 +71,20 @@ export const StoresPage = () => {
   useEffect(() => {
     void fetchStores(currentPage);
   }, [currentPage, fetchStores]);
+
+  const handleSelectStore = async (store: StoreTableRow) => {
+    if (isSelecting) {
+      return;
+    }
+
+    if (store.isDraft) {
+      navigate(`/onboard?draftId=${encodeURIComponent(store.id)}`);
+      return;
+    }
+
+    await selectSeller({ seller_id: store.id });
+    navigate("/", { replace: true });
+  };
 
   const hasStores = stores.length > 0;
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
@@ -191,7 +208,17 @@ export const StoresPage = () => {
                 </TableHeader>
                 <TableBody>
                   {stores.map((store) => (
-                    <Row key={store.id}>
+                    <Row
+                      key={store.id}
+                      id={store.id}
+                      isDisabled={isSelecting}
+                      className={
+                        isSelecting
+                          ? "cursor-wait opacity-60"
+                          : "cursor-pointer"
+                      }
+                      onAction={() => void handleSelectStore(store)}
+                    >
                       <Cell primary>
                         <div className="flex items-center gap-md">
                           <StoreAvatar initials={store.initials} />

@@ -44,6 +44,7 @@ const createClientPaymentMethodId = () => {
 
 export type PaymentGatewayApiPayload = {
   gateway: string;
+  label: string;
   is_active: boolean;
   credentials: {
     key_id: string;
@@ -68,6 +69,7 @@ const mapApiPaymentGatewaysToMethods = (
     const metadata = asObject(row.metadata);
     const gateway = asString(row.gateway) ?? "razorpay";
     const methodName =
+      asString(row.label) ??
       asString(metadata.method_name) ??
       `${formatGatewayLabel(gateway)} ${String(index + 1).padStart(2, "0")}`;
     const id =
@@ -100,15 +102,17 @@ const mapOnlineMethodsToPaymentGateways = (
   methods: OnlinePaymentMethod[],
 ): PaymentGatewayApiPayload[] => {
   return methods.map((method) => {
+    const methodName = method.title || method.credentials.methodName;
     return {
       gateway: method.credentials.gateway || "razorpay",
+      label: methodName,
       is_active: method.isActive,
       credentials: {
         key_id: method.credentials.keyId,
         key_secret: method.credentials.keySecret,
       },
       metadata: {
-        method_name: method.title || method.credentials.methodName,
+        method_name: methodName,
         client_id: method.id,
       },
     };
