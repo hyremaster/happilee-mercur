@@ -57,18 +57,46 @@ const paymentConfigSchema = z.object({
   currency_code: z.string().nullable().optional(),
 })
 
+const paymentGatewayCredentialsSchema = z.object({
+  key_id: z.string(),
+  key_secret: z.string(),
+  webhook_secret: z.string().optional(),
+})
+
+// A single gateway entry inside the POST /:id array. `id` present => update
+// that row; absent => create. `label` distinguishes multiple accounts of the
+// same gateway type.
 const paymentGatewaySchema = z.object({
+  id: z.string().optional(),
   gateway: z.nativeEnum(StorePaymentGatewayType),
+  label: z.string().min(1),
   is_active: z.boolean().optional(),
-  credentials: z.object({
-    key_id: z.string(),
-    key_secret: z.string(),
-    webhook_secret: z.string().optional(),
-  }),
+  credentials: paymentGatewayCredentialsSchema,
   metadata: z.record(z.unknown()).nullable().optional(),
 })
 
-const paymentGatewaysSchema = z.array(paymentGatewaySchema)
+// POST /vendor/store-onboarding/:id/payment-gateways — create one account.
+export type VendorCreatePaymentGatewayType = z.infer<
+  typeof VendorCreatePaymentGateway
+>
+export const VendorCreatePaymentGateway = z.object({
+  gateway: z.nativeEnum(StorePaymentGatewayType),
+  label: z.string().min(1),
+  is_active: z.boolean().optional(),
+  credentials: paymentGatewayCredentialsSchema,
+  metadata: z.record(z.unknown()).nullable().optional(),
+})
+
+// POST /vendor/store-onboarding/:id/payment-gateways/:gateway_id — update one.
+export type VendorUpdatePaymentGatewayType = z.infer<
+  typeof VendorUpdatePaymentGateway
+>
+export const VendorUpdatePaymentGateway = z.object({
+  label: z.string().min(1).optional(),
+  is_active: z.boolean().optional(),
+  credentials: paymentGatewayCredentialsSchema.optional(),
+  metadata: z.record(z.unknown()).nullable().optional(),
+})
 
 const orderStatusSchema = z.object({
   status: z.nativeEnum(StoreOrderStatusType),
@@ -226,8 +254,10 @@ export const VendorUpdateStore = z.object({
   storefront_template: z.string().nullable().optional(),
   owner_handle: z.string().optional(),
   payment_config: paymentConfigSchema.optional(),
+  // Multiple accounts (many-of-same-type). Legacy singular `payment_gateway`
+  // still accepted and folded into the array by the handler.
+  payment_gateways: z.array(paymentGatewaySchema).optional(),
   payment_gateway: paymentGatewaySchema.optional(),
-  payment_gateways: paymentGatewaysSchema.optional(),
   order_statuses: z.array(orderStatusSchema).optional(),
   metadata: z.record(z.unknown()).nullable().optional(),
 })

@@ -6,11 +6,7 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { MercurModules, StoreOnboardingDraftStatus } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../../modules/marketplace-profile/service"
-import {
-  assertDraftOwnership,
-  maskDraftData,
-  mergePaymentGatewaySecrets,
-} from "../../helpers"
+import { assertDraftOwnership, sanitizeDraft } from "../../helpers"
 import { VendorSaveDraftStepType } from "../../validators"
 
 // Wizard screen index -> draft_data key.
@@ -21,16 +17,13 @@ const STEP_KEY: Record<number, string> = {
   4: "storefront",
 }
 
-const isObject = (v: unknown): v is Record<string, unknown> =>
-  !!v && typeof v === "object" && !Array.isArray(v)
-
 // GET /vendor/store-onboarding/drafts/:draft_id — resume a draft.
 export const GET = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
   const draft = await assertDraftOwnership(req, req.params.draft_id)
-  res.json({ draft: { ...draft, draft_data: maskDraftData(draft.draft_data) } })
+  res.json({ draft: sanitizeDraft(draft) })
 }
 
 // POST /vendor/store-onboarding/drafts/:draft_id — save one screen.
@@ -49,26 +42,10 @@ export const POST = async (
 
   const { step, data } = req.validatedBody
   const key = STEP_KEY[step]
-  let stepData: Record<string, unknown> = { ...data }
-
-  if (step === 3) {
-    const previousDraft = isObject(draft.draft_data) ? draft.draft_data : {}
-    const previousFulfillment = isObject(previousDraft.fulfillment)
-      ? previousDraft.fulfillment
-      : {}
-
-    stepData = {
-      ...stepData,
-      payment_gateways: mergePaymentGatewaySecrets(
-        stepData.payment_gateways,
-        previousFulfillment.payment_gateways
-      ),
-    }
-  }
 
   const nextDraftData = {
     ...(draft.draft_data ?? {}),
-    [key]: stepData,
+    [key]: data,
   }
 
   const service = req.scope.resolve<MarketplaceProfileModuleService>(
@@ -81,9 +58,7 @@ export const POST = async (
     onboarding_step: Math.max(draft.onboarding_step ?? 0, step),
   })
 
-  res.json({
-    draft: { ...updated, draft_data: maskDraftData(updated.draft_data) },
-  })
+  res.json({ draft: sanitizeDraft(updated) })
 }
 
 // DELETE /vendor/store-onboarding/drafts/:draft_id — discard a draft.

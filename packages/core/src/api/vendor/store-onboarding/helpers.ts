@@ -9,7 +9,7 @@ import type MarketplaceProfileModuleService from "../../../modules/marketplace-p
 
 // Credential fields that must never be returned in an API response.
 const SECRET_CREDENTIAL_KEYS = ["key_secret", "webhook_secret"]
-const MASKED = "***"
+export const MASKED = "***"
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v)
@@ -38,8 +38,8 @@ export function maskGateway<T>(gateway: T): T {
 
 /**
  * Mask any payment-gateway credentials embedded in a draft's `draft_data`
- * (step 3 saves `fulfillment.payment_gateways` / legacy `payment_gateway`).
- * Returns a shallow copy so the stored value is untouched.
+ * (step 3 saves `fulfillment.payment_gateway` loosely). Returns a shallow copy
+ * so the stored value is untouched.
  */
 export function maskDraftData(draftData: unknown): unknown {
   if (!isObject(draftData)) {
@@ -47,108 +47,91 @@ export function maskDraftData(draftData: unknown): unknown {
   }
   const data: Record<string, unknown> = { ...draftData }
 
+  const maskGatewayField = (v: unknown): unknown =>
+    Array.isArray(v) ? v.map(maskGateway) : maskGateway(v)
+
   const fulfillment = data.fulfillment
   if (isObject(fulfillment)) {
-    const nextFulfillment: Record<string, unknown> = { ...fulfillment }
-
-    if (Array.isArray(fulfillment.payment_gateways)) {
-      nextFulfillment.payment_gateways =
-        fulfillment.payment_gateways.map(maskGateway)
+    const next = { ...fulfillment }
+    let changed = false
+    if (next.payment_gateway) {
+      next.payment_gateway = maskGatewayField(next.payment_gateway)
+      changed = true
     }
-    if (fulfillment.payment_gateway) {
-      nextFulfillment.payment_gateway = maskGateway(fulfillment.payment_gateway)
+    if (next.payment_gateways) {
+      next.payment_gateways = maskGatewayField(next.payment_gateways)
+      changed = true
     }
-
-    data.fulfillment = nextFulfillment
-  }
-
-  if (Array.isArray(data.payment_gateways)) {
-    data.payment_gateways = data.payment_gateways.map(maskGateway)
+    if (changed) {
+      data.fulfillment = next
+    }
   }
   if (data.payment_gateway) {
-    data.payment_gateway = maskGateway(data.payment_gateway)
+    data.payment_gateway = maskGatewayField(data.payment_gateway)
+  }
+  if (data.payment_gateways) {
+    data.payment_gateways = maskGatewayField(data.payment_gateways)
   }
   return data
 }
 
-const isMaskedSecret = (value: unknown): boolean => value === MASKED
+/**
+ * Enforce the single-active-per-gateway invariant before activating a row:
+ * deactivate every other active account of the same (seller_id, gateway).
+ * `exceptId` (the row about to be activated) is left untouched. Call this
+ * BEFORE the activating write so the partial-unique index never rejects two
+ * simultaneously-active rows.
+ */
+export async function deactivateSiblingGateways(
+  service: MarketplaceProfileModuleService,
+  sellerId: string,
+  gateway: string,
+  exceptId?: string
+): Promise<void> {
+  const active = await service.listStorePaymentGateways({
+    seller_id: sellerId,
+    gateway,
+    is_active: true,
+  })
+  const stale = active.filter((g) => g.id !== exceptId)
+  for (const g of stale) {
+    await service.updateStorePaymentGateways({ id: g.id, is_active: false })
+  }
+}
 
 /**
- * When re-saving step 3, clients may echo masked secrets (`***`). Preserve the
- * previously stored raw secrets for those fields so we don't wipe credentials.
+ * Prepare a single draft for return to the vendor SPA: mask any embedded
+ * payment-gateway credentials in `draft_data` AND drop the secret
+ * `happilee_api_key` column (seeded server-side from SSO, must never reach the
+ * client). Use this in every draft response instead of spreading the raw row.
  */
-export function mergePaymentGatewaySecrets(
-  incoming: unknown,
-  previous: unknown
-): unknown {
-  if (!Array.isArray(incoming)) {
-    return incoming
+export function sanitizeDraft<
+  T extends { draft_data?: unknown; happilee_api_key?: unknown },
+>(draft: T): Omit<T, "happilee_api_key"> {
+  const { happilee_api_key: _secret, ...rest } = draft
+  return { ...rest, draft_data: maskDraftData(draft.draft_data) }
+}
+
+/** Sanitize every draft in a list before returning. */
+export function maskDrafts<
+  T extends { draft_data?: unknown; happilee_api_key?: unknown },
+>(drafts: T[]): Omit<T, "happilee_api_key">[] {
+  return drafts.map(sanitizeDraft)
+}
+
+/**
+ * Drop the secret `happilee_api_key` column from a store_profile before it is
+ * returned to the vendor SPA. The key is a backend credential for the Happilee
+ * Area Sense API and must never reach the client. Pass-through for null.
+ */
+export function sanitizeStoreProfile<
+  T extends { happilee_api_key?: unknown },
+>(profile: T | null | undefined): Omit<T, "happilee_api_key"> | null {
+  if (!profile) {
+    return null
   }
-
-  const previousList = Array.isArray(previous) ? previous : []
-
-  return incoming.map((entry) => {
-    if (!isObject(entry)) {
-      return entry
-    }
-
-    const credentials = asObject(entry.credentials)
-    if (!credentials) {
-      return entry
-    }
-
-    const metadata = asObject(entry.metadata)
-    const clientId =
-      typeof metadata?.client_id === "string" ? metadata.client_id : undefined
-    const keyId =
-      typeof credentials.key_id === "string" ? credentials.key_id : undefined
-
-    const previousMatch = previousList.find((prev) => {
-      if (!isObject(prev)) return false
-      const prevMeta = asObject(prev.metadata)
-      const prevCreds = asObject(prev.credentials)
-      if (
-        clientId &&
-        typeof prevMeta?.client_id === "string" &&
-        prevMeta.client_id === clientId
-      ) {
-        return true
-      }
-      return (
-        !!keyId &&
-        typeof prevCreds?.key_id === "string" &&
-        prevCreds.key_id === keyId &&
-        prev.gateway === entry.gateway
-      )
-    })
-
-    const previousCredentials = isObject(previousMatch)
-      ? asObject(previousMatch.credentials)
-      : undefined
-
-    const nextCredentials: Record<string, unknown> = { ...credentials }
-
-    if (isMaskedSecret(credentials.key_secret) && previousCredentials) {
-      nextCredentials.key_secret = previousCredentials.key_secret
-    }
-    if (isMaskedSecret(credentials.webhook_secret) && previousCredentials) {
-      nextCredentials.webhook_secret = previousCredentials.webhook_secret
-    }
-
-    return {
-      ...entry,
-      credentials: nextCredentials,
-    }
-  })
-}
-
-function asObject(value: unknown): Record<string, unknown> | undefined {
-  return isObject(value) ? value : undefined
-}
-
-/** Mask credentials on every draft in a list before returning. */
-export function maskDrafts<T extends { draft_data?: unknown }>(drafts: T[]): T[] {
-  return drafts.map((d) => ({ ...d, draft_data: maskDraftData(d.draft_data) }))
+  const { happilee_api_key: _secret, ...rest } = profile
+  return rest
 }
 
 /**

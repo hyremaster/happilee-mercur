@@ -15,7 +15,13 @@ import {
   updateSellerProfessionalDetailsWorkflow,
 } from "../../../../workflows/seller"
 import { VendorUpdateStoreType } from "../validators"
-import { assertStoreOwnership, maskGateway } from "../helpers"
+import {
+  assertStoreOwnership,
+  deactivateSiblingGateways,
+  maskGateway,
+  sanitizeStoreProfile,
+  MASKED,
+} from "../helpers"
 
 // GET /vendor/store-onboarding/:id — store detail (seller + extension data).
 export const GET = async (
@@ -59,7 +65,7 @@ export const GET = async (
   res.json({
     store: {
       ...seller,
-      store_profile: store_profile ?? null,
+      store_profile: sanitizeStoreProfile(store_profile),
       owner_handle: ownerProfile?.handle ?? null,
       delivery_areas,
       payment_gateways: gateways.map(maskGateway),
@@ -145,46 +151,62 @@ export const POST = async (
     }
   }
 
-  // Payment gateways — full replace when `payment_gateways` is sent.
-  // Legacy singular `payment_gateway` upsert kept for compatibility.
-  if (body.payment_gateways) {
-    const existing = await service.listStorePaymentGateways({
-      seller_id: sellerId,
-    })
-    if (existing.length) {
-      await service.deleteStorePaymentGateways(existing.map((row) => row.id))
+  // Payment gateways (many-of-same-type).
+  //  - `payment_gateways` (array) is the full desired set (replace-all/sync):
+  //    entries with `id` are updated, entries without `id` are created, and
+  //    existing rows absent from the payload are deleted.
+  //  - legacy singular `payment_gateway` is a non-destructive upsert (never
+  //    deletes siblings).
+  // Credentials stored raw; masked on read. On update, a credentials object
+  // whose secret is the mask ("***") is treated as "unchanged" and skipped, so
+  // a client round-tripping a masked read never clobbers the stored secret.
+  const isReplaceAll = body.payment_gateways !== undefined
+  const gatewayEntries =
+    body.payment_gateways ??
+    (body.payment_gateway ? [body.payment_gateway] : undefined)
+  if (gatewayEntries) {
+    if (isReplaceAll) {
+      const existing = await service.listStorePaymentGateways({
+        seller_id: sellerId,
+      })
+      const keepIds = new Set(
+        gatewayEntries
+          .map((e) => e.id)
+          .filter((id): id is string => Boolean(id))
+      )
+      const staleIds = existing
+        .filter((g) => !keepIds.has(g.id))
+        .map((g) => g.id)
+      if (staleIds.length) {
+        await service.deleteStorePaymentGateways(staleIds)
+      }
     }
 
-    for (const entry of body.payment_gateways) {
-      await service.createStorePaymentGateways({
-        seller_id: sellerId,
-        gateway: entry.gateway,
-        is_active: entry.is_active ?? false,
-        credentials: entry.credentials,
-        metadata: entry.metadata ?? null,
-      })
-    }
-  } else if (body.payment_gateway) {
-    const { gateway, is_active, credentials, metadata } = body.payment_gateway
-    const [existing] = await service.listStorePaymentGateways({
-      seller_id: sellerId,
-      gateway,
-    })
-    if (existing) {
-      await service.updateStorePaymentGateways({
-        id: existing.id,
-        is_active: is_active ?? existing.is_active,
-        credentials,
-        ...(metadata !== undefined ? { metadata } : {}),
-      })
-    } else {
-      await service.createStorePaymentGateways({
-        seller_id: sellerId,
-        gateway,
-        is_active: is_active ?? false,
-        credentials,
-        metadata: metadata ?? null,
-      })
+    for (const entry of gatewayEntries) {
+      const { id, gateway, label, is_active, credentials, metadata } = entry
+      // Single-active invariant: deactivate siblings before activating this one.
+      if (is_active) {
+        await deactivateSiblingGateways(service, sellerId, gateway, id)
+      }
+      if (id) {
+        const credentialsMasked = credentials?.key_secret === MASKED
+        await service.updateStorePaymentGateways({
+          id,
+          label,
+          is_active: is_active ?? false,
+          ...(credentialsMasked ? {} : { credentials }),
+          ...(metadata !== undefined ? { metadata } : {}),
+        })
+      } else {
+        await service.createStorePaymentGateways({
+          seller_id: sellerId,
+          gateway,
+          label,
+          is_active: is_active ?? false,
+          credentials,
+          metadata: metadata ?? null,
+        })
+      }
     }
   }
 
@@ -245,7 +267,7 @@ export const POST = async (
   res.json({
     store: {
       ...seller,
-      store_profile: store_profile ?? null,
+      store_profile: sanitizeStoreProfile(store_profile),
       owner_handle: ownerProfile?.handle ?? null,
       delivery_areas,
       payment_gateways: gateways.map(maskGateway),

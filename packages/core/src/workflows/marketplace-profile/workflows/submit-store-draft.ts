@@ -17,13 +17,14 @@ import {
   UpdateSellerAddressDTO,
 } from "@mercurjs/types"
 
+import { approveSellerWorkflow } from "../../seller"
 import { createSellerStockLocationsWorkflow } from "../../stock-location"
 import { createStoreWorkflow } from "./create-store"
 import {
   finalizeStoreExtrasStep,
   createStoreLocationDetailsStep,
   createStoreDeliveryAreasStep,
-  syncStorePaymentGatewaysStep,
+  createStorePaymentGatewaysStep,
   markDraftSubmittedStep,
 } from "../steps"
 
@@ -51,6 +52,7 @@ type SubmitStoreDraftWorkflowInput = {
     commerce_type?: StoreCommerceType | null
     fulfillment_methods?: StoreFulfillmentMethod[] | null
     storefront_template?: string | null
+    happilee_api_key?: string | null
   }
   payment?: {
     online_enabled?: boolean
@@ -76,13 +78,14 @@ type SubmitStoreDraftWorkflowInput = {
   }[] | null
   payment_gateways?: {
     gateway: StorePaymentGatewayType
+    label: string
     is_active?: boolean
     credentials: StorePaymentGatewayCredentials
     metadata?: Record<string, unknown> | null
   }[] | null
 }
 
-export const submitStoreDraftWorkflow: ReturnType<typeof createWorkflow> =
+export const submitStoreDraftWorkflow =
   createWorkflow(
     submitStoreDraftWorkflowId,
     function (input: SubmitStoreDraftWorkflowInput) {
@@ -103,6 +106,13 @@ export const submitStoreDraftWorkflow: ReturnType<typeof createWorkflow> =
         seller: { id: string }
         store_profile: { id: string }
       }
+
+      // 1b. Submitting a completed onboarding draft is self-service approval:
+      //     the store goes live (status OPEN + approved_at) immediately rather
+      //     than sitting in pending_approval. Emits the standard APPROVED event.
+      approveSellerWorkflow.runAsStep({
+        input: transform(created, (c) => ({ seller_id: c.seller.id })),
+      })
 
       // 2. Payment config + optional order-status overrides.
       finalizeStoreExtrasStep(
@@ -159,20 +169,18 @@ export const submitStoreDraftWorkflow: ReturnType<typeof createWorkflow> =
         )
       )
 
-      // 3c. Payment gateways (credentials) — full replace after seller exists.
-      syncStorePaymentGatewaysStep(
+      // 3c. Payment gateways (credentials, many-of-same-type) — seller-scoped,
+      //     created after the seller exists.
+      createStorePaymentGatewaysStep(
         transform({ created, input }, ({ created, input }) =>
-          input.payment_gateways && input.payment_gateways.length > 0
-            ? {
-                seller_id: created.seller.id,
-                gateways: input.payment_gateways.map((gateway) => ({
-                  gateway: gateway.gateway,
-                  is_active: gateway.is_active,
-                  credentials: gateway.credentials,
-                  metadata: gateway.metadata ?? null,
-                })),
-              }
-            : null
+          (input.payment_gateways ?? []).map((g) => ({
+            seller_id: created.seller.id,
+            gateway: g.gateway,
+            label: g.label,
+            is_active: g.is_active,
+            credentials: g.credentials,
+            metadata: g.metadata ?? null,
+          }))
         )
       )
 
