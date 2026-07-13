@@ -243,15 +243,20 @@ export const OnboardPage = () => {
       if (seller_member) {
         navigate("/", { replace: true });
       } else {
-        updateState({ isComplete: false, currentStep: 0 });
+        updateState({ isComplete: false, currentStep: 1 });
       }
     }
   }, [state.isComplete, justLaunched, navigate, seller_member, updateState]);
 
-  const stepIndex = Math.min(state.currentStep, 3) as 0 | 1 | 2 | 3;
+  // ProgressSteps / STEP_HEADINGS are 0-indexed arrays; wizard steps are 1–4.
+  const stepIndex = Math.min(Math.max(state.currentStep - 1, 0), 3) as
+    | 0
+    | 1
+    | 2
+    | 3;
   const heading = STEP_HEADINGS[stepIndex];
   const handleAvailability = useHandleAvailability(
-    state.currentStep === 3 ? state.storefront.handle : "",
+    state.currentStep === 4 ? state.storefront.handle : "",
     isEditingActiveStore ? originalStorefrontHandle : undefined,
   );
   const {
@@ -266,7 +271,7 @@ export const OnboardPage = () => {
   );
 
   const handleContinue = async () => {
-    if (state.currentStep === 0) {
+    if (state.currentStep === 1) {
       if (!isBusinessDetailsValid(state.businessDetails)) {
         toast.error("Please complete all required business details.");
         return;
@@ -312,7 +317,7 @@ export const OnboardPage = () => {
       return;
     }
 
-    if (state.currentStep === 1) {
+    if (state.currentStep === 2) {
       if (!isCommerceTypeValid(state.commerce)) {
         toast.error("Please complete all required commerce type details.");
         return;
@@ -355,7 +360,7 @@ export const OnboardPage = () => {
       return;
     }
 
-    if (state.currentStep === 2) {
+    if (state.currentStep === 3) {
       if (!isFulfillmentValid(state.fulfillmentCentres, state.payment)) {
         toast.error("Please complete all required fulfillment details.");
         return;
@@ -401,7 +406,7 @@ export const OnboardPage = () => {
       return;
     }
 
-    if (state.currentStep === 3) {
+    if (state.currentStep === 4) {
       if (!storefrontIsValid) {
         toast.error("Please complete all required storefront details.");
         return;
@@ -449,7 +454,7 @@ export const OnboardPage = () => {
   };
 
   const handleBack = () => {
-    if (state.currentStep === 0) {
+    if (state.currentStep === 1) {
       if (state.storeId) {
         navigate("/stores");
       } else {
@@ -607,7 +612,7 @@ export const OnboardPage = () => {
     setIsTemplatePreviewOpen(true);
   };
 
-  if (state.currentStep === 4 && justLaunched) {
+  if (state.currentStep === 5 && justLaunched) {
     return (
       <StoreSetupLayout minHeight="min-h-[933px]">
         <SuccessStep />
@@ -632,25 +637,25 @@ export const OnboardPage = () => {
         onBack={handleBack}
         onContinue={() => void handleContinue()}
         continueLabel={
-          state.currentStep === 3
+          state.currentStep === 4
             ? isEditingActiveStore
               ? "Review changes"
               : "Review and submit"
             : "Continue"
         }
         continueIcon={
-          state.currentStep === 3 ? <CheckCircle /> : <ArrowRight />
+          state.currentStep === 4 ? <CheckCircle /> : <ArrowRight />
         }
         isContinueDisabled={
-          (state.currentStep === 0 &&
-            !isBusinessDetailsValid(state.businessDetails)) ||
           (state.currentStep === 1 &&
+            !isBusinessDetailsValid(state.businessDetails)) ||
+          (state.currentStep === 2 &&
             (!isCommerceTypeValid(state.commerce) ||
               isLoadingDefaultStatuses ||
               isDefaultStatusesError)) ||
-          (state.currentStep === 2 &&
+          (state.currentStep === 3 &&
             !isFulfillmentValid(state.fulfillmentCentres, state.payment)) ||
-          (state.currentStep === 3 && !storefrontIsValid)
+          (state.currentStep === 4 && !storefrontIsValid)
         }
         isContinueLoading={isSavingStep}
       >
@@ -666,7 +671,7 @@ export const OnboardPage = () => {
           </span>
         </div>
 
-        {state.currentStep === 0 && (
+        {state.currentStep === 1 && (
           <BusinessDetailsStep
             data={state.businessDetails}
             onChange={(patch) =>
@@ -677,7 +682,7 @@ export const OnboardPage = () => {
           />
         )}
 
-        {state.currentStep === 1 && (
+        {state.currentStep === 2 && (
           <CommerceTypeStep
             data={state.commerce}
             onChange={(patch) =>
@@ -700,7 +705,7 @@ export const OnboardPage = () => {
           />
         )}
 
-        {state.currentStep === 2 && (
+        {state.currentStep === 3 && (
           <FulfillmentDetailsStep
             centres={state.fulfillmentCentres}
             payment={state.payment}
@@ -718,7 +723,7 @@ export const OnboardPage = () => {
           />
         )}
 
-        {state.currentStep === 3 && (
+        {state.currentStep === 4 && (
           <StorefrontSetupStep
             data={state.storefront}
             handleAvailability={handleAvailability}

@@ -149,9 +149,17 @@ const fromApiStorefrontTemplate = (template: string | undefined): string => {
   return LEGACY_STOREFRONT_TEMPLATE_KEYS[template] ?? template;
 };
 
+/**
+ * Maps API `onboarding_step` (highest saved step: 0 fresh, 1–4 saved) to the
+ * UI wizard step to resume on. Fresh drafts open Business (1). After saving
+ * step N, resume opens the next screen (N+1), clamped to Storefront (4).
+ */
 const draftStepToWizardStep = (onboardingStep: number): WizardStep => {
-  const step = Math.min(Math.max(onboardingStep, 0), 3);
-  return step as WizardStep;
+  if (onboardingStep <= 0) {
+    return 1;
+  }
+
+  return Math.min(onboardingStep + 1, 4) as WizardStep;
 };
 
 const ORDER_STATUS_API_VALUES = new Set([
@@ -339,7 +347,7 @@ export const mapStoreDetailToStoreSetupState = (
   const initialLocationIds = locations.map((location) => location.id);
 
   return {
-    currentStep: 0,
+    currentStep: 1,
     draftId: null,
     storeId: store.id,
     initialLocationIds,

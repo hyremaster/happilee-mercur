@@ -72,7 +72,7 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
 
   return (
     <div className="flex flex-col gap-xl">
-      <ReviewSection title="Business details" onEdit={() => onEdit(0)}>
+      <ReviewSection title="Business details" onEdit={() => onEdit(1)}>
         <SummaryRow label="Industry" value={industry} />
         <SummaryRow label="Store name" value={businessDetails.storeName || "—"} />
         <SummaryRow
@@ -89,7 +89,7 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
         )}
       </ReviewSection>
 
-      <ReviewSection title="Commerce & orders" onEdit={() => onEdit(1)}>
+      <ReviewSection title="Commerce & orders" onEdit={() => onEdit(2)}>
         <SummaryRow label="Commerce type" value={commerceSummary} />
         <SummaryRow
           label="Active order statuses"
@@ -98,7 +98,7 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
         <SummaryRow label="Delivery areas" value={deliveryAreaLabel} />
       </ReviewSection>
 
-      <ReviewSection title="Fulfillment details" onEdit={() => onEdit(2)}>
+      <ReviewSection title="Fulfillment details" onEdit={() => onEdit(3)}>
         <SummaryRow
           label="Fulfillment centres"
           value={`${fulfillmentCentres.length} outlets`}

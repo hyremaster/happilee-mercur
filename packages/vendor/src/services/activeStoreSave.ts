@@ -250,7 +250,7 @@ const buildStep4ProfilePatch = (
 
 const cloneBaseline = (baseline: ActiveStoreBaseline): ActiveStoreBaseline =>
   createActiveStoreBaseline({
-    currentStep: 0,
+    currentStep: 1,
     draftId: null,
     storeId: null,
     initialLocationIds: [],

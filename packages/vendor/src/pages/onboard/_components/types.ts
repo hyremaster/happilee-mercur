@@ -1,4 +1,5 @@
-export type WizardStep = 0 | 1 | 2 | 3 | 4;
+/** Wizard screens 1–4 match API `onboarding_step` / save step; 5 = success. */
+export type WizardStep = 1 | 2 | 3 | 4 | 5;
 
 export type BusinessDetails = {
   industry: string;
