@@ -3,9 +3,10 @@ import type { AreaSenseAreaDTO } from "@mercurjs/types"
 
 /**
  * Thin client for the external Area Sense system (Happilee API).
- * Env-driven so the base URL + api key are not hard-coded:
- *   - AREASENSE_API_URL — base URL (e.g. https://devapi.happilee.io)
- *   - AREASENSE_API_KEY — value for the `x-api-key` header
+ *   - AREASENSE_API_URL — base URL (e.g. https://devapi.happilee.io), env-driven.
+ *   - x-api-key — the seller's `store_profile.happilee_api_key` (passed in by the
+ *     route). Falls back to the AREASENSE_API_KEY env var when a seller/key is
+ *     not available yet (e.g. during onboarding drafts).
  *
  * Endpoint: GET {base}/api/v1/listAreaSense?search=<q>
  * Response: { message, data: [{ id, area_name, area_type, delivery_type,
@@ -25,16 +26,22 @@ const mapArea = (raw: AreaSenseRawArea): AreaSenseAreaDTO => ({
   metadata: raw,
 })
 
-export async function fetchAreaSenseAreas(query?: {
-  search?: string
-}): Promise<AreaSenseAreaDTO[]> {
+export async function fetchAreaSenseAreas(
+  query?: {
+    search?: string
+  },
+  options?: {
+    apiKey?: string | null
+  }
+): Promise<AreaSenseAreaDTO[]> {
   const baseUrl = process.env.AREASENSE_API_URL
-  const apiKey = process.env.AREASENSE_API_KEY
+  // Prefer the seller's store_profile key; fall back to env (onboarding drafts).
+  const apiKey = options?.apiKey || process.env.AREASENSE_API_KEY
 
   if (!baseUrl || !apiKey) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Area Sense is not configured. Set AREASENSE_API_URL and AREASENSE_API_KEY."
+      "Area Sense is not configured. Set the store's happilee_api_key (or the AREASENSE_API_KEY env var) and AREASENSE_API_URL."
     )
   }
 

@@ -31,7 +31,7 @@ async function bootstrap() {
     }
 
     // Redirect to store-select so the user picks their store manually
-    window.history.replaceState({}, "", "/store-select");
+    window.history.replaceState({}, "", "/stores");
   }
 
   createRoot(document.getElementById("root")!).render(

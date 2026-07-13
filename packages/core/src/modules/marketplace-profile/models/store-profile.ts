@@ -25,6 +25,10 @@ const StoreProfile = model
     // Storefront design template key (wizard step 4). Free text referencing a
     // storefront_template.key — validated at the app layer against the DB table.
     storefront_template: model.text().nullable(),
+    // Per-seller API key for the external Happilee (Area Sense) API. When set,
+    // used as the `x-api-key` when proxying Area Sense; falls back to the
+    // AREASENSE_API_KEY env var during onboarding drafts (no seller yet).
+    happilee_api_key: model.text().nullable(),
     metadata: model.json().nullable(),
     order_statuses: model.hasMany(() => StoreOrderStatus, {
       mappedBy: "store_profile",

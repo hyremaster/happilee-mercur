@@ -774,6 +774,9 @@ export type Routes = {
                 locations: typeof import("../../src/api/vendor/store-onboarding/[id]/locations/route") & {
                     $locationId: typeof import("../../src/api/vendor/store-onboarding/[id]/locations/[location_id]/route");
                 };
+                paymentGateways: typeof import("../../src/api/vendor/store-onboarding/[id]/payment-gateways/route") & {
+                    $gatewayId: typeof import("../../src/api/vendor/store-onboarding/[id]/payment-gateways/[gateway_id]/route");
+                };
             };
             areaSense: {
                 areas: typeof import("../../src/api/vendor/store-onboarding/area-sense/areas/route");

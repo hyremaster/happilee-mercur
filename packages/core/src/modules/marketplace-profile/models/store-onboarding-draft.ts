@@ -21,6 +21,11 @@ const StoreOnboardingDraft = model
       .enum(StoreOnboardingDraftStatus)
       .default(StoreOnboardingDraftStatus.DRAFT),
     submitted_seller_id: model.text().nullable(),
+    // Secret: per-project Happilee API key, seeded server-side from the SSO
+    // token (never from client input) and copied to store_profile on submit.
+    // Kept in a dedicated column (not draft_data/metadata) so draft responses,
+    // which serialize those JSON blobs to the SPA, can never leak it.
+    happilee_api_key: model.text().nullable(),
     metadata: model.json().nullable(),
   })
   .indexes([

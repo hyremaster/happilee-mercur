@@ -68,6 +68,9 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': vendorSrc,
+        // @tailwindcss/vite resolves CSS imports with "style" condition which
+        // @medusajs/dashboard doesn't export — bypass by pointing to actual file
+        '@medusajs/dashboard/css': resolve(__dirname, '../../packages/vendor/node_modules/@medusajs/dashboard/dist/app.css'),
         ...happileeUiAliases,
         ...vendorSourceAliases,
       },

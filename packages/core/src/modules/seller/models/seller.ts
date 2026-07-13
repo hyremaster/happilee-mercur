@@ -52,8 +52,9 @@ const Seller = model
   })
   .indexes([
     {
+      // NOT unique: one member (user) can own many sellers (Happilee projects),
+      // and every seller carries the owner's email. Uniqueness lives on Member.
       on: ["email"],
-      unique: true,
       where: "deleted_at IS NULL",
     },
     {
