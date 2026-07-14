@@ -82,6 +82,7 @@ export type StoreDeliveryArea = {
 export type StorePaymentGateway = {
   id?: string;
   gateway: string;
+  label: string;
   is_active: boolean;
   credentials: {
     key_id?: string;
