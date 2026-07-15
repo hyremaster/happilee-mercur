@@ -278,9 +278,17 @@ export const CommerceTypeStep = ({
         <RadioGroup
           aria-label="Commerce type"
           value={data.commerceType}
-          onChange={(value) =>
-            onChange({ commerceType: value as CommerceConfig["commerceType"] })
-          }
+          onChange={(value) => {
+            if (value === data.commerceType) return;
+
+            onChange({
+              commerceType: value as CommerceConfig["commerceType"],
+              localFulfillment: [],
+              ecomFulfillment: [],
+              deliveryArea: "",
+              deliveryAreaName: "",
+            });
+          }}
           itemsClassName="gap-md w-full"
         >
           <ExpandableRadioCard

@@ -631,7 +631,8 @@ export const isBusinessDetailsValid = (data: BusinessDetails): boolean => {
     !!data.country.trim() &&
     !!data.state.trim() &&
     !!data.city.trim() &&
-    !!data.pinCode.trim()
+    !!data.pinCode.trim() &&
+    !!data.taxNumber.trim()
   );
 };
 

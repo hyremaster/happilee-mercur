@@ -153,6 +153,7 @@ export const BusinessDetailsStep = ({
 
           <InputField
             label="Tax/GST number"
+            isRequired
             placeholder="Tax/GST number"
             size="md"
             className="w-full"
