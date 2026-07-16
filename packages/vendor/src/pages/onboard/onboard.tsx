@@ -455,11 +455,7 @@ export const OnboardPage = () => {
 
   const handleBack = () => {
     if (state.currentStep === 1) {
-      if (state.storeId) {
-        navigate("/stores");
-      } else {
-        navigate("/");
-      }
+      navigate("/stores");
       return;
     }
     prevStep();

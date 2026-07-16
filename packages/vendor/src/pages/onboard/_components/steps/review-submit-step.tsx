@@ -1,6 +1,4 @@
-import {
-  INDUSTRIES,
-} from "../constants";
+import { INDUSTRIES } from "../constants";
 import {
   ReadyToGoLiveBanner,
   ReviewSection,
@@ -13,7 +11,10 @@ type ReviewSubmitContentProps = {
   onEdit: (step: WizardStep) => void;
 };
 
-export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps) => {
+export const ReviewSubmitContent = ({
+  state,
+  onEdit,
+}: ReviewSubmitContentProps) => {
   const { businessDetails, commerce, fulfillmentCentres, payment } = state;
 
   const industry =
@@ -40,7 +41,9 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
         ? `${commerceTypeLabel} - ${ecomMethods}`
         : commerceTypeLabel;
 
-  const activeStatusCount = commerce.orderStatuses.filter((s) => s.active).length;
+  const activeStatusCount = commerce.orderStatuses.filter(
+    (s) => s.active,
+  ).length;
 
   const deliveryAreaLabel = commerce.deliveryAreaName || "—";
 
@@ -48,9 +51,7 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
     (method) => method.isActive,
   );
   const gatewayLabel =
-    selectedOnlineMethod?.title ??
-    selectedOnlineMethod?.gateway ??
-    "—";
+    selectedOnlineMethod?.title ?? selectedOnlineMethod?.gateway ?? "—";
 
   const paymentMethods = payment.methods
     .map((m) => {
@@ -74,14 +75,17 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
     <div className="flex flex-col gap-xl">
       <ReviewSection title="Business details" onEdit={() => onEdit(1)}>
         <SummaryRow label="Industry" value={industry} />
-        <SummaryRow label="Store name" value={businessDetails.storeName || "—"} />
+        <SummaryRow
+          label="Store name"
+          value={businessDetails.storeName || "—"}
+        />
         <SummaryRow
           label="Business legal name"
           value={businessDetails.businessLegalName || "—"}
         />
         <SummaryRow
           label="Contact"
-          value={`${businessDetails.email || "—"}  ·  ${businessDetails.phone || "—"}`}
+          value={`${businessDetails.email || "—"}  ,  ${businessDetails.phone || "—"}`}
         />
         <SummaryRow label="Address" value={addressParts || "—"} />
         {businessDetails.taxNumber && (

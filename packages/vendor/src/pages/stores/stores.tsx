@@ -42,8 +42,22 @@ export const StoresPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-  const fetchStores = useCallback(async (page: number) => {
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
+
+  const fetchStores = useCallback(async (page: number, search: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -51,6 +65,7 @@ export const StoresPage = () => {
       const data = await listStores({
         offset: (page - 1) * PAGE_SIZE,
         limit: PAGE_SIZE,
+        search: search || undefined,
       });
 
       setStores(data.stores.map(mapStoreToTableRow));
@@ -69,8 +84,8 @@ export const StoresPage = () => {
   }, []);
 
   useEffect(() => {
-    void fetchStores(currentPage);
-  }, [currentPage, fetchStores]);
+    void fetchStores(currentPage, debouncedSearchTerm);
+  }, [currentPage, debouncedSearchTerm, fetchStores]);
 
   const handleSelectStore = async (store: StoreTableRow) => {
     if (isSelecting) {
@@ -138,7 +153,7 @@ export const StoresPage = () => {
 
       <div className="flex min-h-0 flex-1 flex-col gap-xl px-3xl py-2xl">
         <div className="flex shrink-0 justify-end">
-          <SearchAndFilters />
+          <SearchAndFilters value={searchTerm} onChange={setSearchTerm} />
         </div>
 
         {isLoading ? (
@@ -160,7 +175,9 @@ export const StoresPage = () => {
                   <Button
                     hierarchy="primary"
                     size="md"
-                    onPress={() => void fetchStores(currentPage)}
+                    onPress={() =>
+                      void fetchStores(currentPage, debouncedSearchTerm)
+                    }
                   >
                     Try again
                   </Button>
@@ -171,23 +188,33 @@ export const StoresPage = () => {
         ) : !hasStores ? (
           <Card className="w-full">
             <CardBody className="flex items-center justify-center py-4xl">
-              <EmptyState
-                icon={<Building02 />}
-                iconColor="gray"
-                iconSize="md"
-                title="No stores found"
-                description="There is no existing store here, Start building your new store."
-                action={
-                  <Button
-                    hierarchy="primary"
-                    size="md"
-                    iconLeading={<Plus />}
-                    onPress={() => navigate("/onboard")}
-                  >
-                    Create new store
-                  </Button>
-                }
-              />
+              {debouncedSearchTerm ? (
+                <EmptyState
+                  icon={<Building02 />}
+                  iconColor="gray"
+                  iconSize="md"
+                  title="No results found"
+                  description={`No stores match "${debouncedSearchTerm}". Try a different search term.`}
+                />
+              ) : (
+                <EmptyState
+                  icon={<Building02 />}
+                  iconColor="gray"
+                  iconSize="md"
+                  title="No stores found"
+                  description="There is no existing store here, Start building your new store."
+                  action={
+                    <Button
+                      hierarchy="primary"
+                      size="md"
+                      iconLeading={<Plus />}
+                      onPress={() => navigate("/onboard")}
+                    >
+                      Create new store
+                    </Button>
+                  }
+                />
+              )}
             </CardBody>
           </Card>
         ) : (

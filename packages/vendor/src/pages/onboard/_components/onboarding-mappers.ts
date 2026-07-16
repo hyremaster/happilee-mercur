@@ -356,7 +356,7 @@ export const mapStoreDetailToStoreSetupState = (
     storeId: store.id,
     initialLocationIds,
     businessDetails: {
-      industry: profile?.industry ?? "restaurant",
+      industry: profile?.industry ?? "",
       storeName: store.name?.trim() ?? "",
       businessLegalName: professionalDetails.corporate_name ?? "",
       email: store.email ?? "",
@@ -453,7 +453,7 @@ export const mapDraftToStoreSetupState = (
     storeId: null,
     initialLocationIds: [],
     businessDetails: {
-      industry: asString(business.industry) ?? "restaurant",
+      industry: asString(business.industry) ?? "",
       storeName: asString(business.name) ?? "",
       businessLegalName: asString(professionalDetails.corporate_name) ?? "",
       email: asString(business.email) ?? "",
