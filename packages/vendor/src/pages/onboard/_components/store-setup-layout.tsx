@@ -1,7 +1,6 @@
 import { WorkspaceLogo } from "@happilee-app/icons";
 import { ChatsSidebar } from "@happilee-app/ui/ecommerce";
 import { ReactNode } from "react";
-import { Link } from "react-router-dom";
 import { useMe } from "../../../hooks/api/members";
 
 type StoreSetupLayoutProps = {
@@ -31,14 +30,12 @@ export const StoreSetupLayout = ({
       <div className="sticky top-md h-[calc(100vh-16px)] shrink-0 self-start pt-md">
         <ChatsSidebar
           workspaceLogo={
-            <Link
-              to="/stores"
-              className="flex items-center justify-center rounded-md outline-none focus-visible:shadow-borders-focus"
-              aria-label="Stores"
-              data-testid="sidebar-logo-link"
+            <div
+              className="flex items-center justify-center rounded-md"
+              data-testid="sidebar-logo"
             >
               <WorkspaceLogo />
-            </Link>
+            </div>
           }
           account={{
             name: accountName ?? "Maheen Rahman",

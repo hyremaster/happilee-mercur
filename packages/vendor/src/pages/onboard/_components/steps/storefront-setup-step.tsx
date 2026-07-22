@@ -101,7 +101,7 @@ export const StorefrontSetupStep = ({
           </span>
           <InputField
             aria-label="Store URL slug"
-            placeholder="{store_name}"
+            placeholder="store_name"
             size="md"
             unstyled
             value={data.handle}

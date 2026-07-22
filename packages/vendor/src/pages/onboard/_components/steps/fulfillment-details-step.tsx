@@ -105,10 +105,7 @@ export function isFulfillmentValid(
   }
 
   if (payment.methods.includes("cod")) {
-    const min = parsePositiveAmount(payment.codMin);
-    const max = parsePositiveAmount(payment.codMax);
-
-    if (min === null || max === null || max <= min) {
+    if (getCodMinError(payment) || getCodMaxError(payment)) {
       return false;
     }
   }
@@ -397,7 +394,6 @@ export const FulfillmentDetailsStep = ({
                 label="Minimum order value"
                 placeholder="Enter value"
                 size="sm"
-                isRequired
                 inputMode="decimal"
                 value={payment.codMin}
                 onChange={(v) =>
@@ -412,7 +408,6 @@ export const FulfillmentDetailsStep = ({
                 label="Maximum order value"
                 placeholder="Enter value"
                 size="sm"
-                isRequired
                 inputMode="decimal"
                 value={payment.codMax}
                 onChange={(v) =>
