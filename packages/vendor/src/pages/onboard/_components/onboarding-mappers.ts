@@ -5,6 +5,8 @@ import type {
   StoreLocationRow,
 } from "../../../services/storeServices";
 import type { DefaultOrderStatus } from "../../../services/onboardingServices";
+import { isValidTaxNumberFormat } from "./tax-number";
+import { isValidPinCodeFormat } from "./pin-code";
 import type {
   BusinessDetails,
   CommerceConfig,
@@ -631,8 +633,8 @@ export const isBusinessDetailsValid = (data: BusinessDetails): boolean => {
     !!data.country.trim() &&
     !!data.state.trim() &&
     !!data.city.trim() &&
-    !!data.pinCode.trim() &&
-    !!data.taxNumber.trim()
+    isValidPinCodeFormat(data.pinCode, data.country) &&
+    isValidTaxNumberFormat(data.taxNumber)
   );
 };
 

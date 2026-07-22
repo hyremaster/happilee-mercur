@@ -13,6 +13,14 @@ import {
   StateSelectField,
 } from "../address-select-fields";
 import { INDUSTRIES } from "../constants";
+import {
+  isValidPinCodeFormat,
+  PIN_CODE_INVALID_MESSAGE,
+} from "../pin-code";
+import {
+  isValidTaxNumberFormat,
+  TAX_NUMBER_INVALID_MESSAGE,
+} from "../tax-number";
 import type { BusinessDetails } from "../types";
 
 type BusinessDetailsStepProps = {
@@ -24,6 +32,15 @@ export const BusinessDetailsStep = ({
   data,
   onChange,
 }: BusinessDetailsStepProps) => {
+  const pinCodeError =
+    data.pinCode.trim() && !isValidPinCodeFormat(data.pinCode, data.country)
+      ? PIN_CODE_INVALID_MESSAGE
+      : undefined;
+  const taxNumberError =
+    data.taxNumber.trim() && !isValidTaxNumberFormat(data.taxNumber)
+      ? TAX_NUMBER_INVALID_MESSAGE
+      : undefined;
+
   return (
     <div className="flex w-full flex-col items-start gap-4xl">
       <div className="flex w-full flex-col gap-md">
@@ -148,6 +165,8 @@ export const BusinessDetailsStep = ({
               size="md"
               value={data.pinCode}
               onChange={(v) => onChange({ pinCode: v })}
+              isInvalid={!!pinCodeError}
+              errorMessage={pinCodeError}
             />
           </div>
 
@@ -159,6 +178,8 @@ export const BusinessDetailsStep = ({
             className="w-full"
             value={data.taxNumber}
             onChange={(v) => onChange({ taxNumber: v })}
+            isInvalid={!!taxNumberError}
+            errorMessage={taxNumberError}
           />
         </div>
       </div>

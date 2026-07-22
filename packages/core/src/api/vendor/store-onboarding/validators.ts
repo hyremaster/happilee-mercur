@@ -45,7 +45,20 @@ const addressSchema = z.object({
 const professionalDetailsSchema = z.object({
   corporate_name: z.string().nullable().optional(),
   registration_number: z.string().nullable().optional(),
-  tax_id: z.string().nullable().optional(),
+  tax_id: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (value) =>
+        value == null ||
+        value.trim() === "" ||
+        /^[A-Za-z0-9\s\-\/.]+$/.test(value.trim()),
+      {
+        message:
+          "Tax/GST number can only include letters, numbers, spaces, hyphens, dots, and slashes.",
+      }
+    ),
 })
 
 const paymentConfigSchema = z.object({
