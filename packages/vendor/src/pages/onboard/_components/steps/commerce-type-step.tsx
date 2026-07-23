@@ -24,6 +24,8 @@ import type { CommerceConfig } from "../types";
 import { filterAreaSenseAreasByType } from "../area-sense-area-type";
 import { useAreaSenseAreas } from "../use-area-sense-areas";
 
+const AREA_SENSE_APP_URL = "https://app.happilee.io/my-apps/area-sense";
+
 type CommerceTypeStepProps = {
   data: CommerceConfig;
   onChange: (patch: Partial<CommerceConfig>) => void;
@@ -329,7 +331,14 @@ export const CommerceTypeStep = ({
                 <div className="flex flex-col gap-xs">
                   <div className="flex items-center gap-xxs text-sm font-medium text-text-secondary">
                     <span>Delivery available areas (from your </span>
-                    <span className="cursor-pointer text-text-brand underline">Area Sense</span>
+                    <a
+                      href={AREA_SENSE_APP_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-text-brand underline"
+                    >
+                      Area Sense
+                    </a>
                     <span> module)</span>
                     <span className="text-text-brand" aria-hidden="true">*</span>
                   </div>
@@ -378,7 +387,14 @@ export const CommerceTypeStep = ({
                 <div className="flex flex-col gap-xs">
                   <div className="flex items-center gap-xxs text-sm font-medium text-text-secondary">
                     <span>Delivery available areas (from your </span>
-                    <span className="cursor-pointer text-text-brand underline">Area Sense</span>
+                    <a
+                      href={AREA_SENSE_APP_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-text-brand underline"
+                    >
+                      Area Sense
+                    </a>
                     <span> module)</span>
                     <span className="text-text-brand" aria-hidden="true">*</span>
                   </div>

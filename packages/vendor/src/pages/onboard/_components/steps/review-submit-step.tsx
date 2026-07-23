@@ -72,7 +72,7 @@ export const ReviewSubmitContent = ({
     .join(", ");
 
   return (
-    <div className="flex flex-col gap-xl">
+    <div className="flex w-full min-w-0 flex-col gap-xl">
       <ReviewSection title="Business details" onEdit={() => onEdit(1)}>
         <SummaryRow label="Industry" value={industry} />
         <SummaryRow

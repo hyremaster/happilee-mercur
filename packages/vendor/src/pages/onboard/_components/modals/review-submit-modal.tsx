@@ -60,7 +60,9 @@ export const ReviewSubmitModal = ({
         </>
       }
     >
-      <ReviewSubmitContent state={state} onEdit={onEdit} />
+      <div className="w-full min-w-0 max-w-full">
+        <ReviewSubmitContent state={state} onEdit={onEdit} />
+      </div>
     </Modal>
   );
 };

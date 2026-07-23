@@ -51,6 +51,11 @@ import {
 } from "./_components/steps/fulfillment-details-step";
 import { StorefrontSetupStep, isStorefrontValid } from "./_components/steps/storefront-setup-step";
 import { SuccessStep } from "./_components/steps/success-step";
+import { EMAIL_INVALID_MESSAGE, isValidEmailFormat } from "./_components/email";
+import {
+  STORE_NAME_INVALID_MESSAGE,
+  isValidStoreNameFormat,
+} from "./_components/store-name";
 import { TAX_NUMBER_INVALID_MESSAGE, isValidTaxNumberFormat } from "./_components/tax-number";
 import { PIN_CODE_INVALID_MESSAGE, isValidPinCodeFormat } from "./_components/pin-code";
 import type { FulfillmentCentre, WizardStep } from "./_components/types";
@@ -275,13 +280,18 @@ export const OnboardPage = () => {
   const handleContinue = async () => {
     if (state.currentStep === 1) {
       if (!isBusinessDetailsValid(state.businessDetails)) {
-        const { taxNumber, pinCode, country } = state.businessDetails;
+        const { storeName, email, taxNumber, pinCode, country } =
+          state.businessDetails;
         toast.error(
-          pinCode.trim() && !isValidPinCodeFormat(pinCode, country)
-            ? PIN_CODE_INVALID_MESSAGE
-            : taxNumber.trim() && !isValidTaxNumberFormat(taxNumber)
-              ? TAX_NUMBER_INVALID_MESSAGE
-              : "Please complete all required business details."
+          storeName.trim() && !isValidStoreNameFormat(storeName)
+            ? STORE_NAME_INVALID_MESSAGE
+            : email.trim() && !isValidEmailFormat(email)
+              ? EMAIL_INVALID_MESSAGE
+              : pinCode.trim() && !isValidPinCodeFormat(pinCode, country)
+                ? PIN_CODE_INVALID_MESSAGE
+                : taxNumber.trim() && !isValidTaxNumberFormat(taxNumber)
+                  ? TAX_NUMBER_INVALID_MESSAGE
+                  : "Please complete all required business details."
         );
         return;
       }

@@ -225,7 +225,7 @@ export const StoresPage = () => {
                 className="min-w-[700px] border-separate border-spacing-0"
               >
                 <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-bg-secondary">
-                  <Column>Store name</Column>
+                  <Column className="max-w-[280px]">Store name</Column>
                   <Column allowsSorting>Status</Column>
                   <Column>Industry</Column>
                   <Column helpText="How orders are fulfilled and shipped to customers">
@@ -246,14 +246,20 @@ export const StoresPage = () => {
                       }
                       onAction={() => void handleSelectStore(store)}
                     >
-                      <Cell primary>
-                        <div className="flex items-center gap-md">
+                      <Cell primary className="max-w-[280px]">
+                        <div className="flex min-w-0 items-center gap-md">
                           <StoreAvatar initials={store.initials} />
-                          <div className="flex min-w-0 flex-col gap-xxs">
-                            <span className="truncate text-sm font-medium leading-5 text-text-primary">
+                          <div className="flex min-w-0 flex-1 flex-col gap-xxs">
+                            <span
+                              className="truncate text-sm font-medium leading-5 text-text-primary"
+                              title={store.name}
+                            >
                               {store.name}
                             </span>
-                            <span className="truncate text-xs leading-[18px] text-text-tertiary">
+                            <span
+                              className="truncate text-xs leading-[18px] text-text-tertiary"
+                              title={store.handle}
+                            >
                               {store.handle}
                             </span>
                           </div>
@@ -267,7 +273,7 @@ export const StoresPage = () => {
                       <Cell>{store.industry}</Cell>
                       <Cell>{store.commerceType}</Cell>
                       <Cell className="text-right">
-                        <div className="inline-flex items-center justify-end gap-xxs">
+                        <div className="inline-flex items-center justify-end">
                           <UtilityButton
                             icon={<Edit01 />}
                             aria-label={`Edit ${store.name}`}
@@ -280,12 +286,6 @@ export const StoresPage = () => {
                                   : `/onboard?storeId=${encodeURIComponent(store.id)}`,
                               )
                             }
-                          />
-                          <UtilityButton
-                            icon={<DotsVertical />}
-                            aria-label={`More options for ${store.name}`}
-                            variant="tertiary"
-                            size="xs"
                           />
                         </div>
                       </Cell>

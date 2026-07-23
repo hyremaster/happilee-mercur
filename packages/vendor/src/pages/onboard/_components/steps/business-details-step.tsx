@@ -13,10 +13,13 @@ import {
   StateSelectField,
 } from "../address-select-fields";
 import { INDUSTRIES } from "../constants";
+import { EMAIL_INVALID_MESSAGE, isValidEmailFormat } from "../email";
+import { isValidPinCodeFormat, PIN_CODE_INVALID_MESSAGE } from "../pin-code";
 import {
-  isValidPinCodeFormat,
-  PIN_CODE_INVALID_MESSAGE,
-} from "../pin-code";
+  isValidStoreNameFormat,
+  STORE_NAME_INVALID_MESSAGE,
+  STORE_NAME_MAX_LENGTH,
+} from "../store-name";
 import {
   isValidTaxNumberFormat,
   TAX_NUMBER_INVALID_MESSAGE,
@@ -32,6 +35,14 @@ export const BusinessDetailsStep = ({
   data,
   onChange,
 }: BusinessDetailsStepProps) => {
+  const storeNameError =
+    data.storeName.trim() && !isValidStoreNameFormat(data.storeName)
+      ? STORE_NAME_INVALID_MESSAGE
+      : undefined;
+  const emailError =
+    data.email.trim() && !isValidEmailFormat(data.email)
+      ? EMAIL_INVALID_MESSAGE
+      : undefined;
   const pinCodeError =
     data.pinCode.trim() && !isValidPinCodeFormat(data.pinCode, data.country)
       ? PIN_CODE_INVALID_MESSAGE
@@ -46,7 +57,9 @@ export const BusinessDetailsStep = ({
       <div className="flex w-full flex-col gap-md">
         <div className="flex items-center gap-xs text-sm font-medium leading-5">
           <span className="text-text-secondary">Pick your industry</span>
-          <span className="text-text-brand" aria-hidden="true">*</span>
+          <span className="text-text-brand" aria-hidden="true">
+            *
+          </span>
         </div>
         <RadioCardGroup
           columns={3}
@@ -78,13 +91,19 @@ export const BusinessDetailsStep = ({
               isRequired
               placeholder="Store name"
               size="md"
+              maxLength={STORE_NAME_MAX_LENGTH}
               value={data.storeName}
-              onChange={(v) => onChange({ storeName: v })}
+              onChange={(v) =>
+                onChange({ storeName: v.slice(0, STORE_NAME_MAX_LENGTH) })
+              }
+              isInvalid={!!storeNameError}
+              errorMessage={storeNameError}
             />
             <InputField
               label="Business Legal Name"
               isRequired
               placeholder="Business legal name"
+              maxLength={STORE_NAME_MAX_LENGTH}
               size="md"
               value={data.businessLegalName}
               onChange={(v) => onChange({ businessLegalName: v })}
@@ -100,6 +119,8 @@ export const BusinessDetailsStep = ({
               size="md"
               value={data.email}
               onChange={(v) => onChange({ email: v })}
+              isInvalid={!!emailError}
+              errorMessage={emailError}
             />
             <PhoneNumberInput
               label="Phone Number"
@@ -120,8 +141,9 @@ export const BusinessDetailsStep = ({
             placeholder="Address"
             rows={3}
             className="w-full"
+            maxLength={255}
             value={data.address}
-            onChange={(v) => onChange({ address: v })}
+            onChange={(v) => onChange({ address: v.slice(0, 255) })}
           />
 
           <div className="grid w-full grid-cols-4 gap-lg">

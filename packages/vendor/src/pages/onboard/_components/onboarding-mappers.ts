@@ -5,8 +5,10 @@ import type {
   StoreLocationRow,
 } from "../../../services/storeServices";
 import type { DefaultOrderStatus } from "../../../services/onboardingServices";
+import { isValidEmailFormat } from "./email";
 import { isValidTaxNumberFormat } from "./tax-number";
 import { isValidPinCodeFormat } from "./pin-code";
+import { isValidStoreNameFormat } from "./store-name";
 import type {
   BusinessDetails,
   CommerceConfig,
@@ -623,13 +625,16 @@ const deriveOwnerHandle = (email: string): string | undefined => {
 };
 
 export const isBusinessDetailsValid = (data: BusinessDetails): boolean => {
+  const address = data.address.trim();
+
   return (
     !!data.industry.trim() &&
-    !!data.storeName.trim() &&
+    isValidStoreNameFormat(data.storeName) &&
     !!data.businessLegalName.trim() &&
-    !!data.email.trim() &&
+    isValidEmailFormat(data.email) &&
     !!data.phone.trim() &&
-    !!data.address.trim() &&
+    !!address &&
+    address.length <= 255 &&
     !!data.country.trim() &&
     !!data.state.trim() &&
     !!data.city.trim() &&
