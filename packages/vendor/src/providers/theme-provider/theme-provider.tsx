@@ -10,7 +10,9 @@ function getDefaultValue(): ThemeOption {
     return persisted
   }
 
-  return "system"
+  // Happilee store/onboard UI is designed for light; avoid system/dark fallback
+  // when localStorage was cleared (mixed table header vs dark page chrome).
+  return "light"
 }
 
 function getThemeValue(selected: ThemeOption): ThemeValue {

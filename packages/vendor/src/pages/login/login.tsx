@@ -4,7 +4,7 @@ import i18n from "i18next";
 import { Alert, Button, Heading, Input, Text } from "@medusajs/ui";
 import { useForm } from "react-hook-form";
 import { Trans, useTranslation } from "react-i18next";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import * as z from "zod";
 
 import { Form } from "@components/common/form";
@@ -12,6 +12,7 @@ import AvatarBox from "@components/common/logo-box/avatar-box";
 import { AuthLayout } from "@components/layout/auth-layout";
 import { useSignInWithEmailPass } from "@hooks/api";
 import { isFetchError } from "@lib/is-fetch-error";
+import { SESSION_EXPIRED_PATH } from "@lib/happilee-auth";
 import config from "virtual:mercur/config";
 
 const LoginSchema = z.object({
@@ -190,6 +191,14 @@ const LoginFooter = () => {
 };
 
 const Root = ({ children }: { children?: ReactNode }) => {
+  const [searchParams] = useSearchParams();
+  const reason = searchParams.get("reason") || "";
+
+  // Happilee SSO entry: expired sessions use the dedicated page, not Mercur login.
+  if (reason.toLowerCase() === "unauthorized") {
+    return <Navigate to={SESSION_EXPIRED_PATH} replace />;
+  }
+
   return (
     <AuthLayout>
       {Children.count(children) > 0 ? (

@@ -3,6 +3,7 @@ import { Text } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
 import { Navigate, useLocation, useRouteError } from "react-router-dom"
 
+import { SESSION_EXPIRED_PATH } from "../../../lib/happilee-auth"
 import { isClientError } from "../../../lib/is-fetch-error"
 
 export const ErrorBoundary = () => {
@@ -14,7 +15,9 @@ export const ErrorBoundary = () => {
 
   if (isClientError(error)) {
     if (error.status === 401) {
-      return <Navigate to="/login" state={{ from: location }} replace />
+      return (
+        <Navigate to={SESSION_EXPIRED_PATH} state={{ from: location }} replace />
+      )
     }
 
     code = error.status ?? null

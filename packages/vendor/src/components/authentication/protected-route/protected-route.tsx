@@ -1,6 +1,7 @@
 import { Spinner } from "@medusajs/icons";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useMe } from "../../../hooks/api/members";
+import { SESSION_EXPIRED_PATH } from "../../../lib/happilee-auth";
 import { SearchProvider } from "../../../providers/search-provider";
 import { SidebarProvider } from "../../../providers/sidebar-provider";
 
@@ -17,7 +18,9 @@ export const ProtectedRoute = () => {
   }
 
   if (!seller_member) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return (
+      <Navigate to={SESSION_EXPIRED_PATH} state={{ from: location }} replace />
+    );
   }
 
   return (

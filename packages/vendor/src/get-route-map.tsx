@@ -1416,6 +1416,10 @@ export function getRouteMap({
               },
             },
             {
+              path: "/session-expired",
+              lazy: () => import("./pages/session-expired"),
+            },
+            {
               path: "/reset-password",
               lazy: () => import("./pages/reset-password"),
             },
