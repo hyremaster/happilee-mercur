@@ -42,8 +42,22 @@ export const StoresPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-  const fetchStores = useCallback(async (page: number) => {
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
+
+  const fetchStores = useCallback(async (page: number, search: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -51,6 +65,7 @@ export const StoresPage = () => {
       const data = await listStores({
         offset: (page - 1) * PAGE_SIZE,
         limit: PAGE_SIZE,
+        search: search || undefined,
       });
 
       setStores(data.stores.map(mapStoreToTableRow));
@@ -69,8 +84,8 @@ export const StoresPage = () => {
   }, []);
 
   useEffect(() => {
-    void fetchStores(currentPage);
-  }, [currentPage, fetchStores]);
+    void fetchStores(currentPage, debouncedSearchTerm);
+  }, [currentPage, debouncedSearchTerm, fetchStores]);
 
   const handleSelectStore = async (store: StoreTableRow) => {
     if (isSelecting) {
@@ -138,7 +153,7 @@ export const StoresPage = () => {
 
       <div className="flex min-h-0 flex-1 flex-col gap-xl px-3xl py-2xl">
         <div className="flex shrink-0 justify-end">
-          <SearchAndFilters />
+          <SearchAndFilters value={searchTerm} onChange={setSearchTerm} />
         </div>
 
         {isLoading ? (
@@ -160,7 +175,9 @@ export const StoresPage = () => {
                   <Button
                     hierarchy="primary"
                     size="md"
-                    onPress={() => void fetchStores(currentPage)}
+                    onPress={() =>
+                      void fetchStores(currentPage, debouncedSearchTerm)
+                    }
                   >
                     Try again
                   </Button>
@@ -171,23 +188,33 @@ export const StoresPage = () => {
         ) : !hasStores ? (
           <Card className="w-full">
             <CardBody className="flex items-center justify-center py-4xl">
-              <EmptyState
-                icon={<Building02 />}
-                iconColor="gray"
-                iconSize="md"
-                title="No stores found"
-                description="There is no existing store here, Start building your new store."
-                action={
-                  <Button
-                    hierarchy="primary"
-                    size="md"
-                    iconLeading={<Plus />}
-                    onPress={() => navigate("/onboard")}
-                  >
-                    Create new store
-                  </Button>
-                }
-              />
+              {debouncedSearchTerm ? (
+                <EmptyState
+                  icon={<Building02 />}
+                  iconColor="gray"
+                  iconSize="md"
+                  title="No results found"
+                  description={`No stores match "${debouncedSearchTerm}". Try a different search term.`}
+                />
+              ) : (
+                <EmptyState
+                  icon={<Building02 />}
+                  iconColor="gray"
+                  iconSize="md"
+                  title="No stores found"
+                  description="There is no existing store here, Start building your new store."
+                  action={
+                    <Button
+                      hierarchy="primary"
+                      size="md"
+                      iconLeading={<Plus />}
+                      onPress={() => navigate("/onboard")}
+                    >
+                      Create new store
+                    </Button>
+                  }
+                />
+              )}
             </CardBody>
           </Card>
         ) : (
@@ -198,7 +225,7 @@ export const StoresPage = () => {
                 className="min-w-[700px] border-separate border-spacing-0"
               >
                 <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-bg-secondary">
-                  <Column>Store name</Column>
+                  <Column className="max-w-[280px]">Store name</Column>
                   <Column allowsSorting>Status</Column>
                   <Column>Industry</Column>
                   <Column helpText="How orders are fulfilled and shipped to customers">
@@ -219,14 +246,20 @@ export const StoresPage = () => {
                       }
                       onAction={() => void handleSelectStore(store)}
                     >
-                      <Cell primary>
-                        <div className="flex items-center gap-md">
+                      <Cell primary className="max-w-[280px]">
+                        <div className="flex min-w-0 items-center gap-md">
                           <StoreAvatar initials={store.initials} />
-                          <div className="flex min-w-0 flex-col gap-xxs">
-                            <span className="truncate text-sm font-medium leading-5 text-text-primary">
+                          <div className="flex min-w-0 flex-1 flex-col gap-xxs">
+                            <span
+                              className="truncate text-sm font-medium leading-5 text-text-primary"
+                              title={store.name}
+                            >
                               {store.name}
                             </span>
-                            <span className="truncate text-xs leading-[18px] text-text-tertiary">
+                            <span
+                              className="truncate text-xs leading-[18px] text-text-tertiary"
+                              title={store.handle}
+                            >
                               {store.handle}
                             </span>
                           </div>
@@ -240,7 +273,7 @@ export const StoresPage = () => {
                       <Cell>{store.industry}</Cell>
                       <Cell>{store.commerceType}</Cell>
                       <Cell className="text-right">
-                        <div className="inline-flex items-center justify-end gap-xxs">
+                        <div className="inline-flex items-center justify-end">
                           <UtilityButton
                             icon={<Edit01 />}
                             aria-label={`Edit ${store.name}`}
@@ -253,12 +286,6 @@ export const StoresPage = () => {
                                   : `/onboard?storeId=${encodeURIComponent(store.id)}`,
                               )
                             }
-                          />
-                          <UtilityButton
-                            icon={<DotsVertical />}
-                            aria-label={`More options for ${store.name}`}
-                            variant="tertiary"
-                            size="xs"
                           />
                         </div>
                       </Cell>

@@ -27,6 +27,7 @@ export type ListStoresQuery = {
   offset?: number;
   limit?: number;
   q?: string;
+  search?: string;
   industry?: string | string[];
   commerce_type?: string | string[];
   status?: string | string[];

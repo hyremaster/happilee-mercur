@@ -28,12 +28,8 @@ export const ReviewSubmitModal = ({
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title={isEditMode ? "Review changes" : "Review and Submit"}
-      subtitle={
-        isEditMode
-          ? "Confirm your updates before saving."
-          : "Your store is ready to go."
-      }
+      title={"Review and Submit"}
+      subtitle={"Your store is ready to go."}
       size="xl"
       footer={
         <>
@@ -64,7 +60,9 @@ export const ReviewSubmitModal = ({
         </>
       }
     >
-      <ReviewSubmitContent state={state} onEdit={onEdit} />
+      <div className="w-full min-w-0 max-w-full">
+        <ReviewSubmitContent state={state} onEdit={onEdit} />
+      </div>
     </Modal>
   );
 };

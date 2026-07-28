@@ -5,6 +5,10 @@ import type {
   StoreLocationRow,
 } from "../../../services/storeServices";
 import type { DefaultOrderStatus } from "../../../services/onboardingServices";
+import { isValidEmailFormat } from "./email";
+import { isValidTaxNumberFormat } from "./tax-number";
+import { isValidPinCodeFormat } from "./pin-code";
+import { isValidStoreNameFormat } from "./store-name";
 import type {
   BusinessDetails,
   CommerceConfig,
@@ -356,7 +360,7 @@ export const mapStoreDetailToStoreSetupState = (
     storeId: store.id,
     initialLocationIds,
     businessDetails: {
-      industry: profile?.industry ?? "restaurant",
+      industry: profile?.industry ?? "",
       storeName: store.name?.trim() ?? "",
       businessLegalName: professionalDetails.corporate_name ?? "",
       email: store.email ?? "",
@@ -453,7 +457,7 @@ export const mapDraftToStoreSetupState = (
     storeId: null,
     initialLocationIds: [],
     businessDetails: {
-      industry: asString(business.industry) ?? "restaurant",
+      industry: asString(business.industry) ?? "",
       storeName: asString(business.name) ?? "",
       businessLegalName: asString(professionalDetails.corporate_name) ?? "",
       email: asString(business.email) ?? "",
@@ -621,17 +625,21 @@ const deriveOwnerHandle = (email: string): string | undefined => {
 };
 
 export const isBusinessDetailsValid = (data: BusinessDetails): boolean => {
+  const address = data.address.trim();
+
   return (
     !!data.industry.trim() &&
-    !!data.storeName.trim() &&
+    isValidStoreNameFormat(data.storeName) &&
     !!data.businessLegalName.trim() &&
-    !!data.email.trim() &&
+    isValidEmailFormat(data.email) &&
     !!data.phone.trim() &&
-    !!data.address.trim() &&
+    !!address &&
+    address.length <= 255 &&
     !!data.country.trim() &&
     !!data.state.trim() &&
     !!data.city.trim() &&
-    !!data.pinCode.trim()
+    isValidPinCodeFormat(data.pinCode, data.country) &&
+    isValidTaxNumberFormat(data.taxNumber)
   );
 };
 

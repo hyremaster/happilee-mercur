@@ -8,7 +8,7 @@ export function getDefaultStoreSetupState(): StoreSetupState {
     storeId: null,
     initialLocationIds: [],
     businessDetails: {
-      industry: "restaurant",
+      industry: "",
       storeName: "",
       businessLegalName: "",
       email: "",

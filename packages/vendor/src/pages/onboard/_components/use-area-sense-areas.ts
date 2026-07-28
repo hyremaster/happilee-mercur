@@ -4,6 +4,14 @@ import {
   listAreaSenseAreas,
   type AreaSenseArea,
 } from "../../../services/onboardingServices";
+import {
+  filterAreaSenseAreasByType,
+  getAreaSenseAreaType,
+  type AreaSenseAreaType,
+} from "./area-sense-area-type";
+
+export type { AreaSenseAreaType };
+export { filterAreaSenseAreasByType, getAreaSenseAreaType };
 
 const AREA_SENSE_AREAS_QUERY_KEY = ["area-sense-areas"] as const;
 

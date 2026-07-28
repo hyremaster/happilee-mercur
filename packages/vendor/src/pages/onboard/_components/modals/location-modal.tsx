@@ -143,18 +143,15 @@ export const LocationModal = ({
     setState("");
     setCity("");
     setPinCode("");
-    setAddress("");
   };
 
   const clearFromState = () => {
     setCity("");
     setPinCode("");
-    setAddress("");
   };
 
   const clearFromCity = () => {
     setPinCode("");
-    setAddress("");
   };
 
   const markInputsChange = () => {
