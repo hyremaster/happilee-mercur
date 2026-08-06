@@ -3,12 +3,12 @@ import type { OrderStatusConfig, StoreSetupState, WizardStep } from "./types";
 
 export function getDefaultStoreSetupState(): StoreSetupState {
   return {
-    currentStep: 0,
+    currentStep: 1,
     draftId: null,
     storeId: null,
     initialLocationIds: [],
     businessDetails: {
-      industry: "restaurant",
+      industry: "",
       storeName: "",
       businessLegalName: "",
       email: "",
@@ -31,7 +31,7 @@ export function getDefaultStoreSetupState(): StoreSetupState {
     fulfillmentCentres: [],
     payment: {
       methods: [],
-      paymentGateway: "",
+      onlinePaymentMethods: [],
       codMin: "",
       codMax: "",
     },
@@ -75,14 +75,14 @@ export function useStoreSetup() {
   const nextStep = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      currentStep: Math.min(prev.currentStep + 1, 4) as WizardStep,
+      currentStep: Math.min(prev.currentStep + 1, 5) as WizardStep,
     }));
   }, []);
 
   const prevStep = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      currentStep: Math.max(prev.currentStep - 1, 0) as WizardStep,
+      currentStep: Math.max(prev.currentStep - 1, 1) as WizardStep,
     }));
   }, []);
 
@@ -90,7 +90,7 @@ export function useStoreSetup() {
     setState((prev) => ({
       ...prev,
       isComplete: true,
-      currentStep: 4 as WizardStep,
+      currentStep: 5 as WizardStep,
     }));
   }, []);
 

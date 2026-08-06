@@ -94,12 +94,7 @@ export const DELIVERY_AREAS = [
   { id: "koramangala", label: "Koramangala outlet" },
 ];
 
-export const PAYMENT_GATEWAYS = [
-  { id: "razorpay", label: "Razorpay" },
-  { id: "stripe", label: "Stripe" },
-  { id: "cashfree", label: "Cashfree" },
-  { id: "payu", label: "PayU" },
-];
+export const PAYMENT_GATEWAYS = [{ id: "razorpay", label: "Razorpay" }];
 
 export const DEFAULT_FULFILLMENT_CENTRES = [
   {

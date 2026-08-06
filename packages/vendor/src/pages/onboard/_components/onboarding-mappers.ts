@@ -5,10 +5,15 @@ import type {
   StoreLocationRow,
 } from "../../../services/storeServices";
 import type { DefaultOrderStatus } from "../../../services/onboardingServices";
+import { isValidEmailFormat } from "./email";
+import { isValidTaxNumberFormat } from "./tax-number";
+import { isValidPinCodeFormat } from "./pin-code";
+import { isValidStoreNameFormat } from "./store-name";
 import type {
   BusinessDetails,
   CommerceConfig,
   FulfillmentCentre,
+  OnlinePaymentMethod,
   OrderStatusConfig,
   PaymentConfig,
   StorefrontConfig,
@@ -29,6 +34,94 @@ const asNumber = (value: unknown): number | undefined =>
 
 const asBoolean = (value: unknown): boolean | undefined =>
   typeof value === "boolean" ? value : undefined;
+
+const formatGatewayLabel = (gateway: string) => {
+  if (!gateway) return gateway;
+  return gateway.charAt(0).toUpperCase() + gateway.slice(1);
+};
+
+const createClientPaymentMethodId = () => {
+  const cryptoAny = crypto as unknown as Partial<{ randomUUID: () => string }>;
+  if (cryptoAny.randomUUID) return cryptoAny.randomUUID();
+  return `pm_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+};
+
+export type PaymentGatewayApiPayload = {
+  gateway: string;
+  label: string;
+  is_active: boolean;
+  credentials: {
+    key_id: string;
+    key_secret: string;
+  };
+  metadata?: {
+    method_name?: string;
+    client_id?: string;
+  } | null;
+};
+
+const mapApiPaymentGatewaysToMethods = (
+  gateways: unknown,
+): OnlinePaymentMethod[] => {
+  if (!Array.isArray(gateways)) {
+    return [];
+  }
+
+  const methods = gateways.map((entry, index) => {
+    const row = asObject(entry);
+    const credentials = asObject(row.credentials);
+    const metadata = asObject(row.metadata);
+    const gateway = asString(row.gateway) ?? "razorpay";
+    const methodName =
+      asString(row.label) ??
+      asString(metadata.method_name) ??
+      `${formatGatewayLabel(gateway)} ${String(index + 1).padStart(2, "0")}`;
+    const id =
+      asString(row.id) ??
+      asString(metadata.client_id) ??
+      createClientPaymentMethodId();
+
+    return {
+      id,
+      title: methodName,
+      gateway: formatGatewayLabel(gateway),
+      isActive: asBoolean(row.is_active) ?? false,
+      credentials: {
+        methodName,
+        gateway,
+        keyId: asString(credentials.key_id) ?? "",
+        keySecret: asString(credentials.key_secret) ?? "",
+      },
+    } satisfies OnlinePaymentMethod;
+  });
+
+  if (methods.length > 0 && !methods.some((method) => method.isActive)) {
+    methods[0] = { ...methods[0]!, isActive: true };
+  }
+
+  return methods;
+};
+
+const mapOnlineMethodsToPaymentGateways = (
+  methods: OnlinePaymentMethod[],
+): PaymentGatewayApiPayload[] => {
+  return methods.map((method) => {
+    const methodName = method.title || method.credentials.methodName;
+    return {
+      gateway: method.credentials.gateway || "razorpay",
+      label: methodName,
+      is_active: method.isActive,
+      credentials: {
+        key_id: method.credentials.keyId,
+        key_secret: method.credentials.keySecret,
+      },
+      metadata: {
+        method_name: methodName,
+        client_id: method.id,
+      },
+    };
+  });
+};
 
 const resolveCountryDisplay = (code: string | null | undefined): string => {
   if (!code) {
@@ -64,9 +157,17 @@ const fromApiStorefrontTemplate = (template: string | undefined): string => {
   return LEGACY_STOREFRONT_TEMPLATE_KEYS[template] ?? template;
 };
 
+/**
+ * Maps API `onboarding_step` (highest saved step: 0 fresh, 1–4 saved) to the
+ * UI wizard step to resume on. Fresh drafts open Business (1). After saving
+ * step N, resume opens the next screen (N+1), clamped to Storefront (4).
+ */
 const draftStepToWizardStep = (onboardingStep: number): WizardStep => {
-  const step = Math.min(Math.max(onboardingStep, 0), 3);
-  return step as WizardStep;
+  if (onboardingStep <= 0) {
+    return 1;
+  }
+
+  return Math.min(onboardingStep + 1, 4) as WizardStep;
 };
 
 const ORDER_STATUS_API_VALUES = new Set([
@@ -254,12 +355,12 @@ export const mapStoreDetailToStoreSetupState = (
   const initialLocationIds = locations.map((location) => location.id);
 
   return {
-    currentStep: 0,
+    currentStep: 1,
     draftId: null,
     storeId: store.id,
     initialLocationIds,
     businessDetails: {
-      industry: profile?.industry ?? "restaurant",
+      industry: profile?.industry ?? "",
       storeName: store.name?.trim() ?? "",
       businessLegalName: professionalDetails.corporate_name ?? "",
       email: store.email ?? "",
@@ -284,7 +385,9 @@ export const mapStoreDetailToStoreSetupState = (
     fulfillmentCentres: locationCentres,
     payment: {
       methods: paymentMethods,
-      paymentGateway: paymentConfig?.payment_provider_id ?? "",
+      onlinePaymentMethods: mapApiPaymentGatewaysToMethods(
+        store.payment_gateways,
+      ),
       codMin:
         typeof codMin === "number" && !Number.isNaN(codMin) ? String(codMin) : "",
       codMax:
@@ -345,13 +448,16 @@ export const mapDraftToStoreSetupState = (
   const codMin = payment.cod_min_amount;
   const codMax = payment.cod_max_amount;
 
+  const paymentGateways =
+    fulfillment.payment_gateways ?? data.payment_gateways;
+
   return {
     currentStep: draftStepToWizardStep(draft.onboarding_step),
     draftId: draft.id,
     storeId: null,
     initialLocationIds: [],
     businessDetails: {
-      industry: asString(business.industry) ?? "restaurant",
+      industry: asString(business.industry) ?? "",
       storeName: asString(business.name) ?? "",
       businessLegalName: asString(professionalDetails.corporate_name) ?? "",
       email: asString(business.email) ?? "",
@@ -378,7 +484,7 @@ export const mapDraftToStoreSetupState = (
     fulfillmentCentres: locations,
     payment: {
       methods: paymentMethods,
-      paymentGateway: asString(payment.payment_provider_id) ?? "",
+      onlinePaymentMethods: mapApiPaymentGatewaysToMethods(paymentGateways),
       codMin:
         typeof codMin === "number" && !Number.isNaN(codMin) ? String(codMin) : "",
       codMax:
@@ -431,6 +537,7 @@ export type FulfillmentDetailsDraftData = {
     cod_max_amount?: number | null;
     currency_code: string;
   };
+  payment_gateways: PaymentGatewayApiPayload[];
   locations: Array<{
     name: string;
     address: {
@@ -517,7 +624,7 @@ const deriveOwnerHandle = (email: string): string | undefined => {
   return handle || undefined;
 };
 
-export const isBusinessDetailsValid = (data: BusinessDetails): boolean => {
+export const isBusinessDetailsComplete = (data: BusinessDetails): boolean => {
   return (
     !!data.industry.trim() &&
     !!data.storeName.trim() &&
@@ -528,7 +635,21 @@ export const isBusinessDetailsValid = (data: BusinessDetails): boolean => {
     !!data.country.trim() &&
     !!data.state.trim() &&
     !!data.city.trim() &&
-    !!data.pinCode.trim()
+    !!data.pinCode.trim() &&
+    !!data.taxNumber.trim()
+  );
+};
+
+export const isBusinessDetailsValid = (data: BusinessDetails): boolean => {
+  const address = data.address.trim();
+
+  return (
+    isBusinessDetailsComplete(data) &&
+    isValidStoreNameFormat(data.storeName) &&
+    isValidEmailFormat(data.email) &&
+    address.length <= 200 &&
+    isValidPinCodeFormat(data.pinCode, data.country) &&
+    isValidTaxNumberFormat(data.taxNumber)
   );
 };
 
@@ -630,16 +751,23 @@ export const mapFulfillmentDetailsToStep3Data = (
 ): FulfillmentDetailsDraftData => {
   const onlineEnabled = payment.methods.includes("online");
   const codEnabled = payment.methods.includes("cod");
+  const paymentGateways = onlineEnabled
+    ? mapOnlineMethodsToPaymentGateways(payment.onlinePaymentMethods)
+    : [];
+  const activeGateway = paymentGateways.find((gateway) => gateway.is_active);
 
   return {
     payment: {
       online_enabled: onlineEnabled,
-      payment_provider_id: onlineEnabled ? payment.paymentGateway || null : null,
+      payment_provider_id: onlineEnabled
+        ? (activeGateway?.gateway ?? null)
+        : null,
       cod_enabled: codEnabled,
       cod_min_amount: codEnabled ? parseAmount(payment.codMin) : null,
       cod_max_amount: codEnabled ? parseAmount(payment.codMax) : null,
       currency_code: "inr",
     },
+    payment_gateways: paymentGateways,
     locations: centres.map(mapFulfillmentCentreToLocationPayload),
   };
 };

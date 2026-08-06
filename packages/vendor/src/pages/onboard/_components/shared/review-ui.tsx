@@ -4,9 +4,11 @@ import { ReactNode } from "react";
 
 export function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-xxs sm:flex-row sm:items-start sm:gap-xl">
-      <span className="w-[200px] shrink-0 text-sm text-text-tertiary">{label}</span>
-      <span className="text-sm font-medium text-text-primary">{value}</span>
+    <div className="grid w-full min-w-0 grid-cols-1 gap-xxs sm:grid-cols-[200px_minmax(0,1fr)] sm:gap-xl">
+      <span className="text-sm text-text-tertiary">{label}</span>
+      <span className="min-w-0 break-all text-sm font-medium text-text-primary [overflow-wrap:anywhere]">
+        {value}
+      </span>
     </div>
   );
 }
@@ -21,7 +23,7 @@ export function ReviewSection({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-secondary bg-bg-primary shadow-xs">
+    <div className="min-w-0 overflow-hidden rounded-xl border border-secondary bg-bg-primary shadow-xs">
       <div className="flex items-center justify-between border-b border-secondary px-xl py-lg">
         <span className="text-md font-semibold text-text-primary">{title}</span>
         {onEdit && (
@@ -36,7 +38,7 @@ export function ReviewSection({
           </Button>
         )}
       </div>
-      <div className="flex flex-col gap-lg px-xl py-lg">{children}</div>
+      <div className="flex min-w-0 flex-col gap-lg px-xl py-lg">{children}</div>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
   UpdateSellerAddressDTO,
 } from "@mercurjs/types"
 
+import { approveSellerWorkflow } from "../../seller"
 import { createSellerStockLocationsWorkflow } from "../../stock-location"
 import { createStoreWorkflow } from "./create-store"
 import {
@@ -84,7 +85,7 @@ type SubmitStoreDraftWorkflowInput = {
   }[] | null
 }
 
-export const submitStoreDraftWorkflow: ReturnType<typeof createWorkflow> =
+export const submitStoreDraftWorkflow =
   createWorkflow(
     submitStoreDraftWorkflowId,
     function (input: SubmitStoreDraftWorkflowInput) {
@@ -105,6 +106,13 @@ export const submitStoreDraftWorkflow: ReturnType<typeof createWorkflow> =
         seller: { id: string }
         store_profile: { id: string }
       }
+
+      // 1b. Submitting a completed onboarding draft is self-service approval:
+      //     the store goes live (status OPEN + approved_at) immediately rather
+      //     than sitting in pending_approval. Emits the standard APPROVED event.
+      approveSellerWorkflow.runAsStep({
+        input: transform(created, (c) => ({ seller_id: c.seller.id })),
+      })
 
       // 2. Payment config + optional order-status overrides.
       finalizeStoreExtrasStep(

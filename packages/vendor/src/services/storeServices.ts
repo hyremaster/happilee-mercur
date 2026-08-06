@@ -27,6 +27,7 @@ export type ListStoresQuery = {
   offset?: number;
   limit?: number;
   q?: string;
+  search?: string;
   industry?: string | string[];
   commerce_type?: string | string[];
   status?: string | string[];
@@ -79,6 +80,22 @@ export type StoreDeliveryArea = {
   metadata?: Record<string, unknown> | null;
 };
 
+export type StorePaymentGateway = {
+  id?: string;
+  gateway: string;
+  label: string;
+  is_active: boolean;
+  credentials: {
+    key_id?: string;
+    key_secret?: string;
+    webhook_secret?: string;
+  };
+  metadata?: {
+    method_name?: string;
+    client_id?: string;
+  } | null;
+};
+
 export type StoreDetail = {
   id: string;
   name: string | null;
@@ -90,6 +107,7 @@ export type StoreDetail = {
   store_profile?: StoreProfile | null;
   owner_handle?: string | null;
   delivery_areas?: StoreDeliveryArea[] | null;
+  payment_gateways?: StorePaymentGateway[] | null;
 };
 
 export type StoreDetailResponse = {

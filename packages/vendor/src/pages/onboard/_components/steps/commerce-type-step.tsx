@@ -21,7 +21,14 @@ import {
 } from "@happilee-app/ui";
 import type { AreaSenseArea } from "../../../services/onboardingServices";
 import type { CommerceConfig } from "../types";
+import { filterAreaSenseAreasByType } from "../area-sense-area-type";
+import {
+  clampFieldLength,
+  FIELD_LIMIT_ORDER_STATUS_DISPLAY_NAME,
+} from "../field-limits";
 import { useAreaSenseAreas } from "../use-area-sense-areas";
+
+const AREA_SENSE_APP_URL = "https://app.happilee.io/my-apps/area-sense";
 
 type CommerceTypeStepProps = {
   data: CommerceConfig;
@@ -38,7 +45,10 @@ type DeliveryAreaSelectProps = {
   ariaLabel: string;
   deliveryArea: string;
   deliveryAreaName: string;
+  /** Areas already filtered for this fulfillment method's location type. */
   areas: AreaSenseArea[];
+  /** Full Area Sense list — used only to avoid re-adding wrong-type selections. */
+  allAreas: AreaSenseArea[];
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
@@ -50,6 +60,7 @@ function DeliveryAreaSelect({
   deliveryArea,
   deliveryAreaName,
   areas,
+  allAreas,
   isLoading,
   isError,
   onRetry,
@@ -73,10 +84,13 @@ function DeliveryAreaSelect({
     );
   }
 
+  // Preserve a selected label only when the area is gone from Area Sense entirely
+  // (not when it was filtered out as the wrong location type).
   const selectedAreaMissingFromList =
     !!deliveryArea &&
     !!deliveryAreaName &&
-    !areas.some((entry) => entry.area_sense_id === deliveryArea);
+    !areas.some((entry) => entry.area_sense_id === deliveryArea) &&
+    !allAreas.some((entry) => entry.area_sense_id === deliveryArea);
 
   return (
     <SelectField
@@ -230,7 +244,14 @@ function OrderStatusesTable({
                       <InputField
                         aria-label={`Display name for ${row.label}`}
                         value={row.displayName}
-                        onChange={(v) => onUpdateStatus(row.id, { displayName: v })}
+                        onChange={(v) =>
+                          onUpdateStatus(row.id, {
+                            displayName: clampFieldLength(
+                              v,
+                              FIELD_LIMIT_ORDER_STATUS_DISPLAY_NAME,
+                            ),
+                          })
+                        }
                         size="sm"
                         isDisabled={row.required}
                       />
@@ -272,15 +293,26 @@ export const CommerceTypeStep = ({
     refetch: refetchAreas,
   } = useAreaSenseAreas();
 
+  const geoAreas = filterAreaSenseAreasByType(areas, "geo_locations");
+  const zipAreas = filterAreaSenseAreasByType(areas, "zip_codes");
+
   return (
     <div className="flex w-full flex-col items-start gap-4xl">
       <div className="flex w-full flex-col gap-md">
         <RadioGroup
           aria-label="Commerce type"
           value={data.commerceType}
-          onChange={(value) =>
-            onChange({ commerceType: value as CommerceConfig["commerceType"] })
-          }
+          onChange={(value) => {
+            if (value === data.commerceType) return;
+
+            onChange({
+              commerceType: value as CommerceConfig["commerceType"],
+              localFulfillment: [],
+              ecomFulfillment: [],
+              deliveryArea: "",
+              deliveryAreaName: "",
+            });
+          }}
           itemsClassName="gap-md w-full"
         >
           <ExpandableRadioCard
@@ -310,7 +342,14 @@ export const CommerceTypeStep = ({
                 <div className="flex flex-col gap-xs">
                   <div className="flex items-center gap-xxs text-sm font-medium text-text-secondary">
                     <span>Delivery available areas (from your </span>
-                    <span className="cursor-pointer text-text-brand underline">Area Sense</span>
+                    <a
+                      href={AREA_SENSE_APP_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-text-brand underline"
+                    >
+                      Area Sense
+                    </a>
                     <span> module)</span>
                     <span className="text-text-brand" aria-hidden="true">*</span>
                   </div>
@@ -318,7 +357,8 @@ export const CommerceTypeStep = ({
                     ariaLabel="Choose from saved locations"
                     deliveryArea={data.deliveryArea}
                     deliveryAreaName={data.deliveryAreaName}
-                    areas={areas}
+                    areas={geoAreas}
+                    allAreas={areas}
                     isLoading={isLoadingAreas}
                     isError={isAreasError}
                     onRetry={() => {
@@ -358,7 +398,14 @@ export const CommerceTypeStep = ({
                 <div className="flex flex-col gap-xs">
                   <div className="flex items-center gap-xxs text-sm font-medium text-text-secondary">
                     <span>Delivery available areas (from your </span>
-                    <span className="cursor-pointer text-text-brand underline">Area Sense</span>
+                    <a
+                      href={AREA_SENSE_APP_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-text-brand underline"
+                    >
+                      Area Sense
+                    </a>
                     <span> module)</span>
                     <span className="text-text-brand" aria-hidden="true">*</span>
                   </div>
@@ -366,7 +413,8 @@ export const CommerceTypeStep = ({
                     ariaLabel="Choose from saved locations (ecommerce)"
                     deliveryArea={data.deliveryArea}
                     deliveryAreaName={data.deliveryAreaName}
-                    areas={areas}
+                    areas={zipAreas}
+                    allAreas={areas}
                     isLoading={isLoadingAreas}
                     isError={isAreasError}
                     onRetry={() => {

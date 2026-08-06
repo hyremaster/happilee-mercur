@@ -1,7 +1,4 @@
-import {
-  INDUSTRIES,
-  PAYMENT_GATEWAYS,
-} from "../constants";
+import { INDUSTRIES } from "../constants";
 import {
   ReadyToGoLiveBanner,
   ReviewSection,
@@ -14,7 +11,10 @@ type ReviewSubmitContentProps = {
   onEdit: (step: WizardStep) => void;
 };
 
-export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps) => {
+export const ReviewSubmitContent = ({
+  state,
+  onEdit,
+}: ReviewSubmitContentProps) => {
   const { businessDetails, commerce, fulfillmentCentres, payment } = state;
 
   const industry =
@@ -41,12 +41,17 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
         ? `${commerceTypeLabel} - ${ecomMethods}`
         : commerceTypeLabel;
 
-  const activeStatusCount = commerce.orderStatuses.filter((s) => s.active).length;
+  const activeStatusCount = commerce.orderStatuses.filter(
+    (s) => s.active,
+  ).length;
 
   const deliveryAreaLabel = commerce.deliveryAreaName || "—";
 
+  const selectedOnlineMethod = payment.onlinePaymentMethods.find(
+    (method) => method.isActive,
+  );
   const gatewayLabel =
-    PAYMENT_GATEWAYS.find((g) => g.id === payment.paymentGateway)?.label ?? "—";
+    selectedOnlineMethod?.title ?? selectedOnlineMethod?.gateway ?? "—";
 
   const paymentMethods = payment.methods
     .map((m) => {
@@ -67,17 +72,20 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
     .join(", ");
 
   return (
-    <div className="flex flex-col gap-xl">
-      <ReviewSection title="Business details" onEdit={() => onEdit(0)}>
+    <div className="flex w-full min-w-0 flex-col gap-xl">
+      <ReviewSection title="Business details" onEdit={() => onEdit(1)}>
         <SummaryRow label="Industry" value={industry} />
-        <SummaryRow label="Store name" value={businessDetails.storeName || "—"} />
+        <SummaryRow
+          label="Store name"
+          value={businessDetails.storeName || "—"}
+        />
         <SummaryRow
           label="Business legal name"
           value={businessDetails.businessLegalName || "—"}
         />
         <SummaryRow
           label="Contact"
-          value={`${businessDetails.email || "—"}  ·  ${businessDetails.phone || "—"}`}
+          value={`${businessDetails.email || "—"}  ,  ${businessDetails.phone || "—"}`}
         />
         <SummaryRow label="Address" value={addressParts || "—"} />
         {businessDetails.taxNumber && (
@@ -85,7 +93,7 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
         )}
       </ReviewSection>
 
-      <ReviewSection title="Commerce & orders" onEdit={() => onEdit(1)}>
+      <ReviewSection title="Commerce & orders" onEdit={() => onEdit(2)}>
         <SummaryRow label="Commerce type" value={commerceSummary} />
         <SummaryRow
           label="Active order statuses"
@@ -94,7 +102,7 @@ export const ReviewSubmitContent = ({ state, onEdit }: ReviewSubmitContentProps)
         <SummaryRow label="Delivery areas" value={deliveryAreaLabel} />
       </ReviewSection>
 
-      <ReviewSection title="Fulfillment details" onEdit={() => onEdit(2)}>
+      <ReviewSection title="Fulfillment details" onEdit={() => onEdit(3)}>
         <SummaryRow
           label="Fulfillment centres"
           value={`${fulfillmentCentres.length} outlets`}

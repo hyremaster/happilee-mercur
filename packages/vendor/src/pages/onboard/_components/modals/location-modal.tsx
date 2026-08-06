@@ -1,6 +1,13 @@
 import { Mail01 } from "@happilee-app/icons";
 import { Button, InputField, Modal, Textarea } from "@happilee-app/ui";
 import { CountrySelectField, StateSelectField } from "../address-select-fields";
+import {
+  clampFieldLength,
+  FIELD_LIMIT_ADDRESS,
+  FIELD_LIMIT_DEFAULT,
+  FIELD_LIMIT_LOCATION_NAME,
+  FIELD_LIMIT_PIN_CODE,
+} from "../field-limits";
 import type { FulfillmentCentre } from "../types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as L from "leaflet";
@@ -143,18 +150,15 @@ export const LocationModal = ({
     setState("");
     setCity("");
     setPinCode("");
-    setAddress("");
   };
 
   const clearFromState = () => {
     setCity("");
     setPinCode("");
-    setAddress("");
   };
 
   const clearFromCity = () => {
     setPinCode("");
-    setAddress("");
   };
 
   const markInputsChange = () => {
@@ -419,7 +423,7 @@ export const LocationModal = ({
           value={name}
           onChange={(v) => {
             markInputsChange();
-            setName(v);
+            setName(clampFieldLength(v, FIELD_LIMIT_LOCATION_NAME));
           }}
         />
         <Textarea
@@ -430,7 +434,7 @@ export const LocationModal = ({
           value={address}
           onChange={(v) => {
             markInputsChange();
-            setAddress(v);
+            setAddress(clampFieldLength(v, FIELD_LIMIT_ADDRESS));
           }}
         />
 
@@ -462,7 +466,7 @@ export const LocationModal = ({
             value={city}
             onChange={(v) => {
               markInputsChange();
-              setCity(v);
+              setCity(clampFieldLength(v, FIELD_LIMIT_DEFAULT));
               clearFromCity();
             }}
           />
@@ -472,7 +476,7 @@ export const LocationModal = ({
             value={pinCode}
             onChange={(v) => {
               markInputsChange();
-              setPinCode(v);
+              setPinCode(clampFieldLength(v, FIELD_LIMIT_PIN_CODE));
             }}
           />
         </div>

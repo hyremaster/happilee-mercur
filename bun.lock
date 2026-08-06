@@ -5,7 +5,7 @@
     "": {
       "name": "mercur",
       "dependencies": {
-        "@happilee-app/ui": "0.3.0",
+        "@happilee-app/ui": "0.4.0",
         "@mercurjs/core": "workspace:*",
         "@mercurjs/payment-razorpay": "workspace:*",
       },
@@ -97,7 +97,7 @@
         "@happilee-app/icons": "^0.2.0",
         "@happilee-app/tailwind-preset": "^0.1.0",
         "@happilee-app/tokens": "^0.1.0",
-        "@happilee-app/ui": "0.3.0",
+        "@happilee-app/ui": "0.4.0",
         "@hookform/resolvers": "3.4.2",
         "@medusajs/icons": "^2.13.4",
         "@medusajs/ui": "4.1.1",
@@ -519,7 +519,7 @@
         "@happilee-app/icons": "^0.2.0",
         "@happilee-app/tailwind-preset": "^0.1.0",
         "@happilee-app/tokens": "^0.1.0",
-        "@happilee-app/ui": "0.3.0",
+        "@happilee-app/ui": "0.4.0",
         "@hookform/error-message": "^2.0.1",
         "@hookform/resolvers": "3.4.2",
         "@medusajs/admin-shared": "^2.13.4",
@@ -950,7 +950,7 @@
 
     "@happilee-app/tokens": ["@happilee-app/tokens@0.1.0", "https://npm.pkg.github.com/download/@happilee-app/tokens/0.1.0/19af1e30b7f3110498526dff3b319332a5ff8e2c", {}, "sha512-bxyMY9bgUbr6/QREfNoLGmUeg3Huq0I3wFFgOvX9y/sga54pQYoYkV5th8xdadMPZ3HePODHcSbGykFA8Ma2og=="],
 
-    "@happilee-app/ui": ["@happilee-app/ui@0.3.0", "https://npm.pkg.github.com/download/@happilee-app/ui/0.3.0/c71782c16816d27e452352726de4df86e51fb188", { "dependencies": { "@happilee-app/icons": "0.2.0", "@happilee-app/tailwind-preset": "0.1.1", "@happilee-app/tokens": "0.1.0", "clsx": "^2.1.1", "libphonenumber-js": "^1.13.8", "react-aria-components": "^1.3.3", "react-phone-number-input": "^3.4.17", "tailwind-merge": "^2.5.4" }, "peerDependencies": { "react": "^18", "react-dom": "^18" } }, "sha512-P6Sx3QPuXIc2vsU4RQWwp+rtArpADIBRNkvPPeIfzgPeHziBa8TIS/sLPko3+kDKPX3iYyIeEkOHDdG8boe1rw=="],
+    "@happilee-app/ui": ["@happilee-app/ui@0.4.0", "https://npm.pkg.github.com/download/@happilee-app/ui/0.4.0/e83d276c5470e98d169513d03bf4258db8b1d343", { "dependencies": { "@happilee-app/icons": "0.2.0", "@happilee-app/tailwind-preset": "0.1.1", "@happilee-app/tokens": "0.1.0", "clsx": "^2.1.1", "libphonenumber-js": "^1.13.8", "react-aria-components": "^1.3.3", "react-phone-number-input": "^3.4.17", "tailwind-merge": "^2.5.4" }, "peerDependencies": { "react": "^18", "react-dom": "^18" } }, "sha512-znRFRUuAw/EKsXlIqL08Sj3uYGTHM5G7Zsv4mjhbiht6dcaRSEMN5B/4cG7qgGLscK1VdPq9EtJmFAGGdtchcg=="],
 
     "@hookform/error-message": ["@hookform/error-message@2.0.1", "", { "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0", "react-hook-form": "^7.0.0" } }, "sha512-U410sAr92xgxT1idlu9WWOVjndxLdgPUHEB8Schr27C9eh7/xUnITWpCMF93s+lGiG++D4JnbSnrb5A21AdSNg=="],
 

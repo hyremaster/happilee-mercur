@@ -58,6 +58,31 @@ export const POST = async (
     )
   }
 
+  // The originating Happilee project id (`happilee_<project_id>`) is seeded onto
+  // the draft's metadata by the SSO route. Carry it onto the materialized seller
+  // as `external_id` so a subsequent SSO login for the same project finds this
+  // store instead of spawning a duplicate draft. (Unique per non-null value.)
+  const externalId = asString(asObject(draft.metadata).happilee_external_id)
+
+  // Guard: one active store per Happilee project. If a seller already claims this
+  // external_id, reject before running the create workflow — otherwise the DB
+  // partial-unique index on external_id surfaces as a raw 500. This also blocks a
+  // second draft for an already-materialized project from being submitted.
+  if (externalId) {
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+    const { data: existingSellers } = await query.graph({
+      entity: "seller",
+      fields: ["id"],
+      filters: { external_id: externalId },
+    })
+    if (existingSellers.length > 0) {
+      throw new MedusaError(
+        MedusaError.Types.CONFLICT,
+        "A store already exists for this Happilee project."
+      )
+    }
+  }
+
   const handle = asString(storefront.handle) ?? asString(business.handle)
   const ownerHandle =
     asString(business.owner_handle) ?? asString(storefront.owner_handle)
@@ -124,6 +149,7 @@ export const POST = async (
         handle,
         phone: asString(business.phone) ?? null,
         description: asString(business.description) ?? null,
+        ...(externalId ? { external_id: externalId } : {}),
       },
       address: business.address as Record<string, unknown> | undefined,
       professional_details: business.professional_details as
