@@ -6,7 +6,11 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { MercurModules, StoreOnboardingDraftStatus } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../../modules/marketplace-profile/service"
-import { assertDraftOwnership, sanitizeDraft } from "../../helpers"
+import {
+  assertDraftOwnership,
+  sanitizeDraft,
+  validateDraftPaymentGateways,
+} from "../../helpers"
 import { VendorSaveDraftStepType } from "../../validators"
 
 // Wizard screen index -> draft_data key.
@@ -42,6 +46,13 @@ export const POST = async (
 
   const { step, data } = req.validatedBody
   const key = STEP_KEY[step]
+
+  // Step 3 (fulfillment) may carry payment-gateway credentials. Verify them
+  // against the provider before persisting so a draft never stores creds that
+  // don't authenticate.
+  if (step === 3) {
+    await validateDraftPaymentGateways(data)
+  }
 
   const nextDraftData = {
     ...(draft.draft_data ?? {}),

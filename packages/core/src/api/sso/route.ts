@@ -103,6 +103,45 @@ async function upsertStoreProfileApiKey(
   }
 }
 
+/**
+ * Bind the authorizing Happilee API key to the vendor's identity so a store the
+ * vendor later creates *inside* the dashboard (no SSO token for that store) can
+ * inherit it. Overwrites on each SSO — most recent login wins. Key stays
+ * server-side; this entity is never returned to the SPA. No-op without a key.
+ */
+async function upsertIdentityKey(
+  service: MarketplaceProfileModuleService,
+  authIdentityId: string,
+  projectId: string,
+  apiKey?: string
+) {
+  if (!apiKey) return
+
+  const [existing] = await service.listHappileeIdentityKeys(
+    { auth_identity_id: authIdentityId },
+    { take: 1 }
+  )
+  if (existing) {
+    if (
+      existing.happilee_api_key !== apiKey ||
+      existing.project_id !== projectId
+    ) {
+      await service.updateHappileeIdentityKeys({
+        id: existing.id,
+        project_id: projectId,
+        happilee_api_key: apiKey,
+      })
+    }
+    return
+  }
+
+  await service.createHappileeIdentityKeys({
+    auth_identity_id: authIdentityId,
+    project_id: projectId,
+    happilee_api_key: apiKey,
+  })
+}
+
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const { token } = req.query as { token?: string }
 
@@ -300,6 +339,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
     await upsertStoreProfileApiKey(marketplaceProfileService, sellerId, apiKey)
   }
+
+  // Bind the authorizing key to this identity so stores the vendor creates
+  // in-dashboard (no per-store SSO) inherit it. Server-side only.
+  await upsertIdentityKey(
+    marketplaceProfileService,
+    authIdentityId,
+    project_id,
+    apiKey
+  )
 
   const mercurToken = generateJwtToken(
     {

@@ -3,16 +3,151 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { MercurModules, StoreOnboardingDraftDTO } from "@mercurjs/types"
+import {
+  MercurModules,
+  StoreOnboardingDraftDTO,
+  StorePaymentGatewayType,
+} from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../modules/marketplace-profile/service"
 
 // Credential fields that must never be returned in an API response.
 const SECRET_CREDENTIAL_KEYS = ["key_secret", "webhook_secret"]
-export const MASKED = "***"
+
+// Character used to blank out the interior of a masked secret. Real secrets are
+// ASCII (Razorpay keys, webhook secrets), so a value containing this bullet is a
+// reliable signal that the client is echoing a masked read back to us.
+const MASK_CHAR = "•" // •
+export const MASKED = MASK_CHAR.repeat(3)
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v)
+
+/**
+ * Mask a secret while preserving its real length and revealing the first and
+ * last character (e.g. "super-secret-value" -> "s••••••••••••••••e"). Secrets of
+ * length <= 2 are fully bulleted so nothing is leaked. Length is preserved so
+ * the client can tell a 6-char secret from a 40-char one instead of always
+ * seeing "***".
+ */
+export function maskSecretValue(value: string): string {
+  const len = value.length
+  if (len === 0) {
+    return ""
+  }
+  if (len <= 2) {
+    return MASK_CHAR.repeat(len)
+  }
+  return value[0] + MASK_CHAR.repeat(len - 2) + value[len - 1]
+}
+
+/** True if a value is a masked secret (contains the mask bullet), not a real one. */
+export function isMaskedSecret(value: unknown): boolean {
+  return typeof value === "string" && value.includes(MASK_CHAR)
+}
+
+// Razorpay read endpoint that requires valid key auth. `count=1` keeps the
+// response tiny — we only care about the status code, not the body.
+const RAZORPAY_VALIDATE_URL = "https://api.razorpay.com/v1/payments?count=1"
+
+/**
+ * Verify a Razorpay key_id / key_secret pair actually authenticates by calling
+ * a read endpoint with HTTP Basic auth. Razorpay returns 401 for bad keys.
+ * Throws INVALID_DATA on invalid credentials or if Razorpay is unreachable, so
+ * a store can never save credentials that don't work.
+ */
+export async function validateRazorpayCredentials(
+  keyId: string,
+  keySecret: string
+): Promise<void> {
+  if (!keyId || !keySecret) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Razorpay key ID and secret are required."
+    )
+  }
+
+  const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64")
+
+  let response: Response
+  try {
+    response = await fetch(RAZORPAY_VALIDATE_URL, {
+      method: "GET",
+      headers: { Authorization: `Basic ${auth}` },
+    })
+  } catch {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Could not reach Razorpay to validate the credentials. Please try again."
+    )
+  }
+
+  if (response.status === 401 || response.status === 400) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Invalid Razorpay API key or secret. Please check the credentials and try again."
+    )
+  }
+
+  if (!response.ok) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Could not validate Razorpay credentials (status ${response.status}). Please try again.`
+    )
+  }
+}
+
+/**
+ * Validate a gateway's credentials against the provider before persisting.
+ * No-op for a masked secret (the client is round-tripping an unchanged read).
+ * Currently only Razorpay is supported; other gateways pass through.
+ */
+export async function validateGatewayCredentials(
+  gateway: string,
+  credentials: { key_id?: unknown; key_secret?: unknown } | null | undefined
+): Promise<void> {
+  if (!credentials || isMaskedSecret(credentials.key_secret)) {
+    return
+  }
+  if (gateway === StorePaymentGatewayType.RAZORPAY) {
+    const keyId =
+      typeof credentials.key_id === "string" ? credentials.key_id : ""
+    const keySecret =
+      typeof credentials.key_secret === "string" ? credentials.key_secret : ""
+    await validateRazorpayCredentials(keyId, keySecret)
+  }
+}
+
+/**
+ * Validate every payment gateway embedded in a wizard step-3 (fulfillment)
+ * payload before it is stored on the draft. Accepts the loose `data` object
+ * with `payment_gateway` (singular) and/or `payment_gateways` (array). Masked
+ * secrets are skipped (unchanged round-trip).
+ */
+export async function validateDraftPaymentGateways(
+  data: unknown
+): Promise<void> {
+  if (!isObject(data)) {
+    return
+  }
+  const entries: unknown[] = []
+  if (Array.isArray(data.payment_gateways)) {
+    entries.push(...data.payment_gateways)
+  }
+  if (data.payment_gateway) {
+    entries.push(data.payment_gateway)
+  }
+  for (const entry of entries) {
+    if (!isObject(entry)) {
+      continue
+    }
+    const gateway = typeof entry.gateway === "string" ? entry.gateway : ""
+    const credentials = isObject(entry.credentials)
+      ? entry.credentials
+      : undefined
+    await validateGatewayCredentials(gateway, credentials)
+  }
+}
 
 /** Replace secret credential values with a mask (keeps public fields like key_id). */
 export function maskCredentials(credentials: unknown): unknown {
@@ -21,7 +156,10 @@ export function maskCredentials(credentials: unknown): unknown {
   }
   const out: Record<string, unknown> = { ...credentials }
   for (const key of SECRET_CREDENTIAL_KEYS) {
-    if (out[key] != null) {
+    const value = out[key]
+    if (typeof value === "string") {
+      out[key] = maskSecretValue(value)
+    } else if (value != null) {
       out[key] = MASKED
     }
   }
