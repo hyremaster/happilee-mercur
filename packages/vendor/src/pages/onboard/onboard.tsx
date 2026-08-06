@@ -1,7 +1,7 @@
 import { ArrowRight, CheckCircle } from "@happilee-app/icons";
 import { Spinner } from "@medusajs/icons";
 import { toast } from "@medusajs/ui";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMe } from "../../hooks/api/members";
 import {
@@ -29,6 +29,7 @@ import { LocationModal } from "./_components/modals/location-modal";
 import { ReviewSubmitModal } from "./_components/modals/review-submit-modal";
 import { TemplatePreviewModal } from "./_components/modals/template-preview-modal";
 import {
+  isBusinessDetailsComplete,
   isBusinessDetailsValid,
   mapApiLocationToCentre,
   mapBusinessDetailsToStep1Data,
@@ -62,14 +63,20 @@ import type { FulfillmentCentre, WizardStep } from "./_components/types";
 import { useHandleAvailability } from "./_components/use-handle-availability";
 import { useDefaultOrderStatuses } from "./_components/use-default-order-statuses";
 import { useStorefrontTemplates } from "./_components/use-storefront-templates";
+import {
+  buildOnboardSearchParams,
+  isOnboardReviewRequested,
+  shouldRestoreReviewModal,
+} from "./_components/onboard-url";
 import { useStoreSetup } from "./_components/use-store-setup";
 import { WizardShell } from "./_components/wizard-shell";
 
 export const OnboardPage = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const draftIdParam = searchParams.get("draftId");
   const storeIdParam = searchParams.get("storeId");
+  const wantsReview = isOnboardReviewRequested(searchParams);
   const isEditingActiveStore = !!storeIdParam;
   const { seller_member } = useMe({
     retry: false,
@@ -105,12 +112,54 @@ export const OnboardPage = () => {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [isSavingStep, setIsSavingStep] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step1ValidationAttempted, setStep1ValidationAttempted] =
+    useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(
     !!draftIdParam || !!storeIdParam,
   );
   const [originalStorefrontHandle, setOriginalStorefrontHandle] = useState("");
   const [activeStoreBaseline, setActiveStoreBaseline] =
     useState<ActiveStoreBaseline | null>(null);
+  const hydratedDraftIdRef = useRef<string | null>(null);
+  const hydratedStoreIdRef = useRef<string | null>(null);
+  const stateRef = useRef(state);
+  const continueInFlightRef = useRef(false);
+
+  stateRef.current = state;
+
+  const resolveDraftId = useCallback(
+    () => state.draftId ?? draftIdParam,
+    [draftIdParam, state.draftId],
+  );
+
+  const syncDraftIdToUrl = useCallback(
+    (draftId: string) => {
+      hydratedDraftIdRef.current = draftId;
+      setSearchParams(
+        (prev) => buildOnboardSearchParams(prev, { draftId }),
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const setReviewOpenInUrl = useCallback(
+    (open: boolean) => {
+      setSearchParams(
+        (prev) => buildOnboardSearchParams(prev, { review: open }),
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const handleReviewOpenChange = useCallback(
+    (open: boolean) => {
+      setIsReviewOpen(open);
+      setReviewOpenInUrl(open);
+    },
+    [setReviewOpenInUrl],
+  );
 
   const activeStoreId = state.storeId ?? "";
   const { mutateAsync: createStoreLocation, isPending: isCreatingLocation } =
@@ -133,6 +182,13 @@ export const OnboardPage = () => {
       }
 
       if (draftIdParam) {
+        if (hydratedDraftIdRef.current === draftIdParam) {
+          if (!cancelled) {
+            setIsLoadingDraft(false);
+          }
+          return;
+        }
+
         setIsLoadingDraft(true);
 
         try {
@@ -140,8 +196,12 @@ export const OnboardPage = () => {
 
           if (!cancelled) {
             hydrateState(mapDraftToStoreSetupState(draft));
+            hydratedDraftIdRef.current = draftIdParam;
             setOriginalStorefrontHandle("");
             setActiveStoreBaseline(null);
+            setIsReviewOpen(
+              shouldRestoreReviewModal(draft.onboarding_step ?? 0, wantsReview),
+            );
           }
         } catch {
           if (!cancelled) {
@@ -158,6 +218,13 @@ export const OnboardPage = () => {
       }
 
       if (storeIdParam) {
+        if (hydratedStoreIdRef.current === storeIdParam) {
+          if (!cancelled) {
+            setIsLoadingDraft(false);
+          }
+          return;
+        }
+
         setIsLoadingDraft(true);
 
         try {
@@ -169,8 +236,12 @@ export const OnboardPage = () => {
           if (!cancelled) {
             const nextState = mapStoreDetailToStoreSetupState(store, locations);
             hydrateState(nextState);
+            hydratedStoreIdRef.current = storeIdParam;
             setOriginalStorefrontHandle(nextState.storefront.handle);
             setActiveStoreBaseline(createActiveStoreBaseline(nextState));
+            setIsReviewOpen(
+              shouldRestoreReviewModal(4, wantsReview),
+            );
           }
         } catch {
           if (!cancelled) {
@@ -187,8 +258,11 @@ export const OnboardPage = () => {
       }
 
       resetState();
+      hydratedDraftIdRef.current = null;
+      hydratedStoreIdRef.current = null;
       setOriginalStorefrontHandle("");
       setActiveStoreBaseline(null);
+      setIsReviewOpen(false);
       setIsLoadingDraft(false);
     };
 
@@ -197,7 +271,14 @@ export const OnboardPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [draftIdParam, storeIdParam, hydrateState, navigate, resetState]);
+  }, [
+    draftIdParam,
+    storeIdParam,
+    wantsReview,
+    hydrateState,
+    navigate,
+    resetState,
+  ]);
 
   useEffect(() => {
     if (isLoadingDraft || isLoadingDefaultStatuses) {
@@ -277,199 +358,248 @@ export const OnboardPage = () => {
     handleAvailability.isAvailable,
   );
 
+  useEffect(() => {
+    if (state.currentStep !== 1) {
+      setStep1ValidationAttempted(false);
+    }
+  }, [state.currentStep]);
+
+  useEffect(() => {
+    if (
+      step1ValidationAttempted &&
+      isValidEmailFormat(state.businessDetails.email)
+    ) {
+      setStep1ValidationAttempted(false);
+    }
+  }, [step1ValidationAttempted, state.businessDetails.email]);
+
   const handleContinue = async () => {
-    if (state.currentStep === 1) {
-      if (!isBusinessDetailsValid(state.businessDetails)) {
-        const { storeName, email, taxNumber, pinCode, country } =
-          state.businessDetails;
-        toast.error(
-          storeName.trim() && !isValidStoreNameFormat(storeName)
-            ? STORE_NAME_INVALID_MESSAGE
-            : email.trim() && !isValidEmailFormat(email)
-              ? EMAIL_INVALID_MESSAGE
-              : pinCode.trim() && !isValidPinCodeFormat(pinCode, country)
-                ? PIN_CODE_INVALID_MESSAGE
-                : taxNumber.trim() && !isValidTaxNumberFormat(taxNumber)
-                  ? TAX_NUMBER_INVALID_MESSAGE
-                  : "Please complete all required business details."
-        );
-        return;
-      }
+    if (continueInFlightRef.current || isSavingStep) {
+      return;
+    }
 
-      setIsSavingStep(true);
+    const stepAtStart = stateRef.current.currentStep;
+    continueInFlightRef.current = true;
 
-      try {
-        if (state.storeId) {
-          if (!activeStoreBaseline) {
-            toast.error("Store baseline not loaded. Please reopen this store.");
+    try {
+      if (stepAtStart === 1) {
+        const businessDetails = stateRef.current.businessDetails;
+
+        if (!isBusinessDetailsValid(businessDetails)) {
+          setStep1ValidationAttempted(true);
+          const { storeName, email, taxNumber, pinCode, country } =
+            businessDetails;
+          toast.error(
+            storeName.trim() && !isValidStoreNameFormat(storeName)
+              ? STORE_NAME_INVALID_MESSAGE
+              : email.trim() && !isValidEmailFormat(email)
+                ? EMAIL_INVALID_MESSAGE
+                : pinCode.trim() && !isValidPinCodeFormat(pinCode, country)
+                  ? PIN_CODE_INVALID_MESSAGE
+                  : taxNumber.trim() && !isValidTaxNumberFormat(taxNumber)
+                    ? TAX_NUMBER_INVALID_MESSAGE
+                    : "Please complete all required business details.",
+          );
+          return;
+        }
+
+        setStep1ValidationAttempted(false);
+        setIsSavingStep(true);
+
+        try {
+          if (stateRef.current.storeId) {
+            if (!activeStoreBaseline) {
+              toast.error("Store baseline not loaded. Please reopen this store.");
+              return;
+            }
+
+            const nextBaseline = await saveActiveStoreStepSparse(
+              stateRef.current.storeId,
+              1,
+              stateRef.current,
+              activeStoreBaseline,
+            );
+            setActiveStoreBaseline(nextBaseline);
+            nextStep();
+            toast.success("Business details saved");
+            window.scrollTo({ top: 0, behavior: "smooth" });
             return;
           }
 
-          const nextBaseline = await saveActiveStoreStepSparse(
-            state.storeId,
-            1,
-            state,
-            activeStoreBaseline,
-          );
-          setActiveStoreBaseline(nextBaseline);
+          const stepData = mapBusinessDetailsToStep1Data(businessDetails);
+          let draftId = stateRef.current.draftId ?? draftIdParam;
+
+          if (!draftId) {
+            const created = await createDraft();
+            draftId = created.draft.id;
+            updateState({ draftId });
+            syncDraftIdToUrl(draftId);
+          } else if (draftIdParam !== draftId) {
+            syncDraftIdToUrl(draftId);
+          }
+
+          await saveDraftStep(draftId, { step: 1, data: stepData });
           nextStep();
+          toast.success("Business details saved");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch {
+          toast.error("Failed to save business details. Please try again.");
+        } finally {
+          setIsSavingStep(false);
+        }
+
+        return;
+      }
+
+      if (stepAtStart === 2) {
+        const commerce = stateRef.current.commerce;
+
+        if (!isCommerceTypeValid(commerce)) {
+          toast.error("Please complete all required commerce type details.");
           return;
         }
 
-        const stepData = mapBusinessDetailsToStep1Data(state.businessDetails);
-        let draftId = state.draftId;
+        const draftId = stateRef.current.draftId ?? draftIdParam;
 
-        if (!draftId) {
-          const created = await createDraft();
-          draftId = created.draft.id;
-          updateState({ draftId });
+        if (!draftId && !stateRef.current.storeId) {
+          toast.error("Draft not found. Please complete business details first.");
+          return;
         }
 
-        await saveDraftStep(draftId, { step: 1, data: stepData });
-        nextStep();
-      } catch {
-        toast.error("Failed to save business details. Please try again.");
-      } finally {
-        setIsSavingStep(false);
-      }
+        setIsSavingStep(true);
 
-      return;
-    }
+        try {
+          if (stateRef.current.storeId) {
+            if (!activeStoreBaseline) {
+              toast.error("Store baseline not loaded. Please reopen this store.");
+              return;
+            }
 
-    if (state.currentStep === 2) {
-      if (!isCommerceTypeValid(state.commerce)) {
-        toast.error("Please complete all required commerce type details.");
-        return;
-      }
-
-      if (!state.draftId && !state.storeId) {
-        toast.error("Draft not found. Please complete business details first.");
-        return;
-      }
-
-      setIsSavingStep(true);
-
-      try {
-        if (state.storeId) {
-          if (!activeStoreBaseline) {
-            toast.error("Store baseline not loaded. Please reopen this store.");
+            const nextBaseline = await saveActiveStoreStepSparse(
+              stateRef.current.storeId,
+              2,
+              stateRef.current,
+              activeStoreBaseline,
+            );
+            setActiveStoreBaseline(nextBaseline);
+            nextStep();
             return;
           }
 
-          const nextBaseline = await saveActiveStoreStepSparse(
-            state.storeId,
-            2,
-            state,
-            activeStoreBaseline,
-          );
-          setActiveStoreBaseline(nextBaseline);
+          const stepData = mapCommerceTypeToStep2Data(commerce);
+          await saveDraftStep(draftId!, { step: 2, data: stepData });
           nextStep();
+        } catch {
+          toast.error("Failed to save commerce type. Please try again.");
+        } finally {
+          setIsSavingStep(false);
+        }
+
+        return;
+      }
+
+      if (stepAtStart === 3) {
+        const { fulfillmentCentres, payment } = stateRef.current;
+
+        if (!isFulfillmentValid(fulfillmentCentres, payment)) {
+          toast.error("Please complete all required fulfillment details.");
           return;
         }
 
-        const stepData = mapCommerceTypeToStep2Data(state.commerce);
-        await saveDraftStep(state.draftId!, { step: 2, data: stepData });
-        nextStep();
-      } catch {
-        toast.error("Failed to save commerce type. Please try again.");
-      } finally {
-        setIsSavingStep(false);
-      }
+        const draftId = stateRef.current.draftId ?? draftIdParam;
 
-      return;
-    }
+        if (!draftId && !stateRef.current.storeId) {
+          toast.error("Draft not found. Please complete the previous steps first.");
+          return;
+        }
 
-    if (state.currentStep === 3) {
-      if (!isFulfillmentValid(state.fulfillmentCentres, state.payment)) {
-        toast.error("Please complete all required fulfillment details.");
-        return;
-      }
+        setIsSavingStep(true);
 
-      if (!state.draftId && !state.storeId) {
-        toast.error("Draft not found. Please complete the previous steps first.");
-        return;
-      }
+        try {
+          if (stateRef.current.storeId) {
+            if (!activeStoreBaseline) {
+              toast.error("Store baseline not loaded. Please reopen this store.");
+              return;
+            }
 
-      setIsSavingStep(true);
-
-      try {
-        if (state.storeId) {
-          if (!activeStoreBaseline) {
-            toast.error("Store baseline not loaded. Please reopen this store.");
+            const nextBaseline = await saveActiveStoreStepSparse(
+              stateRef.current.storeId,
+              3,
+              stateRef.current,
+              activeStoreBaseline,
+            );
+            setActiveStoreBaseline(nextBaseline);
+            nextStep();
             return;
           }
 
-          const nextBaseline = await saveActiveStoreStepSparse(
-            state.storeId,
-            3,
-            state,
-            activeStoreBaseline,
+          const stepData = mapFulfillmentDetailsToStep3Data(
+            fulfillmentCentres,
+            payment,
           );
-          setActiveStoreBaseline(nextBaseline);
+          await saveDraftStep(draftId!, { step: 3, data: stepData });
           nextStep();
+        } catch {
+          toast.error("Failed to save fulfillment details. Please try again.");
+        } finally {
+          setIsSavingStep(false);
+        }
+
+        return;
+      }
+
+      if (stepAtStart === 4) {
+        const { storefront } = stateRef.current;
+
+        if (!storefrontIsValid) {
+          toast.error("Please complete all required storefront details.");
           return;
         }
 
-        const stepData = mapFulfillmentDetailsToStep3Data(
-          state.fulfillmentCentres,
-          state.payment,
-        );
-        await saveDraftStep(state.draftId!, { step: 3, data: stepData });
-        nextStep();
-      } catch {
-        toast.error("Failed to save fulfillment details. Please try again.");
-      } finally {
-        setIsSavingStep(false);
-      }
+        const draftId = stateRef.current.draftId ?? draftIdParam;
 
-      return;
-    }
+        if (!draftId && !stateRef.current.storeId) {
+          toast.error("Draft not found. Please complete the previous steps first.");
+          return;
+        }
 
-    if (state.currentStep === 4) {
-      if (!storefrontIsValid) {
-        toast.error("Please complete all required storefront details.");
-        return;
-      }
+        setIsSavingStep(true);
 
-      if (!state.draftId && !state.storeId) {
-        toast.error("Draft not found. Please complete the previous steps first.");
-        return;
-      }
+        try {
+          if (stateRef.current.storeId) {
+            if (!activeStoreBaseline) {
+              toast.error("Store baseline not loaded. Please reopen this store.");
+              return;
+            }
 
-      setIsSavingStep(true);
-
-      try {
-        if (state.storeId) {
-          if (!activeStoreBaseline) {
-            toast.error("Store baseline not loaded. Please reopen this store.");
+            const nextBaseline = await saveActiveStoreStepSparse(
+              stateRef.current.storeId,
+              4,
+              stateRef.current,
+              activeStoreBaseline,
+            );
+            setActiveStoreBaseline(nextBaseline);
+            setOriginalStorefrontHandle(storefront.handle);
+            handleReviewOpenChange(true);
             return;
           }
 
-          const nextBaseline = await saveActiveStoreStepSparse(
-            state.storeId,
-            4,
-            state,
-            activeStoreBaseline,
-          );
-          setActiveStoreBaseline(nextBaseline);
-          setOriginalStorefrontHandle(state.storefront.handle);
-          setIsReviewOpen(true);
-          return;
+          const stepData = mapStorefrontToStep4Data(storefront);
+          await saveDraftStep(draftId!, { step: 4, data: stepData });
+          handleReviewOpenChange(true);
+        } catch {
+          toast.error("Failed to save storefront details. Please try again.");
+        } finally {
+          setIsSavingStep(false);
         }
 
-        const stepData = mapStorefrontToStep4Data(state.storefront);
-        await saveDraftStep(state.draftId!, { step: 4, data: stepData });
-        setIsReviewOpen(true);
-      } catch {
-        toast.error("Failed to save storefront details. Please try again.");
-      } finally {
-        setIsSavingStep(false);
+        return;
       }
 
-      return;
+      nextStep();
+    } finally {
+      continueInFlightRef.current = false;
     }
-
-    nextStep();
   };
 
   const handleBack = () => {
@@ -481,7 +611,7 @@ export const OnboardPage = () => {
   };
 
   const handleEditFromReview = (step: WizardStep) => {
-    setIsReviewOpen(false);
+    handleReviewOpenChange(false);
     goToStep(step);
   };
 
@@ -490,7 +620,7 @@ export const OnboardPage = () => {
       setIsSubmitting(true);
 
       try {
-        setIsReviewOpen(false);
+        handleReviewOpenChange(false);
         toast.success("Store updated successfully");
         navigate("/stores");
       } finally {
@@ -500,7 +630,9 @@ export const OnboardPage = () => {
       return;
     }
 
-    if (!state.draftId) {
+    const draftId = resolveDraftId();
+
+    if (!draftId) {
       toast.error("Draft not found. Please complete all onboarding steps first.");
       return;
     }
@@ -508,10 +640,10 @@ export const OnboardPage = () => {
     setIsSubmitting(true);
 
     try {
-      await submitDraft(state.draftId);
+      await submitDraft(draftId);
       completeOnboarding();
       setJustLaunched(true);
-      setIsReviewOpen(false);
+      handleReviewOpenChange(false);
       toast.success("Store launched successfully");
     } catch {
       toast.error("Failed to launch store. Please try again.");
@@ -663,7 +795,7 @@ export const OnboardPage = () => {
         }
         isContinueDisabled={
           (state.currentStep === 1 &&
-            !isBusinessDetailsValid(state.businessDetails)) ||
+            !isBusinessDetailsComplete(state.businessDetails)) ||
           (state.currentStep === 2 &&
             (!isCommerceTypeValid(state.commerce) ||
               isLoadingDefaultStatuses ||
@@ -675,13 +807,13 @@ export const OnboardPage = () => {
         isContinueLoading={isSavingStep}
       >
         <div className="flex w-full flex-col">
-          <span className="text-sm font-medium leading-5 text-text-brand">
+          <span className="text-sm font-medium text-text-brand">
             {heading.step}
           </span>
-          <span className="text-xl font-semibold leading-8 text-text-primary">
+          <span className="text-xl font-semibold text-text-primary">
             {heading.title}
           </span>
-          <span className="text-sm font-normal leading-5 text-text-tertiary">
+          <span className="text-sm font-normal text-text-tertiary">
             {heading.description}
           </span>
         </div>
@@ -689,10 +821,11 @@ export const OnboardPage = () => {
         {state.currentStep === 1 && (
           <BusinessDetailsStep
             data={state.businessDetails}
+            showValidationErrors={step1ValidationAttempted}
             onChange={(patch) =>
-              updateState({
-                businessDetails: { ...state.businessDetails, ...patch },
-              })
+              updateState((prev) => ({
+                businessDetails: { ...prev.businessDetails, ...patch },
+              }))
             }
           />
         )}
@@ -789,7 +922,7 @@ export const OnboardPage = () => {
         isOpen={isReviewOpen}
         state={state}
         mode={isEditingActiveStore ? "edit" : "create"}
-        onOpenChange={setIsReviewOpen}
+        onOpenChange={handleReviewOpenChange}
         onEdit={handleEditFromReview}
         onConfirm={() => void handleConfirmLaunch()}
         isConfirmLoading={isSubmitting}

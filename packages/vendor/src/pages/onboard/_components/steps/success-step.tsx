@@ -27,10 +27,10 @@ export const SuccessStep = () => {
           <FeaturedIcon icon={<CheckCircle />} color="success" theme="light" size="lg" />
 
           <div className="flex flex-col items-center gap-xs">
-            <span className="text-xl font-semibold leading-8 text-text-primary">
+            <span className="text-xl font-semibold text-text-primary">
               Storefront created successfully!
             </span>
-            <span className="text-sm leading-5 text-text-tertiary">
+            <span className="text-sm text-text-tertiary">
               Your storefront is added to the workspace, Keep shipping.
             </span>
           </div>

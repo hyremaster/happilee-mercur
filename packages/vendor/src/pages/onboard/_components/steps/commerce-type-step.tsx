@@ -22,6 +22,10 @@ import {
 import type { AreaSenseArea } from "../../../services/onboardingServices";
 import type { CommerceConfig } from "../types";
 import { filterAreaSenseAreasByType } from "../area-sense-area-type";
+import {
+  clampFieldLength,
+  FIELD_LIMIT_ORDER_STATUS_DISPLAY_NAME,
+} from "../field-limits";
 import { useAreaSenseAreas } from "../use-area-sense-areas";
 
 const AREA_SENSE_APP_URL = "https://app.happilee.io/my-apps/area-sense";
@@ -240,7 +244,14 @@ function OrderStatusesTable({
                       <InputField
                         aria-label={`Display name for ${row.label}`}
                         value={row.displayName}
-                        onChange={(v) => onUpdateStatus(row.id, { displayName: v })}
+                        onChange={(v) =>
+                          onUpdateStatus(row.id, {
+                            displayName: clampFieldLength(
+                              v,
+                              FIELD_LIMIT_ORDER_STATUS_DISPLAY_NAME,
+                            ),
+                          })
+                        }
                         size="sm"
                         isDisabled={row.required}
                       />

@@ -98,7 +98,7 @@ export const StoresPage = () => {
     }
 
     await selectSeller({ seller_id: store.id });
-    navigate("/", { replace: true });
+    window.open(`${window.location.origin}/`, "_blank", "noopener,noreferrer");
   };
 
   const hasStores = stores.length > 0;
@@ -120,7 +120,7 @@ export const StoresPage = () => {
           />
 
           <div className="flex min-w-0 flex-1 flex-col gap-xxs">
-            <span className="text-xl font-semibold leading-8 text-text-primary">
+            <span className="text-xl font-semibold text-text-primary">
               Stores
             </span>
             <span className="text-sm text-text-tertiary">
@@ -251,7 +251,7 @@ export const StoresPage = () => {
                           <StoreAvatar initials={store.initials} />
                           <div className="flex min-w-0 flex-1 flex-col gap-xxs">
                             <span
-                              className="truncate text-sm font-medium leading-5 text-text-primary"
+                              className="truncate text-sm font-medium text-text-primary"
                               title={store.name}
                             >
                               {store.name}

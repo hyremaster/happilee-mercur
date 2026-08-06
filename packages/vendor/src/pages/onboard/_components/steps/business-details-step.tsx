@@ -14,11 +14,20 @@ import {
 } from "../address-select-fields";
 import { INDUSTRIES } from "../constants";
 import { EMAIL_INVALID_MESSAGE, isValidEmailFormat } from "../email";
+import {
+  clampFieldLength,
+  FIELD_LIMIT_ADDRESS,
+  FIELD_LIMIT_BUSINESS_LEGAL_NAME,
+  FIELD_LIMIT_DEFAULT,
+  FIELD_LIMIT_EMAIL,
+  FIELD_LIMIT_PIN_CODE,
+  FIELD_LIMIT_STORE_NAME,
+  FIELD_LIMIT_TAX_NUMBER,
+} from "../field-limits";
 import { isValidPinCodeFormat, PIN_CODE_INVALID_MESSAGE } from "../pin-code";
 import {
   isValidStoreNameFormat,
   STORE_NAME_INVALID_MESSAGE,
-  STORE_NAME_MAX_LENGTH,
 } from "../store-name";
 import {
   isValidTaxNumberFormat,
@@ -29,18 +38,22 @@ import type { BusinessDetails } from "../types";
 type BusinessDetailsStepProps = {
   data: BusinessDetails;
   onChange: (patch: Partial<BusinessDetails>) => void;
+  showValidationErrors?: boolean;
 };
 
 export const BusinessDetailsStep = ({
   data,
   onChange,
+  showValidationErrors = false,
 }: BusinessDetailsStepProps) => {
   const storeNameError =
     data.storeName.trim() && !isValidStoreNameFormat(data.storeName)
       ? STORE_NAME_INVALID_MESSAGE
       : undefined;
   const emailError =
-    data.email.trim() && !isValidEmailFormat(data.email)
+    showValidationErrors &&
+    data.email.trim() &&
+    !isValidEmailFormat(data.email)
       ? EMAIL_INVALID_MESSAGE
       : undefined;
   const pinCodeError =
@@ -55,7 +68,7 @@ export const BusinessDetailsStep = ({
   return (
     <div className="flex w-full flex-col items-start gap-4xl">
       <div className="flex w-full flex-col gap-md">
-        <div className="flex items-center gap-xs text-sm font-medium leading-5">
+        <div className="flex items-center gap-xs text-sm font-medium">
           <span className="text-text-secondary">Pick your industry</span>
           <span className="text-text-brand" aria-hidden="true">
             *
@@ -81,7 +94,7 @@ export const BusinessDetailsStep = ({
       </div>
 
       <div className="flex w-full flex-col items-start gap-2xl">
-        <span className="text-lg font-semibold leading-7 text-text-primary">
+        <span className="text-lg font-semibold text-text-primary">
           Store details
         </span>
         <div className="flex w-full flex-col gap-2xl">
@@ -91,10 +104,11 @@ export const BusinessDetailsStep = ({
               isRequired
               placeholder="Store name"
               size="md"
-              maxLength={STORE_NAME_MAX_LENGTH}
               value={data.storeName}
               onChange={(v) =>
-                onChange({ storeName: v.slice(0, STORE_NAME_MAX_LENGTH) })
+                onChange({
+                  storeName: clampFieldLength(v, FIELD_LIMIT_STORE_NAME),
+                })
               }
               isInvalid={!!storeNameError}
               errorMessage={storeNameError}
@@ -103,10 +117,16 @@ export const BusinessDetailsStep = ({
               label="Business Legal Name"
               isRequired
               placeholder="Business legal name"
-              maxLength={STORE_NAME_MAX_LENGTH}
               size="md"
               value={data.businessLegalName}
-              onChange={(v) => onChange({ businessLegalName: v })}
+              onChange={(v) =>
+                onChange({
+                  businessLegalName: clampFieldLength(
+                    v,
+                    FIELD_LIMIT_BUSINESS_LEGAL_NAME,
+                  ),
+                })
+              }
             />
           </div>
 
@@ -118,7 +138,9 @@ export const BusinessDetailsStep = ({
               iconLeading={<Mail01 />}
               size="md"
               value={data.email}
-              onChange={(v) => onChange({ email: v })}
+              onChange={(v) =>
+                onChange({ email: clampFieldLength(v, FIELD_LIMIT_EMAIL) })
+              }
               isInvalid={!!emailError}
               errorMessage={emailError}
             />
@@ -141,9 +163,10 @@ export const BusinessDetailsStep = ({
             placeholder="Address"
             rows={3}
             className="w-full"
-            maxLength={255}
             value={data.address}
-            onChange={(v) => onChange({ address: v.slice(0, 255) })}
+            onChange={(v) =>
+              onChange({ address: clampFieldLength(v, FIELD_LIMIT_ADDRESS) })
+            }
           />
 
           <div className="grid w-full grid-cols-4 gap-lg">
@@ -178,7 +201,9 @@ export const BusinessDetailsStep = ({
               placeholder="City"
               size="md"
               value={data.city}
-              onChange={(v) => onChange({ city: v })}
+              onChange={(v) =>
+                onChange({ city: clampFieldLength(v, FIELD_LIMIT_DEFAULT) })
+              }
             />
             <InputField
               label="Pincode"
@@ -186,7 +211,11 @@ export const BusinessDetailsStep = ({
               placeholder="Pincode"
               size="md"
               value={data.pinCode}
-              onChange={(v) => onChange({ pinCode: v })}
+              onChange={(v) =>
+                onChange({
+                  pinCode: clampFieldLength(v, FIELD_LIMIT_PIN_CODE),
+                })
+              }
               isInvalid={!!pinCodeError}
               errorMessage={pinCodeError}
             />
@@ -199,7 +228,11 @@ export const BusinessDetailsStep = ({
             size="md"
             className="w-full"
             value={data.taxNumber}
-            onChange={(v) => onChange({ taxNumber: v })}
+            onChange={(v) =>
+              onChange({
+                taxNumber: clampFieldLength(v, FIELD_LIMIT_TAX_NUMBER),
+              })
+            }
             isInvalid={!!taxNumberError}
             errorMessage={taxNumberError}
           />

@@ -9,6 +9,10 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "@medusajs/ui";
 import type { StorefrontTemplate } from "../../../../services/onboardingServices";
 import { URL_PREFIX } from "../constants";
+import {
+  clampFieldLength,
+  FIELD_LIMIT_STORE_HANDLE,
+} from "../field-limits";
 import { getHandleFormatStatus } from "../handle-utils";
 import { StorefrontTemplateSkeleton } from "../shared/storefront-template-option";
 import type { HandleAvailabilityState } from "../use-handle-availability";
@@ -105,7 +109,11 @@ export const StorefrontSetupStep = ({
             size="md"
             unstyled
             value={data.handle}
-            onChange={(v) => onChange({ handle: v.toLowerCase() })}
+            onChange={(v) =>
+              onChange({
+                handle: clampFieldLength(v.toLowerCase(), FIELD_LIMIT_STORE_HANDLE),
+              })
+            }
             iconTrailing={
               <button
                 type="button"
