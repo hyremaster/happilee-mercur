@@ -1,6 +1,8 @@
 import { WorkspaceLogo } from "@happilee-app/icons";
 import { ChatsSidebar } from "@happilee-app/ui/ecommerce";
 import { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
+import { User01 } from "../../../components/icons/user-01";
 import { useMe } from "../../../hooks/api/members";
 
 type StoreSetupLayoutProps = {
@@ -14,6 +16,7 @@ export const StoreSetupLayout = ({
   minHeight = "min-h-[calc(100vh-16px)]",
   contentClassName = "items-center gap-4xl",
 }: StoreSetupLayoutProps) => {
+  const navigate = useNavigate();
   const { seller_member } = useMe({
     retry: false,
     throwOnError: false,
@@ -26,23 +29,32 @@ export const StoreSetupLayout = ({
       member.email);
 
   return (
-    <div className="flex min-h-screen items-start bg-bg-brand-subtle px-md pt-md font-[Inter,sans-serif]">
-      <div className="sticky top-md h-[calc(100vh-16px)] shrink-0 self-start pt-md">
+    <div className="flex min-h-screen items-start bg-bg-brand-subtle px-md pt-md">
+      <div className="sticky top-md flex h-[calc(100vh-16px)] shrink-0 flex-col items-center self-start pt-md">
         <ChatsSidebar
           workspaceLogo={
-            <div
-              className="flex items-center justify-center rounded-md"
+            <button
+              type="button"
+              onClick={() => navigate("/stores")}
+              aria-label="Go to stores"
+              className="flex cursor-pointer items-center justify-center rounded-md hover:opacity-80 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand"
               data-testid="sidebar-logo"
             >
               <WorkspaceLogo />
-            </div>
+            </button>
           }
-          account={{
-            name: accountName ?? "Maheen Rahman",
-            avatarUrl: "https://i.pravatar.cc/32?img=9",
-          }}
-          className="h-full"
+          className="min-h-0 flex-1"
         />
+        <div className="flex shrink-0 flex-col items-center p-2">
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-border-brand text-fg-quaternary"
+            title={accountName ?? "Account"}
+            aria-label={accountName ?? "Account"}
+            data-testid="sidebar-account"
+          >
+            <User01 size={20} />
+          </div>
+        </div>
       </div>
 
       <div

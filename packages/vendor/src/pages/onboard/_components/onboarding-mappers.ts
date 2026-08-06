@@ -624,20 +624,30 @@ const deriveOwnerHandle = (email: string): string | undefined => {
   return handle || undefined;
 };
 
+export const isBusinessDetailsComplete = (data: BusinessDetails): boolean => {
+  return (
+    !!data.industry.trim() &&
+    !!data.storeName.trim() &&
+    !!data.businessLegalName.trim() &&
+    !!data.email.trim() &&
+    !!data.phone.trim() &&
+    !!data.address.trim() &&
+    !!data.country.trim() &&
+    !!data.state.trim() &&
+    !!data.city.trim() &&
+    !!data.pinCode.trim() &&
+    !!data.taxNumber.trim()
+  );
+};
+
 export const isBusinessDetailsValid = (data: BusinessDetails): boolean => {
   const address = data.address.trim();
 
   return (
-    !!data.industry.trim() &&
+    isBusinessDetailsComplete(data) &&
     isValidStoreNameFormat(data.storeName) &&
-    !!data.businessLegalName.trim() &&
     isValidEmailFormat(data.email) &&
-    !!data.phone.trim() &&
-    !!address &&
-    address.length <= 255 &&
-    !!data.country.trim() &&
-    !!data.state.trim() &&
-    !!data.city.trim() &&
+    address.length <= 200 &&
     isValidPinCodeFormat(data.pinCode, data.country) &&
     isValidTaxNumberFormat(data.taxNumber)
   );

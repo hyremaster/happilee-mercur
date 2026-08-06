@@ -30,7 +30,8 @@
 
 html,
 body {
-    font-family: Inter, var(--font-body), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-family-font-family-body);
+    font-weight: var(--font-weight-regular);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-variant-ligatures: contextual;

@@ -7,6 +7,11 @@
 import { Check } from "@happilee-app/icons";
 import { Button, InputField, Modal, SelectField, SelectItem } from "@happilee-app/ui";
 import { useEffect, useState } from "react";
+import {
+  clampFieldLength,
+  FIELD_LIMIT_PAYMENT_CREDENTIAL,
+  FIELD_LIMIT_PAYMENT_METHOD_NAME,
+} from "../field-limits";
 
 export type PaymentGatewayFormValues = {
   methodName: string;
@@ -107,7 +112,9 @@ export function PaymentGatewayModal({
           isRequired
           placeholder="Enter Payment name"
           value={methodName}
-          onChange={setMethodName}
+          onChange={(v) =>
+            setMethodName(clampFieldLength(v, FIELD_LIMIT_PAYMENT_METHOD_NAME))
+          }
           errorMessage={
             submitAttempted && !isMethodNameValid
               ? "Payment method name is required"
@@ -135,7 +142,9 @@ export function PaymentGatewayModal({
           isRequired
           placeholder="Enter unique ID"
           value={keyId}
-          onChange={setKeyId}
+          onChange={(v) =>
+            setKeyId(clampFieldLength(v, FIELD_LIMIT_PAYMENT_CREDENTIAL))
+          }
           errorMessage={
             submitAttempted && !isKeyIdValid
               ? "Razorpay key ID is required"
@@ -147,7 +156,9 @@ export function PaymentGatewayModal({
           isRequired
           placeholder="Enter here"
           value={keySecret}
-          onChange={setKeySecret}
+          onChange={(v) =>
+            setKeySecret(clampFieldLength(v, FIELD_LIMIT_PAYMENT_CREDENTIAL))
+          }
           errorMessage={
             submitAttempted && !isKeySecretValid
               ? "Razorpay secret code is required"
