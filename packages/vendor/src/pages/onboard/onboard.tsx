@@ -364,15 +364,6 @@ export const OnboardPage = () => {
     }
   }, [state.currentStep]);
 
-  useEffect(() => {
-    if (
-      step1ValidationAttempted &&
-      isValidEmailFormat(state.businessDetails.email)
-    ) {
-      setStep1ValidationAttempted(false);
-    }
-  }, [step1ValidationAttempted, state.businessDetails.email]);
-
   const handleContinue = async () => {
     if (continueInFlightRef.current || isSavingStep) {
       return;

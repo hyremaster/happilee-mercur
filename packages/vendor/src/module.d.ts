@@ -1,5 +1,15 @@
 declare const __BASE__: string
 
+interface ImportMetaEnv {
+  readonly VITE_AREA_SENSE_APP_URL?: string
+  readonly VITE_MERCUR_BACKEND_URL?: string
+  readonly [key: string]: string | undefined
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}
+
 declare module "virtual:mercur/routes" {
     import { Route } from './utils/routes'
     export const customRoutes: Route[]
