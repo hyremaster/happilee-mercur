@@ -195,6 +195,17 @@ export const POST = async (
     metadata,
   } = req.validatedBody
 
+  // Seed the Area Sense key from the identity that SSO'd into this session, so a
+  // store created in-dashboard (no per-store SSO token) still gets the
+  // authorizing project's key. Server-side only — never sent by the client.
+  const service = req.scope.resolve<MarketplaceProfileModuleService>(
+    MercurModules.MARKETPLACE_PROFILE
+  )
+  const [identityKey] = await service.listHappileeIdentityKeys(
+    { auth_identity_id: req.auth_context.auth_identity_id },
+    { take: 1 }
+  )
+
   const { result } = await createStoreWorkflow(req.scope).run({
     input: {
       auth_identity_id: req.auth_context.auth_identity_id,
@@ -212,6 +223,7 @@ export const POST = async (
         fulfillment_methods,
         storefront_template,
         metadata,
+        happilee_api_key: identityKey?.happilee_api_key ?? null,
       },
     },
   })
@@ -237,9 +249,6 @@ export const POST = async (
     }
 
     if (memberId) {
-      const service = req.scope.resolve<MarketplaceProfileModuleService>(
-        MercurModules.MARKETPLACE_PROFILE
-      )
       const [existing] = await service.listMemberProfiles({
         member_id: memberId,
       })

@@ -10,7 +10,9 @@ import { VendorUpdatePaymentGatewayType } from "../../../validators"
 import {
   assertStoreOwnership,
   deactivateSiblingGateways,
+  isMaskedSecret,
   maskGateway,
+  validateGatewayCredentials,
 } from "../../../helpers"
 
 // Load the gateway row and verify it belongs to the target store.
@@ -51,6 +53,10 @@ export const POST = async (
   const existing = await assertGatewayInStore(service, sellerId, gatewayId)
   const { label, is_active, credentials, metadata } = req.validatedBody
 
+  // Validate new (unmasked) credentials against the provider before saving.
+  // Masked round-trips are a no-op inside the helper.
+  await validateGatewayCredentials(existing.gateway, credentials)
+
   // Single-active invariant: deactivate siblings before activating this one.
   if (is_active === true) {
     await deactivateSiblingGateways(
@@ -61,11 +67,16 @@ export const POST = async (
     )
   }
 
+  // Credentials whose secret is masked (the client is echoing a masked read
+  // back) are treated as "unchanged" and skipped, so the stored raw secret is
+  // never clobbered with the mask.
+  const credentialsMasked = isMaskedSecret(credentials?.key_secret)
+
   const updated = await service.updateStorePaymentGateways({
     id: gatewayId,
     ...(label !== undefined ? { label } : {}),
     ...(is_active !== undefined ? { is_active } : {}),
-    ...(credentials !== undefined ? { credentials } : {}),
+    ...(credentials !== undefined && !credentialsMasked ? { credentials } : {}),
     ...(metadata !== undefined ? { metadata } : {}),
   })
 

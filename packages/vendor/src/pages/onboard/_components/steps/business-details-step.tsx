@@ -57,7 +57,9 @@ export const BusinessDetailsStep = ({
       ? EMAIL_INVALID_MESSAGE
       : undefined;
   const pinCodeError =
-    data.pinCode.trim() && !isValidPinCodeFormat(data.pinCode, data.country)
+    showValidationErrors &&
+    data.pinCode.trim() &&
+    !isValidPinCodeFormat(data.pinCode, data.country)
       ? PIN_CODE_INVALID_MESSAGE
       : undefined;
   const taxNumberError =

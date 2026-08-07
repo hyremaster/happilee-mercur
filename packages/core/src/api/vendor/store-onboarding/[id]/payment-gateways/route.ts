@@ -10,6 +10,7 @@ import {
   assertStoreOwnership,
   deactivateSiblingGateways,
   maskGateway,
+  validateGatewayCredentials,
 } from "../../helpers"
 
 // GET /vendor/store-onboarding/:id/payment-gateways — list a store's payment
@@ -40,6 +41,9 @@ export const POST = async (
   const sellerId = req.params.id
   await assertStoreOwnership(req, sellerId)
   const { gateway, label, is_active, credentials, metadata } = req.validatedBody
+
+  // Reject unusable credentials up front (Razorpay: verify key auth works).
+  await validateGatewayCredentials(gateway, credentials)
 
   const service = req.scope.resolve<MarketplaceProfileModuleService>(
     MercurModules.MARKETPLACE_PROFILE

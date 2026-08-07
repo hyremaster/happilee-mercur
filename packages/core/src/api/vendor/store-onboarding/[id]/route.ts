@@ -20,7 +20,7 @@ import {
   deactivateSiblingGateways,
   maskGateway,
   sanitizeStoreProfile,
-  MASKED,
+  isMaskedSecret,
 } from "../helpers"
 
 // GET /vendor/store-onboarding/:id — store detail (seller + extension data).
@@ -157,9 +157,10 @@ export const POST = async (
   //    existing rows absent from the payload are deleted.
   //  - legacy singular `payment_gateway` is a non-destructive upsert (never
   //    deletes siblings).
-  // Credentials stored raw; masked on read. On update, a credentials object
-  // whose secret is the mask ("***") is treated as "unchanged" and skipped, so
-  // a client round-tripping a masked read never clobbers the stored secret.
+  // Credentials stored raw; masked on read (length-preserving, first+last shown).
+  // On update, a credentials object whose secret is masked (contains the mask
+  // bullet) is treated as "unchanged" and skipped, so a client round-tripping a
+  // masked read never clobbers the stored secret.
   const isReplaceAll = body.payment_gateways !== undefined
   const gatewayEntries =
     body.payment_gateways ??
@@ -189,7 +190,7 @@ export const POST = async (
         await deactivateSiblingGateways(service, sellerId, gateway, id)
       }
       if (id) {
-        const credentialsMasked = credentials?.key_secret === MASKED
+        const credentialsMasked = isMaskedSecret(credentials?.key_secret)
         await service.updateStorePaymentGateways({
           id,
           label,

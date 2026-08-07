@@ -7,6 +7,7 @@ import {
 import type { CreateStockLocationInput } from "@medusajs/framework/types"
 import {
   CreateSellerDTO,
+  SellerStatus,
   StoreCommerceType,
   StoreFulfillmentMethod,
   StoreIndustry,
@@ -17,7 +18,7 @@ import {
   UpdateSellerAddressDTO,
 } from "@mercurjs/types"
 
-import { approveSellerWorkflow } from "../../seller"
+import { updateSellersStep } from "../../seller"
 import { createSellerStockLocationsWorkflow } from "../../stock-location"
 import { createStoreWorkflow } from "./create-store"
 import {
@@ -109,10 +110,22 @@ export const submitStoreDraftWorkflow =
 
       // 1b. Submitting a completed onboarding draft is self-service approval:
       //     the store goes live (status OPEN + approved_at) immediately rather
-      //     than sitting in pending_approval. Emits the standard APPROVED event.
-      approveSellerWorkflow.runAsStep({
-        input: transform(created, (c) => ({ seller_id: c.seller.id })),
-      })
+      //     than sitting in pending_approval. We set the status DIRECTLY here
+      //     instead of routing through approveSellerWorkflow, whose
+      //     validateApproveSellerStep throws unless the seller is exactly
+      //     pending_approval — on any re-run/retry that guard aborts the whole
+      //     submit and the store is left inconsistent. A plain unconditional
+      //     update is idempotent and always resolves to OPEN.
+      updateSellersStep(
+        transform(created, (c) => ({
+          selector: { id: c.seller.id },
+          update: {
+            status: SellerStatus.OPEN,
+            status_reason: null,
+            approved_at: new Date(),
+          },
+        }))
+      )
 
       // 2. Payment config + optional order-status overrides.
       finalizeStoreExtrasStep(
