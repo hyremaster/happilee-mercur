@@ -1,11 +1,18 @@
 import { loadEnv } from '@medusajs/framework/utils'
 import { withMercur } from '@mercurjs/core'
 
+const {
+  resolveSessionProjectConfig,
+} = require('./session-project-config')
+
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
+
+const sessionProjectConfig = resolveSessionProjectConfig(process.env)
 
 module.exports = withMercur({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
+    ...sessionProjectConfig,
     http: {
       storeCors: process.env.STORE_CORS!,
       adminCors: process.env.ADMIN_CORS!,
@@ -13,6 +20,7 @@ module.exports = withMercur({
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
+      jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
     }
   },
   featureFlags: {

@@ -57,6 +57,10 @@ COOKIE_SECRET=supersecret
 
 Adjust `DATABASE_URL` username/password for your local Postgres setup.
 
+`REDIS_URL` is required for vendor/admin login sessions to survive API
+restarts. `apps/api/medusa-config.ts` passes it as `projectConfig.redisUrl`
+so Medusa stores `connect.sid` sessions in Redis instead of process memory.
+
 ---
 
 ## Step 4 — Build all packages
@@ -202,18 +206,24 @@ echo "" | bunx medusa db:migrate
 
 ---
 
-### Issue 3 — `redisUrl not found` warning during migration
+### Issue 3 — `redisUrl not found` warning / logins lost on restart
 
 **Log line:**
 ```
 info: redisUrl not found. A fake redis instance will be used.
 ```
 
-**Cause:** The migration command doesn't load `.env` from the API directory
-the same way the dev server does, so `REDIS_URL` is not picked up.
+**Cause:** `projectConfig.redisUrl` was missing (or `REDIS_URL` was unset).
+Without it, Medusa keeps auth sessions in memory, so every API restart
+forces a fresh login. Migrations may also show this warning if `.env` is
+not loaded the same way as the dev server.
 
-**Impact:** None for migrations. The fake Redis is sufficient for schema
-migration. The actual dev server uses real Redis from `.env`.
+**Fix:** Ensure `REDIS_URL` is set in `apps/api/.env` and that
+`apps/api/medusa-config.ts` includes `redisUrl: process.env.REDIS_URL`.
+Redis must be running (`redis-cli ping` → `PONG`).
+
+**Impact:** Migrations can still use fake Redis for schema work. The API
+dev server needs real Redis for durable vendor/admin sessions.
 
 ---
 
