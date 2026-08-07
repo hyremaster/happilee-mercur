@@ -89,12 +89,8 @@ const LoginForm = () => {
           });
         },
         onSuccess: () => {
-          const email = form.getValues("email");
           setTimeout(() => {
-            navigate("/store-select", {
-              replace: true,
-              state: { email },
-            });
+            navigate("/stores", { replace: true });
           }, 1000);
         },
       },

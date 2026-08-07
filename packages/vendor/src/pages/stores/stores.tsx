@@ -31,7 +31,7 @@ import { SearchAndFilters } from "./_components/search-and-filters";
 import { StoreAvatar } from "./_components/store-avatar";
 import { mapStoreToTableRow, type StoreTableRow } from "./_components/utils";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 10;
 
 export const StoresPage = () => {
   const navigate = useNavigate();
