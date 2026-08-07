@@ -19,6 +19,7 @@ import {
   Cell,
   Toggle,
 } from "@happilee-app/ui";
+import { getAreaSenseAppUrl } from "@lib/environment";
 import type { AreaSenseArea } from "../../../services/onboardingServices";
 import type { CommerceConfig } from "../types";
 import { filterAreaSenseAreasByType } from "../area-sense-area-type";
@@ -27,8 +28,6 @@ import {
   FIELD_LIMIT_ORDER_STATUS_DISPLAY_NAME,
 } from "../field-limits";
 import { useAreaSenseAreas } from "../use-area-sense-areas";
-
-const AREA_SENSE_APP_URL = "https://app.happilee.io/my-apps/area-sense";
 
 type CommerceTypeStepProps = {
   data: CommerceConfig;
@@ -286,6 +285,7 @@ export const CommerceTypeStep = ({
   onRetryStatuses,
   isResetDisabled,
 }: CommerceTypeStepProps) => {
+  const areaSenseAppUrl = getAreaSenseAppUrl();
   const {
     areas,
     isLoading: isLoadingAreas,
@@ -343,7 +343,7 @@ export const CommerceTypeStep = ({
                   <div className="flex items-center gap-xxs text-sm font-medium text-text-secondary">
                     <span>Delivery available areas (from your </span>
                     <a
-                      href={AREA_SENSE_APP_URL}
+                      href={areaSenseAppUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-text-brand underline"
@@ -399,7 +399,7 @@ export const CommerceTypeStep = ({
                   <div className="flex items-center gap-xxs text-sm font-medium text-text-secondary">
                     <span>Delivery available areas (from your </span>
                     <a
-                      href={AREA_SENSE_APP_URL}
+                      href={areaSenseAppUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-text-brand underline"
