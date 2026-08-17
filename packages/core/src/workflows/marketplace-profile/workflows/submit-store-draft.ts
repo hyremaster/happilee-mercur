@@ -26,6 +26,7 @@ import {
   createStoreLocationDetailsStep,
   createStoreDeliveryAreasStep,
   createStorePaymentGatewaysStep,
+  createStoreFulfillmentOptionsStep,
   markDraftSubmittedStep,
 } from "../steps"
 
@@ -166,6 +167,25 @@ export const submitStoreDraftWorkflow =
               longitude: drafts[i]?.longitude ?? null,
             }))
           }
+        )
+      )
+
+      // 3a2. Shipping options per fulfillment centre, derived from the store's
+      //      fulfillment methods (delivery/shipping -> shipping set, pickup ->
+      //      pickup set). No-ops when there are no locations or methods.
+      createStoreFulfillmentOptionsStep(
+        transform(
+          { created, createdLocations, input },
+          ({ created, createdLocations, input }) => ({
+            seller_id: created.seller.id,
+            currency_code: input.seller.currency_code,
+            country_code: input.address?.country_code ?? null,
+            fulfillment_methods:
+              input.store_profile.fulfillment_methods ?? null,
+            location_ids: ((createdLocations ?? []) as { id: string }[]).map(
+              (l) => l.id
+            ),
+          })
         )
       )
 

@@ -1,3 +1,5 @@
+export * from "./create-store-fulfillment-options"
+
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
   cancelOrderWorkflow,
