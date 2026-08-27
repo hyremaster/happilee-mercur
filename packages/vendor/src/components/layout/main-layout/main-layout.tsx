@@ -47,11 +47,18 @@ const addNestedItems = (
     return items;
   }
 
-  const nestedNavItems = nestedItems.map((item) => ({
-    label: item.label,
-    to: item.path,
-    translationNs: item.translationNs,
-  }));
+  // Skip a nested item that points back at its own parent (a redundant
+  // self-link, e.g. a "Products" child under /products) or that duplicates a
+  // hardcoded child already provided in `items`.
+  const existing = new Set((items ?? []).map((item) => item.to));
+
+  const nestedNavItems = nestedItems
+    .filter((item) => item.path !== to && !existing.has(item.path))
+    .map((item) => ({
+      label: item.label,
+      to: item.path,
+      translationNs: item.translationNs,
+    }));
 
   return [...(items ?? []), ...nestedNavItems];
 };
@@ -65,7 +72,14 @@ export const MainSidebar = () => {
     items: addNestedItems(route.to, route.items),
   }));
 
+  // Core routes are the canonical sidebar. Some built-in pages (products,
+  // promotions, ...) also surface as auto-generated "main" menu items, which
+  // would render a second, duplicate entry. Drop any custom item whose path a
+  // core route already owns; genuine user-added routes (new paths) still show.
+  const corePaths = new Set(coreRoutes.map((route) => route.to));
+
   const customRoutesWithNested = customMenuItems
+    .filter((item) => !corePaths.has(item.path))
     .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
     .map((item) => {
       const Icon = item.icon;

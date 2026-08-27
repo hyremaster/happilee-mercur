@@ -554,8 +554,10 @@ export type Routes = {
         };
         sellers: typeof import("../../src/api/store/sellers/route") & {
             $id: typeof import("../../src/api/store/sellers/[id]/route") & {
+                categories: typeof import("../../src/api/store/sellers/[id]/categories/route");
                 paymentProviders: typeof import("../../src/api/store/sellers/[id]/payment-providers/route");
                 products: typeof import("../../src/api/store/sellers/[id]/products/route");
+                tags: typeof import("../../src/api/store/sellers/[id]/tags/route");
             };
         };
     };

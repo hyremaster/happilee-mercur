@@ -1,6 +1,7 @@
 import { Children, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Heading } from "@medusajs/ui";
+import { Link } from "react-router-dom";
+import { Button, Heading } from "@medusajs/ui";
 
 export const ProductTagListTitle = () => {
   const { t } = useTranslation();
@@ -12,9 +13,18 @@ export const ProductTagListActions = ({
 }: {
   children?: ReactNode;
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-center gap-x-2">
-      {Children.count(children) > 0 ? children : null}
+      {Children.count(children) > 0 ? (
+        children
+      ) : (
+        <Link to="/settings/product-tags/create">
+          <Button size="small" variant="secondary">
+            {t("actions.create")}
+          </Button>
+        </Link>
+      )}
     </div>
   );
 };
@@ -29,7 +39,10 @@ export const ProductTagListHeader = ({
       {Children.count(children) > 0 ? (
         children
       ) : (
-        <ProductTagListTitle />
+        <>
+          <ProductTagListTitle />
+          <ProductTagListActions />
+        </>
       )}
     </div>
   );

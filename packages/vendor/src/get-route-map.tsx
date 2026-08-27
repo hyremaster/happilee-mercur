@@ -1240,6 +1240,13 @@ export function getRouteMap({
                         await import("./pages/settings/product-tags");
                       return { Component: ProductTagListPage };
                     },
+                    children: [
+                      {
+                        path: "create",
+                        lazy: () =>
+                          import("./pages/settings/product-tags/create"),
+                      },
+                    ],
                   },
                   {
                     path: ":id",

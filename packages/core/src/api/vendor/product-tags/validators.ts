@@ -6,6 +6,19 @@ import {
   createSelectParams,
 } from "@medusajs/medusa/api/utils/validators"
 
+export const VendorCreateProductTagBody = z.object({
+  value: z.string().min(1),
+  metadata: z.record(z.unknown()).optional(),
+})
+export type VendorCreateProductTagBodyType = z.infer<
+  typeof VendorCreateProductTagBody
+>
+
+export const VendorUpdateProductTagBody = VendorCreateProductTagBody.partial()
+export type VendorUpdateProductTagBodyType = z.infer<
+  typeof VendorUpdateProductTagBody
+>
+
 export type VendorGetProductTagParamsType = z.infer<
   typeof VendorGetProductTagParams
 >
