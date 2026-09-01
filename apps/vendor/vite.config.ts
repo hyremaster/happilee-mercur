@@ -60,9 +60,8 @@ export default defineConfig(({ mode }) => {
       mercurDashboardPlugin({
         medusaConfigPath: '../api/medusa-config.ts',
         ...(backendUrl ? { backendUrl } : {}),
-        components: {
-          StoreSetup: 'components/store-setup/store-setup',
-        },
+        // "Complete store profile" banner removed: no StoreSetup override is
+        // registered, so shell.tsx / store-detail-page render nothing for it.
       }),
     ],
     resolve: {

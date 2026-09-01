@@ -490,6 +490,7 @@ export type Routes = {
                 promotions: typeof import("../../src/api/store/carts/[id]/promotions/route");
                 shippingMethods: typeof import("../../src/api/store/carts/[id]/shipping-methods/route");
                 taxes: typeof import("@medusajs/medusa/api/store/carts/[id]/taxes/route");
+                deliveryAvailability: typeof import("../../src/api/store/carts/[id]/delivery-availability/route");
             };
         };
         collections: typeof import("@medusajs/medusa/api/store/collections/route") & {

@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/util
 import { HttpTypes } from "@mercurjs/types"
 
 import { completeCartWithSplitOrdersWorkflow } from "../../../../../workflows/cart"
+import { checkCartDeliveryAvailability } from "../../delivery"
 import { defaultStoreCartFields, refetchCart } from "../../helpers"
 import { StoreCompleteCartParamsType } from "./validators"
 
@@ -11,6 +12,17 @@ export const POST = async (
     res: MedusaResponse<HttpTypes.StoreCompleteCartResponse>
 ) => {
     const cart_id = req.params.id
+
+    // Gate completion on Area Sense delivery availability: every seller in the
+    // cart must serve the shipping location, else we stop before placing orders.
+    const availability = await checkCartDeliveryAvailability(req.scope, cart_id)
+    if (!availability.deliverable) {
+        throw new MedusaError(
+            MedusaError.Types.NOT_ALLOWED,
+            availability.reason ??
+                "Delivery is not available to the selected address."
+        )
+    }
 
     const { errors, result } = await completeCartWithSplitOrdersWorkflow(req.scope).run({
         input: { cart_id },
