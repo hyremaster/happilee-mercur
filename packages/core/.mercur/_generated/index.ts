@@ -768,7 +768,11 @@ export type Routes = {
         uploads: typeof import("../../src/api/vendor/uploads/route");
         attributes: typeof import("../../src/api/vendor/attributes/route");
         featureFlags: typeof import("../../src/api/vendor/feature-flags/route");
-        fulfillmentProviders: typeof import("../../src/api/vendor/fulfillment-providers/route");
+        fulfillmentProviders: typeof import("../../src/api/vendor/fulfillment-providers/route") & {
+            $id: {
+                options: typeof import("../../src/api/vendor/fulfillment-providers/[id]/options/route");
+            };
+        };
         members: {
             invites: {
                 accept: typeof import("../../src/api/vendor/members/invites/accept/route");

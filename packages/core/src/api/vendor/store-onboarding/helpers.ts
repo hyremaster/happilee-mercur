@@ -1,3 +1,5 @@
+import crypto from "crypto"
+
 import { AuthenticatedMedusaRequest } from "@medusajs/framework"
 import {
   ContainerRegistrationKeys,
@@ -115,6 +117,161 @@ export async function validateGatewayCredentials(
     const keySecret =
       typeof credentials.key_secret === "string" ? credentials.key_secret : ""
     await validateRazorpayCredentials(keyId, keySecret)
+  }
+}
+
+// Events our webhook handler acts on. Razorpay's v1 API expects an object map.
+const RAZORPAY_WEBHOOK_EVENTS: Record<string, boolean> = {
+  "payment.authorized": true,
+  "payment.captured": true,
+  "payment.failed": true,
+}
+
+// The provider segment Medusa prepends `pp_` to; must resolve to the registered
+// provider id `pp_razorpay_razorpay`.
+const RAZORPAY_WEBHOOK_PATH = "/hooks/payment/razorpay_razorpay"
+
+/** Generate a fresh Razorpay webhook signing secret. */
+export function generateWebhookSecret(): string {
+  return `whsec_${crypto.randomBytes(24).toString("hex")}`
+}
+
+/**
+ * Public webhook URL Razorpay should call. Derived from BACKEND_PUBLIC_URL
+ * (e.g. https://ecom.happilee.io). Returns null when unset so callers can
+ * skip auto-registration (e.g. local dev where Razorpay can't reach the host).
+ */
+export function getRazorpayWebhookUrl(): string | null {
+  const base = process.env.BACKEND_PUBLIC_URL?.replace(/\/+$/, "")
+  if (!base) {
+    return null
+  }
+  return `${base}${RAZORPAY_WEBHOOK_PATH}`
+}
+
+/**
+ * Register (or update) our webhook on the seller's Razorpay account so payment
+ * events reach the marketplace. Idempotent: matches an existing webhook by URL
+ * and updates it (secret/events), otherwise creates one. Leaves the seller's
+ * other webhooks (e.g. their own app integration) untouched. Returns the
+ * Razorpay webhook id. Throws INVALID_DATA on a hard API failure.
+ */
+export async function syncRazorpayWebhook(
+  keyId: string,
+  keySecret: string,
+  url: string,
+  secret: string
+): Promise<string> {
+  const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64")
+  const headers = {
+    Authorization: `Basic ${auth}`,
+    "Content-Type": "application/json",
+  }
+
+  // Find an existing webhook with the same URL to avoid duplicates.
+  let existingId: string | undefined
+  try {
+    const listRes = await fetch(
+      "https://api.razorpay.com/v1/webhooks?count=100",
+      { headers }
+    )
+    if (listRes.ok) {
+      const body = (await listRes.json()) as {
+        items?: { id: string; url: string }[]
+      }
+      existingId = body.items?.find((w) => w.url === url)?.id
+    }
+  } catch {
+    // Non-fatal: fall through and attempt to create.
+  }
+
+  const payload = JSON.stringify({
+    url,
+    secret,
+    events: RAZORPAY_WEBHOOK_EVENTS,
+    active: true,
+  })
+  const target = existingId
+    ? `https://api.razorpay.com/v1/webhooks/${existingId}`
+    : "https://api.razorpay.com/v1/webhooks"
+  const method = existingId ? "PUT" : "POST"
+
+  let res: Response
+  try {
+    res = await fetch(target, { method, headers, body: payload })
+  } catch {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Could not reach Razorpay to register the webhook. Please try again."
+    )
+  }
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Could not register the Razorpay webhook (status ${res.status}). ${errText.slice(0, 300)}`
+    )
+  }
+
+  const created = (await res.json()) as { id: string }
+  return created.id
+}
+
+/**
+ * Prepare Razorpay gateway credentials for persistence: ensure a webhook_secret
+ * exists (reuse the caller-supplied or previously-stored one, else generate a
+ * random one) and register/refresh the webhook on the seller's Razorpay account
+ * so it points at our URL with that secret.
+ *
+ * Returns the credentials to store (with webhook_secret) plus metadata to merge
+ * (razorpay_webhook_id / _url). No-op passthrough for non-Razorpay gateways or
+ * masked (unchanged) credentials. Best-effort: when BACKEND_PUBLIC_URL is unset
+ * we still stamp a secret so it can be wired up manually, but skip the API call.
+ */
+export async function prepareRazorpayGatewayCredentials(
+  gateway: string,
+  credentials: Record<string, unknown> | null | undefined,
+  previousWebhookSecret?: string
+): Promise<{
+  credentials: Record<string, unknown> | null | undefined
+  metadata: Record<string, unknown>
+}> {
+  if (
+    gateway !== StorePaymentGatewayType.RAZORPAY ||
+    !isObject(credentials) ||
+    isMaskedSecret(credentials.key_secret)
+  ) {
+    return { credentials, metadata: {} }
+  }
+
+  const keyId = typeof credentials.key_id === "string" ? credentials.key_id : ""
+  const keySecret =
+    typeof credentials.key_secret === "string" ? credentials.key_secret : ""
+
+  // Reuse an explicitly-provided secret, then a previously-stored one, else mint.
+  const provided =
+    typeof credentials.webhook_secret === "string" &&
+    credentials.webhook_secret &&
+    !isMaskedSecret(credentials.webhook_secret)
+      ? (credentials.webhook_secret as string)
+      : undefined
+  const webhookSecret = provided ?? previousWebhookSecret ?? generateWebhookSecret()
+
+  const outCredentials: Record<string, unknown> = {
+    ...credentials,
+    webhook_secret: webhookSecret,
+  }
+
+  const url = getRazorpayWebhookUrl()
+  if (!url) {
+    return { credentials: outCredentials, metadata: {} }
+  }
+
+  const webhookId = await syncRazorpayWebhook(keyId, keySecret, url, webhookSecret)
+  return {
+    credentials: outCredentials,
+    metadata: { razorpay_webhook_id: webhookId, razorpay_webhook_url: url },
   }
 }
 

@@ -186,20 +186,32 @@ export default class RazorpayProviderService extends AbstractPaymentProvider {
     // on `payment.notes` for session_id/seller_id.
     let sessionId = payment?.notes?.session_id as string | undefined
     let sellerId = payment?.notes?.seller_id as string | undefined
+    let sessionStatus: string | undefined
     if (orderId) {
       const { rows } = await getPool().query<{
         id: string
+        status: string
         data: Record<string, unknown> | null
       }>(
-        `SELECT id, data FROM payment_session
+        `SELECT id, status, data FROM payment_session
          WHERE data->>'order_id' = $1 AND deleted_at IS NULL
          ORDER BY created_at DESC LIMIT 1`,
         [orderId]
       )
       if (rows[0]) {
         sessionId = rows[0].id
+        sessionStatus = rows[0].status
         sellerId = (rows[0].data?.seller_id as string) ?? sellerId
       }
+    }
+
+    // Idempotency: Razorpay fires several events per payment (authorized +
+    // captured) and retries. Once the first event authorized the session (which
+    // places the order and captures via the order.placed subscriber), the
+    // session is no longer `pending`. Re-processing would try to capture an
+    // already-captured payment and throw. Skip anything past `pending`.
+    if (sessionStatus && sessionStatus !== "pending") {
+      return { action: "not_supported", data: { session_id: sessionId ?? "", amount: 0 } }
     }
 
     // Verify signature using the seller-specific webhook_secret from DB.
@@ -219,9 +231,14 @@ export default class RazorpayProviderService extends AbstractPaymentProvider {
       }
     }
 
+    // Both authorized and captured map to "authorized": the webhook's job is to
+    // authorize the session so the cart completes and the order is placed.
+    // Capture is handled separately by the order.placed auto-capture subscriber,
+    // so we must NOT emit "captured" here — that would make Medusa capture in
+    // the workflow AND again in the subscriber (double capture -> throw).
     const actionMap: Record<string, WebhookActionResult["action"]> = {
       "payment.authorized": "authorized",
-      "payment.captured": "captured",
+      "payment.captured": "authorized",
       "payment.failed": "failed",
     }
 
