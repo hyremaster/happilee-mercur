@@ -561,6 +561,12 @@ export type Routes = {
                 tags: typeof import("../../src/api/store/sellers/[id]/tags/route");
             };
         };
+        auth: {
+            phone: {
+                sendOtp: typeof import("../../src/api/store/auth/phone/send-otp/route");
+                verifyOtp: typeof import("../../src/api/store/auth/phone/verify-otp/route");
+            };
+        };
     };
     vendor: {
         campaigns: typeof import("../../src/api/vendor/campaigns/route") & {

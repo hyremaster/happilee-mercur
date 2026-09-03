@@ -73,6 +73,11 @@ export default class RazorpayProviderService extends AbstractPaymentProvider {
       throw new Error("seller_id is required in payment session data")
     }
 
+    // Medusa injects the payment session id into input.data (see
+    // createPaymentSession: `data: { ...input.data, session_id }`). Stamp it on
+    // the Razorpay order notes so webhooks can map back to the session.
+    const sessionId = input.data?.session_id as string | undefined
+
     const { key_id, key_secret } = await this.getCredentials(sellerId)
     const razorpay = new Razorpay({ key_id, key_secret })
 
@@ -80,7 +85,7 @@ export default class RazorpayProviderService extends AbstractPaymentProvider {
       amount: Math.round(Number(input.amount) * 100),
       currency: input.currency_code.toUpperCase(),
       receipt: `rcpt_${Date.now()}`,
-      notes: { seller_id: sellerId },
+      notes: { seller_id: sellerId, session_id: sessionId ?? "" },
     })
 
     return {
@@ -91,6 +96,7 @@ export default class RazorpayProviderService extends AbstractPaymentProvider {
         amount: order.amount,
         currency: order.currency,
         seller_id: sellerId,
+        session_id: sessionId,
       },
     }
   }
@@ -171,9 +177,32 @@ export default class RazorpayProviderService extends AbstractPaymentProvider {
 
     const event = body?.event as string
     const payment = body?.payload?.payment?.entity
+    const orderId = payment?.order_id as string | undefined
 
-    // Verify signature using vendor-specific webhook_secret from DB
-    const sellerId = payment?.notes?.seller_id as string | undefined
+    // Resolve the Medusa payment session from the Razorpay order_id. This is the
+    // reliable join key: it is always present on the payment entity and is
+    // stored on the session (`data.order_id`) at initiate time. Razorpay does
+    // NOT reliably copy order notes onto the payment entity, so we cannot depend
+    // on `payment.notes` for session_id/seller_id.
+    let sessionId = payment?.notes?.session_id as string | undefined
+    let sellerId = payment?.notes?.seller_id as string | undefined
+    if (orderId) {
+      const { rows } = await getPool().query<{
+        id: string
+        data: Record<string, unknown> | null
+      }>(
+        `SELECT id, data FROM payment_session
+         WHERE data->>'order_id' = $1 AND deleted_at IS NULL
+         ORDER BY created_at DESC LIMIT 1`,
+        [orderId]
+      )
+      if (rows[0]) {
+        sessionId = rows[0].id
+        sellerId = (rows[0].data?.seller_id as string) ?? sellerId
+      }
+    }
+
+    // Verify signature using the seller-specific webhook_secret from DB.
     if (sellerId && rawData) {
       const creds = await this.getCredentials(sellerId).catch(() => null)
       if (creds?.webhook_secret) {
@@ -199,7 +228,7 @@ export default class RazorpayProviderService extends AbstractPaymentProvider {
     return {
       action: actionMap[event] ?? "not_supported",
       data: {
-        session_id: payment?.notes?.session_id,
+        session_id: sessionId,
         ...(payment?.amount ? { amount: payment.amount / 100 } : {}),
       },
     } as WebhookActionResult

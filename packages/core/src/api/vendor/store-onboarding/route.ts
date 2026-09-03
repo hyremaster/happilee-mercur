@@ -81,7 +81,6 @@ export const GET = async (
       fields: req.queryConfig.fields,
       filters: {
         member_id: memberId,
-        is_owner: true,
         seller: { status: { $ne: SellerStatus.TERMINATED } },
       },
     })
@@ -94,9 +93,34 @@ export const GET = async (
       ? await service.listStoreProfiles({ seller_id: sellerIds })
       : []
     const profileBySeller = new Map(profiles.map((p) => [p.seller_id, p]))
-    const [ownerProfile] = await service.listMemberProfiles({
-      member_id: memberId,
-    })
+
+    // Resolve each store's actual owner handle. The viewer may be a non-owner
+    // team member, so owner_handle must reflect the store owner, not the viewer.
+    const ownerHandleBySeller = new Map<string, string | null>()
+    if (sellerIds.length) {
+      const { data: ownerMembers } = await query.graph({
+        entity: "seller_member",
+        fields: ["seller_id", "member_id"],
+        filters: { seller_id: sellerIds, is_owner: true },
+      })
+      const ownerMemberIds = ownerMembers
+        .map((om) => om.member_id)
+        .filter((id): id is string => !!id)
+      const ownerProfiles = ownerMemberIds.length
+        ? await service.listMemberProfiles({ member_id: ownerMemberIds })
+        : []
+      const handleByMember = new Map(
+        ownerProfiles.map((p) => [p.member_id, p.handle ?? null])
+      )
+      for (const om of ownerMembers) {
+        if (om.seller_id) {
+          ownerHandleBySeller.set(
+            om.seller_id,
+            handleByMember.get(om.member_id) ?? null
+          )
+        }
+      }
+    }
 
     for (const sm of sellerMembers) {
       const seller = sm.seller
@@ -107,7 +131,7 @@ export const GET = async (
         is_draft: false,
         status: seller.status,
         name: seller.name ?? null,
-        owner_handle: ownerProfile?.handle ?? null,
+        owner_handle: ownerHandleBySeller.get(sm.seller_id) ?? null,
         industry: profile?.industry ?? null,
         commerce_type: profile?.commerce_type ?? null,
         handle: seller.handle ?? null,
