@@ -17,6 +17,7 @@
   "devDependencies": {
     "@mercurjs/types": "*",
     "@medusajs/test-utils": "^2.13.4",
+    "firebase-admin": "^12.7.0",
     "@swc/core": "^1.7.28",
     "@swc/jest": "^0.2.36",
     "@types/jest": "^29.5.13",
