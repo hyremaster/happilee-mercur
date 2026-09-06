@@ -480,8 +480,8 @@ export type Routes = {
         };
     };
     store: {
-        carts: typeof import("@medusajs/medusa/api/store/carts/route") & {
-            $id: typeof import("@medusajs/medusa/api/store/carts/[id]/route") & {
+        carts: typeof import("../../src/api/store/carts/route") & {
+            $id: typeof import("../../src/api/store/carts/[id]/route") & {
                 complete: typeof import("../../src/api/store/carts/[id]/complete/route");
                 customer: typeof import("@medusajs/medusa/api/store/carts/[id]/customer/route");
                 lineItems: typeof import("@medusajs/medusa/api/store/carts/[id]/line-items/route") & {
@@ -562,6 +562,9 @@ export type Routes = {
             };
         };
         auth: {
+            firebase: {
+                verify: typeof import("../../src/api/store/auth/firebase/verify/route");
+            };
             phone: {
                 sendOtp: typeof import("../../src/api/store/auth/phone/send-otp/route");
                 verifyOtp: typeof import("../../src/api/store/auth/phone/verify-otp/route");

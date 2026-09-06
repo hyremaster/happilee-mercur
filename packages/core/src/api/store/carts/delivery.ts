@@ -206,3 +206,50 @@ export async function checkCartDeliveryAvailability(
       : "One or more sellers cannot deliver to this location.",
   }
 }
+
+/**
+ * Guard used by cart create/update: when the cart has a shipping address, run
+ * the same delivery-availability check as the completion guard and throw
+ * NOT_ALLOWED if any seller can't deliver. No-op when the cart has no shipping
+ * address yet (address is optional on create/update — the completion guard is
+ * the final gate). Reuses checkCartDeliveryAvailability so the rule stays in one
+ * place.
+ */
+export async function assertCartDeliverableIfAddressPresent(
+  container: MedusaContainer,
+  cartId: string
+): Promise<void> {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity: "cart",
+    fields: [
+      "id",
+      "shipping_address.postal_code",
+      "shipping_address.metadata",
+    ],
+    filters: { id: cartId },
+  })
+  const cart = data[0] as CartRow | undefined
+
+  // Only validate once the cart has a usable shipping location. Medusa attaches
+  // an empty shipping_address on create, so presence of the address alone isn't
+  // enough — require coordinates or a postal code (the same signals the check
+  // uses). Without them there is nothing to match against; the completion guard
+  // remains the final gate.
+  const metadata = cart?.shipping_address?.metadata ?? {}
+  const hasCoords =
+    asNumber(metadata.latitude) !== undefined &&
+    asNumber(metadata.longitude) !== undefined
+  const hasZip = !!cart?.shipping_address?.postal_code
+  if (!hasCoords && !hasZip) {
+    return
+  }
+
+  const availability = await checkCartDeliveryAvailability(container, cartId)
+  if (!availability.deliverable) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      availability.reason ?? "Delivery is not available to the selected address."
+    )
+  }
+}

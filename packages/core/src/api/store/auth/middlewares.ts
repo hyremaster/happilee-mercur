@@ -5,6 +5,7 @@ import {
   StoreSendPhoneOtp,
   StoreVerifyPhoneOtp,
 } from "./phone/validators"
+import { StoreFirebaseVerify } from "./firebase/validators"
 
 export const storeAuthMiddlewares: MiddlewareRoute[] = [
   {
@@ -16,5 +17,10 @@ export const storeAuthMiddlewares: MiddlewareRoute[] = [
     method: ["POST"],
     matcher: "/store/auth/phone/verify-otp",
     middlewares: [validateAndTransformBody(StoreVerifyPhoneOtp)],
+  },
+  {
+    method: ["POST"],
+    matcher: "/store/auth/firebase/verify",
+    middlewares: [validateAndTransformBody(StoreFirebaseVerify)],
   },
 ]

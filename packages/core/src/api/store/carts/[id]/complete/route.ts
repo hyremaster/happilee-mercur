@@ -13,6 +13,26 @@ export const POST = async (
 ) => {
     const cart_id = req.params.id
 
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+
+    // Idempotency: if this cart was already completed (an order group exists),
+    // return it instead of running the split workflow again. Re-running would
+    // try to re-link payment↔order and fail with "Cannot create multiple links
+    // between 'order' and 'payment'". Guards against duplicate /complete calls
+    // and any race with an out-of-band completion.
+    const { data: existingGroups } = await query.graph({
+        entity: "order_group",
+        fields: req.queryConfig.fields,
+        filters: { cart_id },
+    })
+    if (existingGroups[0]) {
+        res.status(200).json({
+            type: "order_group",
+            order_group: existingGroups[0],
+        })
+        return
+    }
+
     // Gate completion on Area Sense delivery availability: every seller in the
     // cart must serve the shipping location, else we stop before placing orders.
     const availability = await checkCartDeliveryAvailability(req.scope, cart_id)
@@ -28,8 +48,6 @@ export const POST = async (
         input: { cart_id },
         throwOnError: false,
     })
-
-    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
     // When an error occurs on the workflow, it's potentially to do with cart validations, payments
     // or inventory checks. Return the cart here along with errors for the consumer to take more action
