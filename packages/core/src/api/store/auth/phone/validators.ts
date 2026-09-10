@@ -12,6 +12,11 @@ export const StoreSendPhoneOtp = z.object({
   phone: phoneSchema,
 })
 
+export type StorePhoneExistsType = z.infer<typeof StorePhoneExists>
+export const StorePhoneExists = z.object({
+  phone: phoneSchema,
+})
+
 export type StoreVerifyPhoneOtpType = z.infer<typeof StoreVerifyPhoneOtp>
 export const StoreVerifyPhoneOtp = z.object({
   phone: phoneSchema,

@@ -2,7 +2,7 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import { normalizePhone } from "../../phone/util"
 import { mintPhoneCustomerSession } from "../../shared/mint-customer-session"
-import { verifyFirebaseIdToken } from "../firebase-admin"
+import { verifyFirebaseIdToken } from "../firebase-token"
 import { StoreFirebaseVerifyType } from "../validators"
 
 // Auth provider key under which Firebase SMS phone identities are stored. Kept
