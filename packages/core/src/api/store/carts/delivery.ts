@@ -170,11 +170,14 @@ export async function checkCartDeliveryAvailability(
         }
       }
 
-      const areas: AreaSenseLocationInput[] = areaIds.map((area_id) =>
-        hasCoords
-          ? { area_id, latitude, longitude }
-          : { area_id, zipcode: postalCode as string }
-      )
+      // Send BOTH coordinates and zipcode when available so Area Sense can use
+      // whichever fits the area's type (geo_locations vs zip_codes) — a seller
+      // may have either kind of area, and the address usually carries both.
+      const areas: AreaSenseLocationInput[] = areaIds.map((area_id) => ({
+        area_id,
+        ...(hasCoords ? { latitude, longitude } : {}),
+        ...(hasZip ? { zipcode: postalCode as string } : {}),
+      }))
 
       const results = await checkAreaSenseLocation(areas, {
         apiKey: keyBySeller.get(seller_id) ?? undefined,

@@ -15,22 +15,42 @@ export const POST = async (
 
     const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-    // Idempotency: if this cart was already completed (an order group exists),
-    // return it instead of running the split workflow again. Re-running would
-    // try to re-link payment↔order and fail with "Cannot create multiple links
-    // between 'order' and 'payment'". Guards against duplicate /complete calls
-    // and any race with an out-of-band completion.
-    const { data: existingGroups } = await query.graph({
-        entity: "order_group",
-        fields: req.queryConfig.fields,
-        filters: { cart_id },
+    // Idempotency: if this cart was already completed, return its order group
+    // instead of running the split workflow again (which would fail with
+    // "Cannot create multiple links between 'order' and 'payment'").
+    //
+    // Gate on the cart's own `completed_at` — a real, filterable field. Do NOT
+    // filter order_group by `cart_id`: that column is readable but NOT
+    // filterable via the query graph (the filter is silently ignored and every
+    // group is returned), which would short-circuit EVERY completion. Instead,
+    // locate the group among the customer's groups (customer_id IS filterable)
+    // by matching cart_id in-app.
+    const { data: cartRows } = await query.graph({
+        entity: "cart",
+        fields: ["id", "completed_at", "customer_id"],
+        filters: { id: cart_id },
     })
-    if (existingGroups[0]) {
-        res.status(200).json({
-            type: "order_group",
-            order_group: existingGroups[0],
+    const existingCart = cartRows[0] as
+        | { completed_at?: string | null; customer_id?: string | null }
+        | undefined
+
+    if (existingCart?.completed_at) {
+        const { data: customerGroups } = await query.graph({
+            entity: "order_group",
+            fields: [...req.queryConfig.fields, "cart_id"],
+            filters: { customer_id: existingCart.customer_id },
         })
-        return
+        const existing = customerGroups.find(
+            (g) => (g as { cart_id?: string | null }).cart_id === cart_id
+        )
+
+        if (existing) {
+            res.status(200).json({
+                type: "order_group",
+                order_group: existing,
+            })
+            return
+        }
     }
 
     // Gate completion on Area Sense delivery availability: every seller in the
