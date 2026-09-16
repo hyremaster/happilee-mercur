@@ -566,6 +566,7 @@ export type Routes = {
                 verify: typeof import("../../src/api/store/auth/firebase/verify/route");
             };
             phone: {
+                exists: typeof import("../../src/api/store/auth/phone/exists/route");
                 sendOtp: typeof import("../../src/api/store/auth/phone/send-otp/route");
                 verifyOtp: typeof import("../../src/api/store/auth/phone/verify-otp/route");
             };
