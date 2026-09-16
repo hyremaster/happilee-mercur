@@ -671,7 +671,7 @@ export const ProductCreateForm = ({
 
     const payloadToSend = {
       ...finalPayload,
-      status: isDraftSubmission ? "draft" : "proposed",
+      status: isDraftSubmission ? "draft" : "published",
       images: uploadedMedia,
       weight:
         parseInt((finalPayload as any).weight || "") || undefined,
