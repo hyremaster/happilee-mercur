@@ -5,8 +5,11 @@ import { capturePaymentWorkflow } from "@medusajs/core-flows"
 export default async function autoCapturePaymentHandler({
   event,
   container,
-}: SubscriberArgs<{ id: string }[]>) {
-  const orderIds = event.data.map((o) => o.id)
+}: SubscriberArgs<{ id: string } | { id: string }[]>) {
+  // order.placed emits a single `{ id }` object; other events may batch an
+  // array. Normalize to a list so both shapes work.
+  const payload = Array.isArray(event.data) ? event.data : [event.data]
+  const orderIds = payload.map((o) => o.id)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const logger = container.resolve("logger")
 

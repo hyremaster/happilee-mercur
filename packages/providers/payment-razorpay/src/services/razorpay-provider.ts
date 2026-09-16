@@ -1,5 +1,4 @@
 import Razorpay from "razorpay"
-import crypto from "crypto"
 import { Pool } from "pg"
 import { AbstractPaymentProvider, PaymentSessionStatus } from "@medusajs/framework/utils"
 import type {
@@ -73,6 +72,11 @@ export default class RazorpayProviderService extends AbstractPaymentProvider {
       throw new Error("seller_id is required in payment session data")
     }
 
+    // Medusa injects the payment session id into input.data (see
+    // createPaymentSession: `data: { ...input.data, session_id }`). Stamp it on
+    // the Razorpay order notes so webhooks can map back to the session.
+    const sessionId = input.data?.session_id as string | undefined
+
     const { key_id, key_secret } = await this.getCredentials(sellerId)
     const razorpay = new Razorpay({ key_id, key_secret })
 
@@ -80,7 +84,7 @@ export default class RazorpayProviderService extends AbstractPaymentProvider {
       amount: Math.round(Number(input.amount) * 100),
       currency: input.currency_code.toUpperCase(),
       receipt: `rcpt_${Date.now()}`,
-      notes: { seller_id: sellerId },
+      notes: { seller_id: sellerId, session_id: sessionId ?? "" },
     })
 
     return {
@@ -91,6 +95,7 @@ export default class RazorpayProviderService extends AbstractPaymentProvider {
         amount: order.amount,
         currency: order.currency,
         seller_id: sellerId,
+        session_id: sessionId,
       },
     }
   }
@@ -162,46 +167,20 @@ export default class RazorpayProviderService extends AbstractPaymentProvider {
   }
 
   async getWebhookActionAndData(
-    data: ProviderWebhookPayload["payload"]
+    _data: ProviderWebhookPayload["payload"]
   ): Promise<WebhookActionResult> {
-    // Medusa wraps: { data: req.body, rawData: req.rawBody, headers: req.headers }
-    const body = (data as any).data as Record<string, any>
-    const rawData = (data as any).rawData
-    const headers = (data as any).headers as Record<string, string>
-
-    const event = body?.event as string
-    const payment = body?.payload?.payment?.entity
-
-    // Verify signature using vendor-specific webhook_secret from DB
-    const sellerId = payment?.notes?.seller_id as string | undefined
-    if (sellerId && rawData) {
-      const creds = await this.getCredentials(sellerId).catch(() => null)
-      if (creds?.webhook_secret) {
-        const raw = Buffer.isBuffer(rawData)
-          ? rawData
-          : Buffer.from((rawData as any).data ?? rawData)
-        const expected = crypto
-          .createHmac("sha256", creds.webhook_secret)
-          .update(raw)
-          .digest("hex")
-        if (expected !== headers["x-razorpay-signature"]) {
-          return { action: "not_supported", data: { session_id: "", amount: 0 } }
-        }
-      }
-    }
-
-    const actionMap: Record<string, WebhookActionResult["action"]> = {
-      "payment.authorized": "authorized",
-      "payment.captured": "captured",
-      "payment.failed": "failed",
-    }
-
-    return {
-      action: actionMap[event] ?? "not_supported",
-      data: {
-        session_id: payment?.notes?.session_id,
-        ...(payment?.amount ? { amount: payment.amount / 100 } : {}),
-      },
-    } as WebhookActionResult
+    // Intentionally a no-op.
+    //
+    // Order creation in this marketplace is driven exclusively by the storefront
+    // POST /store/carts/:id/complete (the split route → completeCartWithSplit-
+    // OrdersWorkflow), which authorizes the Razorpay payment itself (see
+    // authorizePayment, which fetches the captured payment from Razorpay).
+    //
+    // If the webhook emitted an actionable status, Medusa's processPaymentWork-
+    // flow would run its STANDARD completeCartWorkflow — creating a non-split
+    // order (no order_group / per-seller orders / commissions) and racing the
+    // split route, which then fails with "Cannot create multiple links between
+    // 'order' and 'payment'". So the webhook must never drive completion.
+    return { action: "not_supported", data: { session_id: "", amount: 0 } }
   }
 }

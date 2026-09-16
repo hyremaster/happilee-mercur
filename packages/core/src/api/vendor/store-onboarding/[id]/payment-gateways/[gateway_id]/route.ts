@@ -12,6 +12,7 @@ import {
   deactivateSiblingGateways,
   isMaskedSecret,
   maskGateway,
+  prepareRazorpayGatewayCredentials,
   validateGatewayCredentials,
 } from "../../../helpers"
 
@@ -72,12 +73,41 @@ export const POST = async (
   // never clobbered with the mask.
   const credentialsMasked = isMaskedSecret(credentials?.key_secret)
 
+  // When new (unmasked) Razorpay credentials are supplied, re-register the
+  // webhook — reusing the previously-stored secret so Razorpay and our DB stay
+  // in sync — and fold the resulting webhook metadata into the row.
+  let nextCredentials = credentials
+  let webhookMetadata: Record<string, unknown> = {}
+  if (credentials !== undefined && !credentialsMasked) {
+    const prevSecret =
+      (existing.credentials as Record<string, unknown> | null)?.webhook_secret
+    const prepared = await prepareRazorpayGatewayCredentials(
+      existing.gateway,
+      credentials as Record<string, unknown>,
+      typeof prevSecret === "string" ? prevSecret : undefined
+    )
+    nextCredentials = prepared.credentials as typeof credentials
+    webhookMetadata = prepared.metadata
+  }
+
+  const mergedMetadata =
+    metadata !== undefined
+      ? { ...(metadata ?? {}), ...webhookMetadata }
+      : Object.keys(webhookMetadata).length > 0
+        ? {
+            ...((existing.metadata as Record<string, unknown> | null) ?? {}),
+            ...webhookMetadata,
+          }
+        : undefined
+
   const updated = await service.updateStorePaymentGateways({
     id: gatewayId,
     ...(label !== undefined ? { label } : {}),
     ...(is_active !== undefined ? { is_active } : {}),
-    ...(credentials !== undefined && !credentialsMasked ? { credentials } : {}),
-    ...(metadata !== undefined ? { metadata } : {}),
+    ...(credentials !== undefined && !credentialsMasked
+      ? { credentials: nextCredentials }
+      : {}),
+    ...(mergedMetadata !== undefined ? { metadata: mergedMetadata } : {}),
   })
 
   res.json({ payment_gateway: maskGateway(updated) })

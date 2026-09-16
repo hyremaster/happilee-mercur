@@ -48,3 +48,4 @@ apps/backend/.medusa
 packages/modules/*
 
 docs/dev-tracking
+scripts/*

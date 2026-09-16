@@ -480,8 +480,8 @@ export type Routes = {
         };
     };
     store: {
-        carts: typeof import("@medusajs/medusa/api/store/carts/route") & {
-            $id: typeof import("@medusajs/medusa/api/store/carts/[id]/route") & {
+        carts: typeof import("../../src/api/store/carts/route") & {
+            $id: typeof import("../../src/api/store/carts/[id]/route") & {
                 complete: typeof import("../../src/api/store/carts/[id]/complete/route");
                 customer: typeof import("@medusajs/medusa/api/store/carts/[id]/customer/route");
                 lineItems: typeof import("@medusajs/medusa/api/store/carts/[id]/line-items/route") & {
@@ -490,6 +490,7 @@ export type Routes = {
                 promotions: typeof import("../../src/api/store/carts/[id]/promotions/route");
                 shippingMethods: typeof import("../../src/api/store/carts/[id]/shipping-methods/route");
                 taxes: typeof import("@medusajs/medusa/api/store/carts/[id]/taxes/route");
+                deliveryAvailability: typeof import("../../src/api/store/carts/[id]/delivery-availability/route");
             };
         };
         collections: typeof import("@medusajs/medusa/api/store/collections/route") & {
@@ -554,7 +555,20 @@ export type Routes = {
         };
         sellers: typeof import("../../src/api/store/sellers/route") & {
             $id: typeof import("../../src/api/store/sellers/[id]/route") & {
+                categories: typeof import("../../src/api/store/sellers/[id]/categories/route");
+                paymentProviders: typeof import("../../src/api/store/sellers/[id]/payment-providers/route");
                 products: typeof import("../../src/api/store/sellers/[id]/products/route");
+                tags: typeof import("../../src/api/store/sellers/[id]/tags/route");
+            };
+        };
+        auth: {
+            firebase: {
+                verify: typeof import("../../src/api/store/auth/firebase/verify/route");
+            };
+            phone: {
+                exists: typeof import("../../src/api/store/auth/phone/exists/route");
+                sendOtp: typeof import("../../src/api/store/auth/phone/send-otp/route");
+                verifyOtp: typeof import("../../src/api/store/auth/phone/verify-otp/route");
             };
         };
     };
@@ -758,7 +772,11 @@ export type Routes = {
         uploads: typeof import("../../src/api/vendor/uploads/route");
         attributes: typeof import("../../src/api/vendor/attributes/route");
         featureFlags: typeof import("../../src/api/vendor/feature-flags/route");
-        fulfillmentProviders: typeof import("../../src/api/vendor/fulfillment-providers/route");
+        fulfillmentProviders: typeof import("../../src/api/vendor/fulfillment-providers/route") & {
+            $id: {
+                options: typeof import("../../src/api/vendor/fulfillment-providers/[id]/options/route");
+            };
+        };
         members: {
             invites: {
                 accept: typeof import("../../src/api/vendor/members/invites/accept/route");

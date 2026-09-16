@@ -60,14 +60,19 @@ export default defineConfig(({ mode }) => {
       mercurDashboardPlugin({
         medusaConfigPath: '../api/medusa-config.ts',
         ...(backendUrl ? { backendUrl } : {}),
-        components: {
-          StoreSetup: 'components/store-setup/store-setup',
-        },
+        // "Complete store profile" banner removed: no StoreSetup override is
+        // registered, so shell.tsx / store-detail-page render nothing for it.
       }),
     ],
     resolve: {
       alias: {
         '@': vendorSrc,
+        // @mercurjs/types ships CommonJS (a runtime __exportStar barrel) whose
+        // named exports esbuild/cjs-lexer can't statically detect, so importing
+        // a *value* like the SellerStatus enum fails with "does not provide an
+        // export named ...". Resolve the package to its TS source so Vite gets
+        // real ESM named exports. Type-only imports (HttpTypes) resolve here too.
+        '@mercurjs/types': resolve(__dirname, '../../packages/types/src/index.ts'),
         // @tailwindcss/vite resolves CSS imports with "style" condition which
         // @medusajs/dashboard doesn't export — bypass by pointing to actual file
         '@medusajs/dashboard/css': resolve(__dirname, '../../packages/vendor/node_modules/@medusajs/dashboard/dist/app.css'),

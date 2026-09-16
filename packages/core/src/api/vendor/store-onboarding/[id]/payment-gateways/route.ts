@@ -10,6 +10,7 @@ import {
   assertStoreOwnership,
   deactivateSiblingGateways,
   maskGateway,
+  prepareRazorpayGatewayCredentials,
   validateGatewayCredentials,
 } from "../../helpers"
 
@@ -45,6 +46,11 @@ export const POST = async (
   // Reject unusable credentials up front (Razorpay: verify key auth works).
   await validateGatewayCredentials(gateway, credentials)
 
+  // Razorpay: ensure a webhook_secret and register our webhook on the seller's
+  // account so payment events reach the marketplace. Returns credentials with
+  // the secret + metadata carrying the razorpay webhook id/url.
+  const prepared = await prepareRazorpayGatewayCredentials(gateway, credentials)
+
   const service = req.scope.resolve<MarketplaceProfileModuleService>(
     MercurModules.MARKETPLACE_PROFILE
   )
@@ -54,13 +60,18 @@ export const POST = async (
     await deactivateSiblingGateways(service, sellerId, gateway)
   }
 
+  const mergedMetadata =
+    Object.keys(prepared.metadata).length > 0
+      ? { ...(metadata ?? {}), ...prepared.metadata }
+      : metadata ?? null
+
   const created = await service.createStorePaymentGateways({
     seller_id: sellerId,
     gateway,
     label,
     is_active: is_active ?? false,
-    credentials,
-    metadata: metadata ?? null,
+    credentials: prepared.credentials as typeof credentials,
+    metadata: mergedMetadata,
   })
 
   res.status(201).json({ payment_gateway: maskGateway(created) })
