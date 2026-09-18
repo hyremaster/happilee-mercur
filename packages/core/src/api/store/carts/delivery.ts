@@ -206,7 +206,7 @@ export async function checkCartDeliveryAvailability(
     sellers,
     reason: deliverable
       ? undefined
-      : "One or more sellers cannot deliver to this location.",
+      : "Delivery is not available at this location.",
   }
 }
 
