@@ -32,6 +32,12 @@ export const POST = async (
   const token = await mintPhoneCustomerSession(req.scope, {
     phone,
     provider: PHONE_FIREBASE_PROVIDER,
+    seller: req.store_seller_context
+      ? {
+          seller_id: req.store_seller_context.seller_id,
+          handle: req.store_seller_context.handle,
+        }
+      : undefined,
     first_name,
     last_name,
     email,

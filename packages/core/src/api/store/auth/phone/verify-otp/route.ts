@@ -47,6 +47,12 @@ export const POST = async (
     first_name,
     last_name,
     email,
+    seller: req.store_seller_context
+      ? {
+          seller_id: req.store_seller_context.seller_id,
+          handle: req.store_seller_context.handle,
+        }
+      : undefined,
   })
 
   res.status(200).json({ token })

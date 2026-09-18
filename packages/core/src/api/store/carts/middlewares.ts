@@ -7,6 +7,7 @@ import {
 import { MedusaError } from "@medusajs/framework/utils"
 import { MiddlewareRoute } from "@medusajs/medusa"
 
+import { rejectForeignStoreLineItem, stampCartStore } from "./store-scope"
 import { storeCompleteCartQueryConfig } from "./[id]/complete/query-config"
 import { StoreCompleteCartParams } from "./[id]/complete/validators"
 
@@ -86,12 +87,22 @@ export const storeCartsMiddlewares: MiddlewareRoute[] = [
     // an order can be placed.
     method: ["POST"],
     matcher: "/store/carts",
-    middlewares: [requireShippingGeoMetadata({ addressRequired: false })],
+    middlewares: [
+      requireShippingGeoMetadata({ addressRequired: false }),
+      stampCartStore,
+    ],
   },
   {
     method: ["POST"],
     matcher: "/store/carts/:id",
     middlewares: [requireShippingGeoMetadata({ addressRequired: false })],
+  },
+  {
+    // A cart holds one store's items only; the store is stamped at create (or
+    // inferred from what is already in the cart).
+    method: ["POST"],
+    matcher: "/store/carts/:id/line-items",
+    middlewares: [rejectForeignStoreLineItem],
   },
   {
     method: ["POST"],
