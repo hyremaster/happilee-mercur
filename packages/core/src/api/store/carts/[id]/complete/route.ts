@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/util
 import { HttpTypes } from "@mercurjs/types"
 
 import { completeCartWithSplitOrdersWorkflow } from "../../../../../workflows/cart"
+import { assertVariantsAvailable } from "../../../../../workflows/variant-availability/steps/validate-variants-available"
 import { checkCartDeliveryAvailability } from "../../delivery"
 import { defaultStoreCartFields, refetchCart } from "../../helpers"
 import { StoreCompleteCartParamsType } from "./validators"
@@ -52,6 +53,23 @@ export const POST = async (
             return
         }
     }
+
+    // Items the vendor marked unavailable after they entered the cart must not
+    // be ordered. Checked before delivery: the shopper can act on it directly
+    // (remove the item), unlike an address problem.
+    const { data: cartItemRows } = await query.graph({
+        entity: "cart",
+        fields: ["items.variant_id"],
+        filters: { id: cart_id },
+    })
+    const cartItems =
+        (cartItemRows[0] as
+            | { items?: ({ variant_id?: string | null } | null)[] }
+            | undefined)?.items ?? []
+    await assertVariantsAvailable(
+        req.scope,
+        cartItems.map((item) => item?.variant_id)
+    )
 
     // Gate completion on Area Sense delivery availability: every seller in the
     // cart must serve the shipping location, else we stop before placing orders.

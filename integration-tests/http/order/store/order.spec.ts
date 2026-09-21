@@ -267,130 +267,6 @@ medusaIntegrationTestRunner({
 
 
             describe("Order Split by Vendor", () => {
-                it("should split orders by vendor when cart has items from multiple sellers", async () => {
-                    // 1. Create cart with customer authentication
-                    const cartResponse = await api.post(
-                        `/store/carts`,
-                        {
-                            region_id: region.id,
-                            sales_channel_id: salesChannel.id,
-                            currency_code: "usd",
-                        },
-                        storeHeaders
-                    )
-                    let cart = cartResponse.data.cart
-                    expect(cart.id).toBeDefined()
-
-                    // 2. Add item from seller 1
-                    const addItem1Response = await api.post(
-                        `/store/carts/${cart.id}/line-items`,
-                        {
-                            variant_id: product1.variants[0].id,
-                            quantity: 2,
-                        },
-                        storeHeaders
-                    )
-                    cart = addItem1Response.data.cart
-
-                    // 3. Add item from seller 2
-                    const addItem2Response = await api.post(
-                        `/store/carts/${cart.id}/line-items`,
-                        {
-                            variant_id: product2.variants[0].id,
-                            quantity: 1,
-                        },
-                        storeHeaders
-                    )
-                    cart = addItem2Response.data.cart
-                    expect(cart.items).toHaveLength(2)
-
-                    // 5. Get available shipping options (grouped by seller)
-                    const shippingOptionsResponse = await api.get(
-                        `/store/shipping-options?cart_id=${cart.id}`,
-                        storeHeaders
-                    )
-
-                    const sellerShippingOptions = shippingOptionsResponse.data.shipping_options as Record<string, any[]>
-
-                    // 6. Add shipping methods for each seller
-                    for (const [, options] of Object.entries(sellerShippingOptions)) {
-                        if (options.length > 0) {
-                            await api.post(
-                                `/store/carts/${cart.id}/shipping-methods`,
-                                {
-                                    option_id: options[0].id,
-                                },
-                                storeHeaders
-                            )
-                        }
-                    }
-
-                    // Refresh cart
-                    const refreshedCartResponse = await api.get(
-                        `/store/carts/${cart.id}`,
-                        storeHeaders
-                    )
-                    cart = refreshedCartResponse.data.cart
-
-                    // 7. Create payment collection for the cart
-                    const paymentCollectionResponse = await api.post(
-                        `/store/payment-collections`,
-                        { cart_id: cart.id },
-                        storeHeaders
-                    )
-                    const paymentCollection = paymentCollectionResponse.data.payment_collection
-
-                    // 8. Initialize payment session
-                    await api.post(
-                        `/store/payment-collections/${paymentCollection.id}/payment-sessions`,
-                        {
-                            provider_id: "pp_system_default",
-                        },
-                        storeHeaders
-                    )
-
-                    // 9. Complete the cart
-                    const completeResponse = await api.post(
-                        `/store/carts/${cart.id}/complete`,
-                        {},
-                        storeHeaders
-                    )
-
-                    expect(completeResponse.status).toEqual(200)
-                    expect(completeResponse.data.type).toEqual("order_group")
-                    expect(completeResponse.data.order_group).toBeDefined()
-                    expect(completeResponse.data.order_group.id).toBeDefined()
-
-                    const orderGroupId = completeResponse.data.order_group.id
-
-                    // 10. Fetch order group with orders using the order-groups endpoint
-                    const orderGroupResponse = await api.get(
-                        `/store/order-groups/${orderGroupId}?fields=seller_count,*orders,orders.seller.id,orders.status,*orders.items,orders.shipping_address`,
-                        storeHeaders
-                    )
-
-                    expect(orderGroupResponse.status).toEqual(200)
-                    const orderGroup = orderGroupResponse.data.order_group
-                    expect(orderGroup).toBeDefined()
-                    expect(orderGroup.orders).toBeDefined()
-                    expect(orderGroup.orders.length).toEqual(2)
-
-                    // Verify each order belongs to a different seller
-                    const sellerIds = orderGroup.orders.map((order: any) => order.seller.id)
-                    expect(sellerIds).toContain(seller1.id)
-                    expect(sellerIds).toContain(seller2.id)
-
-                    // Verify seller count
-                    expect(orderGroup.seller_count).toEqual(2)
-
-                    // Verify order details are included
-                    orderGroup.orders.forEach((order: any) => {
-                        expect(order.id).toBeDefined()
-                        expect(order.status).toBeDefined()
-                        expect(order.items).toBeDefined()
-                        expect(order.shipping_address).toBeDefined()
-                    })
-                })
 
                 it("should create single order when cart has items from one seller only", async () => {
                     // 1. Create cart with customer authentication
@@ -489,8 +365,9 @@ medusaIntegrationTestRunner({
                     expect(order.items).toBeDefined()
                 })
 
-                it("should allow vendor to view their own orders", async () => {
-                    // 1. Create and complete a cart with items from both sellers
+                // A cart holds one store's items (docs/store-scoped-customers.md),
+                // so each seller's order comes from its own cart.
+                const placeOrderFor = async (product: any): Promise<string> => {
                     const cartResponse = await api.post(
                         `/store/carts`,
                         {
@@ -500,60 +377,39 @@ medusaIntegrationTestRunner({
                         },
                         storeHeaders
                     )
-                    let cart = cartResponse.data.cart
-
-                    // Add items from both sellers
-                    await api.post(
-                        `/store/carts/${cart.id}/line-items`,
-                        {
-                            variant_id: product1.variants[0].id,
-                            quantity: 1,
-                        },
-                        storeHeaders
-                    )
+                    const cart = cartResponse.data.cart
 
                     await api.post(
                         `/store/carts/${cart.id}/line-items`,
-                        {
-                            variant_id: product2.variants[0].id,
-                            quantity: 1,
-                        },
+                        { variant_id: product.variants[0].id, quantity: 1 },
                         storeHeaders
                     )
 
-                    // Get shipping options and add shipping methods
                     const shippingOptionsResponse = await api.get(
                         `/store/shipping-options?cart_id=${cart.id}`,
                         storeHeaders
                     )
-
-                    const sellerShippingOptions = shippingOptionsResponse.data.shipping_options as Record<string, any[]>
+                    const sellerShippingOptions = shippingOptionsResponse.data
+                        .shipping_options as Record<string, any[]>
 
                     for (const [, options] of Object.entries(sellerShippingOptions)) {
                         if (options.length > 0) {
                             await api.post(
                                 `/store/carts/${cart.id}/shipping-methods`,
-                                {
-                                    option_id: options[0].id,
-                                },
+                                { option_id: options[0].id },
                                 storeHeaders
                             )
                         }
                     }
 
-                    // Create payment and complete
                     const paymentCollectionResponse = await api.post(
                         `/store/payment-collections`,
                         { cart_id: cart.id },
                         storeHeaders
                     )
-                    const paymentCollection = paymentCollectionResponse.data.payment_collection
-
                     await api.post(
-                        `/store/payment-collections/${paymentCollection.id}/payment-sessions`,
-                        {
-                            provider_id: "pp_system_default",
-                        },
+                        `/store/payment-collections/${paymentCollectionResponse.data.payment_collection.id}/payment-sessions`,
+                        { provider_id: "pp_system_default" },
                         storeHeaders
                     )
 
@@ -562,66 +418,33 @@ medusaIntegrationTestRunner({
                         {},
                         storeHeaders
                     )
-
                     expect(completeResponse.status).toEqual(200)
-                    const orderGroupId = completeResponse.data.order_group.id
 
-                    // Fetch order group with orders to get order details
                     const orderGroupResponse = await api.get(
-                        `/store/order-groups/${orderGroupId}?fields=*orders,orders.seller.id`,
+                        `/store/order-groups/${completeResponse.data.order_group.id}?fields=*orders,orders.seller.id`,
                         storeHeaders
                     )
-                    const orderGroup = orderGroupResponse.data.order_group
-                    expect(orderGroup.orders).toBeDefined()
-                    expect(orderGroup.orders.length).toEqual(2)
+                    const orders = orderGroupResponse.data.order_group.orders
+                    expect(orders).toHaveLength(1)
+                    return orders[0].id
+                }
 
-                    // 2. Verify seller 1 can view their order
-                    const seller1OrdersResponse = await api.get(
-                        `/vendor/orders`,
-                        seller1Headers
-                    )
+                it("should allow vendor to view their own orders", async () => {
+                    const order1Id = await placeOrderFor(product1)
+                    const order2Id = await placeOrderFor(product2)
 
-                    expect(seller1OrdersResponse.status).toEqual(200)
-                    const seller1Orders = seller1OrdersResponse.data.orders
-                    expect(seller1Orders.length).toBeGreaterThanOrEqual(1)
+                    const seller1Orders = (
+                        await api.get(`/vendor/orders`, seller1Headers)
+                    ).data.orders.map((o: any) => o.id)
+                    const seller2Orders = (
+                        await api.get(`/vendor/orders`, seller2Headers)
+                    ).data.orders.map((o: any) => o.id)
 
-                    // Find the order from this order group
-                    const seller1OrderFromGroup = seller1Orders.find(
-                        (order: any) => orderGroup.orders.some((o: any) => o.id === order.id)
-                    )
-                    expect(seller1OrderFromGroup).toBeDefined()
-
-                    // 3. Verify seller 2 can view their order
-                    const seller2OrdersResponse = await api.get(
-                        `/vendor/orders`,
-                        seller2Headers
-                    )
-
-                    expect(seller2OrdersResponse.status).toEqual(200)
-                    const seller2Orders = seller2OrdersResponse.data.orders
-                    expect(seller2Orders.length).toBeGreaterThanOrEqual(1)
-
-                    // Find the order from this order group
-                    const seller2OrderFromGroup = seller2Orders.find(
-                        (order: any) => orderGroup.orders.some((o: any) => o.id === order.id)
-                    )
-                    expect(seller2OrderFromGroup).toBeDefined()
-
-                    // 4. Verify sellers can only see their own orders (not each other's)
-                    const seller1OrderIds = seller1Orders.map((o: any) => o.id)
-                    const seller2OrderIds = seller2Orders.map((o: any) => o.id)
-
-                    // Seller 1 should not have seller 2's order from this group
-                    const seller2OrderInGroup = orderGroup.orders.find((o: any) => o.seller.id === seller2.id)
-                    if (seller2OrderInGroup) {
-                        expect(seller1OrderIds).not.toContain(seller2OrderInGroup.id)
-                    }
-
-                    // Seller 2 should not have seller 1's order from this group
-                    const seller1OrderInGroup = orderGroup.orders.find((o: any) => o.seller.id === seller1.id)
-                    if (seller1OrderInGroup) {
-                        expect(seller2OrderIds).not.toContain(seller1OrderInGroup.id)
-                    }
+                    // Each vendor sees its own order and not the other's.
+                    expect(seller1Orders).toContain(order1Id)
+                    expect(seller1Orders).not.toContain(order2Id)
+                    expect(seller2Orders).toContain(order2Id)
+                    expect(seller2Orders).not.toContain(order1Id)
                 })
             })
         })

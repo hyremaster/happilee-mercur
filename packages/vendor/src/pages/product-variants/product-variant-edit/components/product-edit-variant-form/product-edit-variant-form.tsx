@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { z } from "zod"
 
 import { Form } from "@components/common/form"
+import { SwitchBox } from "@components/common/switch-box"
 import { Combobox } from "@components/inputs/combobox"
 import { CountrySelect } from "@components/inputs/country-select"
 import { RouteDrawer, useRouteModal } from "@components/modals"
@@ -62,8 +63,8 @@ export const ProductEditVariantForm = ({
       ean: variant?.ean || "",
       upc: variant?.upc || "",
       barcode: variant?.barcode || "",
-      manage_inventory: true,
-      allow_backorder: true,
+      manage_inventory: variant?.manage_inventory ?? true,
+      allow_backorder: variant?.allow_backorder ?? false,
       weight: variant?.weight || "",
       height: variant?.height || "",
       width: variant?.width || "",
@@ -253,6 +254,18 @@ export const ProductEditVariantForm = ({
                     </Form.Item>
                   )
                 }}
+              />
+              <SwitchBox
+                control={form.control}
+                name="manage_inventory"
+                label={t("products.variant.inventory.manageInventoryLabel")}
+                description={t("products.variant.inventory.manageInventoryHint")}
+              />
+              <SwitchBox
+                control={form.control}
+                name="allow_backorder"
+                label={t("products.variant.inventory.allowBackordersLabel")}
+                description={t("products.variant.inventory.allowBackordersHint")}
               />
             </div>
           </div>

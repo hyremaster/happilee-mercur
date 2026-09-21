@@ -69,6 +69,121 @@ medusaIntegrationTestRunner({
         expect(draft.happilee_api_key).toBe("seller-key")
       })
 
+      it("seeds the api key onto a store created in-dashboard (no per-store SSO)", async () => {
+        const projectId = `proj_indash_${Date.now()}`
+        const email = `indash-${projectId}@test.com`
+        const token = signToken({
+          project_id: projectId,
+          user_id: "u1",
+          email,
+          name: "Indash User",
+          api_key: "seller-key",
+          jti: `jti_indash_${projectId}`,
+        })
+
+        // 1. SSO binds the key to the identity (server-side).
+        const ssoRes = await api.get(`/sso?token=${token}`, noFollow)
+        expect(ssoRes.status).toBe(302)
+        const location: string = ssoRes.headers.location
+        const mercurToken = new URL(location, "http://x").searchParams.get(
+          "sso_token"
+        )
+        expect(mercurToken).toBeTruthy()
+        expect(location).not.toContain("seller-key")
+
+        const authedHeaders = {
+          headers: { authorization: `Bearer ${mercurToken}` },
+        }
+
+        // 2. Vendor creates a brand-new store from inside the dashboard.
+        const createRes = await api.post(
+          "/vendor/store-onboarding",
+          {
+            name: "In-dashboard Store",
+            email,
+            member_email: email,
+            currency_code: "inr",
+          },
+          authedHeaders
+        )
+        expect(createRes.status).toBe(201)
+        const sellerId = createRes.data.store.seller.id
+        // The secret must not appear in the create response.
+        expect(JSON.stringify(createRes.data)).not.toContain("seller-key")
+
+        // 3. The store's profile inherited the authorizing key (read via service).
+        const [profile] = await service().listStoreProfiles({
+          seller_id: sellerId,
+        })
+        expect(profile).toBeDefined()
+        expect(profile.happilee_api_key).toBe("seller-key")
+      })
+
+      it("seeds the api key onto a store submitted from an in-dashboard draft", async () => {
+        const projectId = `proj_wizard_${Date.now()}`
+        const email = `wizard-${projectId}@test.com`
+        const token = signToken({
+          project_id: projectId,
+          user_id: "u1",
+          email,
+          name: "Wizard User",
+          api_key: "seller-key",
+          jti: `jti_wizard_${projectId}`,
+        })
+
+        const ssoRes = await api.get(`/sso?token=${token}`, noFollow)
+        expect(ssoRes.status).toBe(302)
+        const mercurToken = new URL(
+          ssoRes.headers.location,
+          "http://x"
+        ).searchParams.get("sso_token")
+        const authedHeaders = {
+          headers: { authorization: `Bearer ${mercurToken}` },
+        }
+
+        // Drafts created from the dashboard wizard carry no key of their own.
+        const draftRes = await api.post(
+          "/vendor/store-onboarding/drafts",
+          {},
+          authedHeaders
+        )
+        const draftId = draftRes.data.draft.id
+        await api.post(
+          `/vendor/store-onboarding/drafts/${draftId}`,
+          {
+            step: 1,
+            data: {
+              name: "Wizard Store",
+              email,
+              currency_code: "inr",
+              address: { country_code: "in", city: "Kochi" },
+            },
+          },
+          authedHeaders
+        )
+        await api.post(
+          `/vendor/store-onboarding/drafts/${draftId}`,
+          {
+            step: 2,
+            data: { commerce_type: "local_delivery", fulfillment_methods: [] },
+          },
+          authedHeaders
+        )
+
+        const submitRes = await api.post(
+          `/vendor/store-onboarding/drafts/${draftId}/submit`,
+          {},
+          authedHeaders
+        )
+        expect(JSON.stringify(submitRes.data)).not.toContain("seller-key")
+
+        const [profile] = await service().listStoreProfiles({
+          seller_id: submitRes.data.seller_id,
+        })
+        expect(profile).toBeDefined()
+        expect(profile.happilee_api_key).toBe("seller-key")
+      })
+
       it("rejects a replayed (already-used) key-bearing token", async () => {
         const projectId = `proj_replay_${Date.now()}`
         const token = signToken({

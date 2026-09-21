@@ -32,5 +32,21 @@ export const POST = async (
     filters: { phone },
   })
 
+  // Accounts are per store, so "returning shopper" is a per-store question: a
+  // customer of another store must read as new here, or the storefront shows
+  // the wrong branch of the login flow.
+  const seller = req.store_seller_context
+  if (seller && customers.length) {
+    const { data: links } = await query.graph({
+      entity: "seller_customer",
+      fields: ["customer_id"],
+      filters: {
+        seller_id: seller.seller_id,
+        customer_id: (customers as { id: string }[]).map((c) => c.id),
+      },
+    })
+    return res.json({ exists: links.length > 0 })
+  }
+
   res.json({ exists: customers.length > 0 })
 }

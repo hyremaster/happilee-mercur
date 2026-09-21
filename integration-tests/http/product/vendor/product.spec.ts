@@ -1,5 +1,6 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
-import { MedusaContainer } from "@medusajs/framework/types"
+import { IFulfillmentModuleService, MedusaContainer } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createSellerUser } from "../../../helpers/create-seller-user"
 
 jest.setTimeout(50000)
@@ -83,6 +84,173 @@ medusaIntegrationTestRunner({
 
                     expect(response.status).toEqual(201)
                     expect(response.data.product.title).toEqual("Simple Product")
+                })
+
+                it("should allow a vendor to publish a product on create without admin approval", async () => {
+                    const response = await api.post(
+                        `/vendor/products`,
+                        {
+                            title: "Published Product",
+                            status: "published",
+                            options: [{ title: "Default", values: ["Default"] }],
+                        },
+                        seller1Headers
+                    )
+
+                    expect(response.status).toEqual(201)
+                    expect(response.data.product.status).toEqual("published")
+                })
+            })
+
+            // Checkout rejects a cart whose shippable items have no shipping
+            // profile matching the chosen shipping option, and vendors never
+            // pick one, so creation has to fill it in.
+            describe("POST /vendor/products (shipping profile)", () => {
+                const fulfillmentModule = () =>
+                    appContainer.resolve<IFulfillmentModuleService>(Modules.FULFILLMENT)
+
+                const productShippingProfileId = async (productId: string) => {
+                    const query = appContainer.resolve(ContainerRegistrationKeys.QUERY)
+                    const { data } = await query.graph({
+                        entity: "product",
+                        fields: ["shipping_profile.id"],
+                        filters: { id: productId },
+                    })
+                    return (data[0] as { shipping_profile?: { id: string } | null })
+                        ?.shipping_profile?.id
+                }
+
+                const ensureDefaultProfile = async () => {
+                    const [existing] = await fulfillmentModule().listShippingProfiles(
+                        { type: "default" },
+                        { take: 1 }
+                    )
+                    if (existing) {
+                        return existing.id
+                    }
+                    const created = await fulfillmentModule().createShippingProfiles({
+                        name: "Default Shipping Profile",
+                        type: "default",
+                    })
+                    return created.id
+                }
+
+                it("falls back to the default shipping profile when the seller has no shipping options", async () => {
+                    const defaultProfileId = await ensureDefaultProfile()
+
+                    const response = await api.post(
+                        `/vendor/products`,
+                        {
+                            title: "Needs Shipping",
+                            options: [{ title: "Default", values: ["Default"] }],
+                        },
+                        seller1Headers
+                    )
+
+                    expect(response.status).toEqual(201)
+                    expect(await productShippingProfileId(response.data.product.id)).toEqual(
+                        defaultProfileId
+                    )
+                })
+
+                it("uses the profile of the seller's own shipping options", async () => {
+                    await ensureDefaultProfile()
+                    const sellerProfile = await fulfillmentModule().createShippingProfiles({
+                        name: `Seller Profile ${Date.now()}`,
+                        type: "all",
+                    })
+
+                    // Minimal chain a shipping option needs: set -> zone -> option.
+                    const fulfillmentSet = await fulfillmentModule().createFulfillmentSets({
+                        name: `set-${Date.now()}`,
+                        type: "shipping",
+                        service_zones: [
+                            {
+                                name: `zone-${Date.now()}`,
+                                geo_zones: [{ type: "country", country_code: "in" }],
+                            },
+                        ],
+                    })
+                    const shippingOption = await fulfillmentModule().createShippingOptions({
+                        name: "Seller Standard",
+                        service_zone_id: fulfillmentSet.service_zones[0].id,
+                        shipping_profile_id: sellerProfile.id,
+                        provider_id: "manual_manual",
+                        price_type: "flat",
+                        type: {
+                            label: "Standard",
+                            description: "Standard",
+                            code: "standard",
+                        },
+                    })
+
+                    const link = appContainer.resolve(ContainerRegistrationKeys.LINK)
+                    await link.create({
+                        fulfillment: { shipping_option_id: shippingOption.id },
+                        seller: { seller_id: _seller1.id },
+                    })
+
+                    const response = await api.post(
+                        `/vendor/products`,
+                        {
+                            title: "Seller Profile Product",
+                            options: [{ title: "Default", values: ["Default"] }],
+                        },
+                        seller1Headers
+                    )
+
+                    expect(response.status).toEqual(201)
+                    expect(await productShippingProfileId(response.data.product.id)).toEqual(
+                        sellerProfile.id
+                    )
+                })
+
+                it("keeps an explicitly given shipping profile", async () => {
+                    await ensureDefaultProfile()
+                    const custom = await fulfillmentModule().createShippingProfiles({
+                        name: `Custom Profile ${Date.now()}`,
+                        type: "custom",
+                    })
+
+                    const response = await api.post(
+                        `/vendor/products`,
+                        {
+                            title: "Custom Shipping",
+                            shipping_profile_id: custom.id,
+                            options: [{ title: "Default", values: ["Default"] }],
+                        },
+                        seller1Headers
+                    )
+
+                    expect(response.status).toEqual(201)
+                    expect(await productShippingProfileId(response.data.product.id)).toEqual(
+                        custom.id
+                    )
+                })
+            })
+
+            describe("POST /vendor/products/:id (publish)", () => {
+                it("should allow a vendor to publish a draft product without admin approval", async () => {
+                    const createResponse = await api.post(
+                        `/vendor/products`,
+                        {
+                            title: "Draft Product",
+                            options: [{ title: "Default", values: ["Default"] }],
+                        },
+                        seller1Headers
+                    )
+                    expect(createResponse.data.product.status).toEqual("draft")
+
+                    const productId = createResponse.data.product.id
+
+                    const response = await api.post(
+                        `/vendor/products/${productId}`,
+                        { status: "published" },
+                        seller1Headers
+                    )
+
+                    expect(response.status).toEqual(200)
+                    expect(response.data.product.status).toEqual("published")
                 })
             })
 

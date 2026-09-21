@@ -59,7 +59,8 @@ const asNumber = (v: unknown): number | undefined =>
  * `happilee_api_key`) whether the cart's shipping location falls inside any of
  * the seller's configured delivery areas. The cart is deliverable only when
  * every seller can deliver. A seller with no configured delivery areas is
- * treated as not deliverable.
+ * treated as not deliverable, as is a seller whose Area Sense call fails — one
+ * seller's failure never aborts the check for the rest of the cart.
  *
  * Location is taken from `shipping_address.metadata.latitude/longitude`
  * (preferred) or `shipping_address.postal_code` (zipcode fallback).
@@ -179,9 +180,25 @@ export async function checkCartDeliveryAvailability(
         ...(hasZip ? { zipcode: postalCode as string } : {}),
       }))
 
-      const results = await checkAreaSenseLocation(areas, {
-        apiKey: keyBySeller.get(seller_id) ?? undefined,
-      })
+      // A seller whose Area Sense call fails (misconfigured/rejected key,
+      // provider down) must not fail the whole cart: the other sellers are
+      // still checked and this seller is reported as not deliverable with the
+      // failure as its reason.
+      let results: Awaited<ReturnType<typeof checkAreaSenseLocation>>
+      try {
+        results = await checkAreaSenseLocation(areas, {
+          apiKey: keyBySeller.get(seller_id) ?? undefined,
+        })
+      } catch (e) {
+        return {
+          seller_id,
+          deliverable: false,
+          matched_area_ids: [],
+          reason: `Delivery check failed for this seller: ${
+            (e as Error).message
+          }`,
+        }
+      }
 
       const matched = results
         .filter((r) => r.is_deliverable)
@@ -206,7 +223,7 @@ export async function checkCartDeliveryAvailability(
     sellers,
     reason: deliverable
       ? undefined
-      : "One or more sellers cannot deliver to this location.",
+      : "Delivery is not available at this location.",
   }
 }
 

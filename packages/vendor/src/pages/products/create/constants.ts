@@ -89,6 +89,8 @@ export const ProductCreateBaseSchema = z.object({
   hs_code: z.string().optional(),
   options: z.array(ProductCreateOptionSchema),
   enable_variants: z.boolean(),
+  // Product-level switch applied to every variant on create.
+  manage_inventory: z.boolean(),
   variants: z.array(ProductCreateVariantSchema).min(1),
   media: z.array(MediaSchema).optional(),
 })
@@ -146,6 +148,7 @@ export const PRODUCT_CREATE_FORM_DEFAULTS: Partial<
     },
   ]),
   enable_variants: false,
+  manage_inventory: true,
   media: [],
   categories: [],
   secondary_categories: [],

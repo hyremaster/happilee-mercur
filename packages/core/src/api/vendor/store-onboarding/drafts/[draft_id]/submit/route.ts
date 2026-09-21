@@ -136,6 +136,21 @@ export const POST = async (
       ? (data.locations as Record<string, unknown>[])
       : []
 
+  // SSO-created drafts carry the Happilee key in their own column; drafts
+  // started from the dashboard wizard don't, so fall back to the key bound to
+  // this identity by SSO — the same key the wizard used to list delivery areas.
+  let happileeApiKey = draft.happilee_api_key ?? null
+  if (!happileeApiKey && req.auth_context?.auth_identity_id) {
+    const profileService = req.scope.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+    const [identityKey] = await profileService.listHappileeIdentityKeys(
+      { auth_identity_id: req.auth_context.auth_identity_id },
+      { take: 1 }
+    )
+    happileeApiKey = identityKey?.happilee_api_key ?? null
+  }
+
   const { result } = await submitStoreDraftWorkflow(req.scope).run({
     input: {
       draft_id: draft.id,
@@ -167,7 +182,7 @@ export const POST = async (
           (storefront.storefront_template as string | undefined) ?? null,
         // Secret seeded server-side from the SSO token (dedicated draft column,
         // not draft_data) — carried into store_profile on submit.
-        happilee_api_key: draft.happilee_api_key ?? null,
+        happilee_api_key: happileeApiKey,
       },
       payment: Object.keys(payment).length
         ? (payment as {

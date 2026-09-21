@@ -6,6 +6,7 @@ import {
   createShippingProfilesWorkflow,
   deleteFulfillmentSetsWorkflow,
   deleteShippingOptionsWorkflow,
+  linkSalesChannelsToStockLocationWorkflow,
 } from "@medusajs/core-flows"
 import {
   ContainerRegistrationKeys,
@@ -33,6 +34,11 @@ import { createSellerShippingOptionsWorkflow } from "../../shipping-option"
  * link -> flat 0 shipping option (seller-linked) carrying the mandatory
  * `enabled_in_store` rule so the option is visible to the storefront cart. Price
  * is 0 (free) until the vendor edits it in shipping settings.
+ *
+ * Every location is also linked to all enabled sales channels, independent of
+ * fulfillment methods: cart inventory checks resolve stock through the
+ * sales_channel <-> location link, so without it any managed-inventory variant
+ * fails with "Sales channel ... is not associated with any stock location".
  *
  * Not idempotent by design: submit always targets a freshly-created seller +
  * freshly-created locations, so there is nothing pre-existing to reconcile.
@@ -76,6 +82,7 @@ export type CreateStoreFulfillmentOptionsInput = {
 type CreateStoreFulfillmentOptionsRollback = {
   fulfillment_set_ids: string[]
   shipping_option_ids: string[]
+  sales_channel_links: { location_id: string; sales_channel_ids: string[] }[]
 }
 
 /**
@@ -108,9 +115,34 @@ export const createStoreFulfillmentOptionsStep = createStep(
       CreateStoreFulfillmentOptionsRollback
     >
   > => {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+
+    const salesChannelLinks: CreateStoreFulfillmentOptionsRollback["sales_channel_links"] =
+      []
+    if (input.location_ids.length) {
+      const { data: channels } = await query.graph({
+        entity: "sales_channel",
+        fields: ["id"],
+        filters: { is_disabled: false },
+      })
+      const salesChannelIds = (channels as { id: string }[]).map((c) => c.id)
+      if (salesChannelIds.length) {
+        for (const locationId of input.location_ids) {
+          await linkSalesChannelsToStockLocationWorkflow(container).run({
+            input: { id: locationId, add: salesChannelIds },
+          })
+          salesChannelLinks.push({
+            location_id: locationId,
+            sales_channel_ids: salesChannelIds,
+          })
+        }
+      }
+    }
+
     const empty: CreateStoreFulfillmentOptionsRollback = {
       fulfillment_set_ids: [],
       shipping_option_ids: [],
+      sales_channel_links: salesChannelLinks,
     }
 
     const kinds = resolveKinds(input.fulfillment_methods)
@@ -118,7 +150,6 @@ export const createStoreFulfillmentOptionsStep = createStep(
       return new StepResponse(empty, empty)
     }
 
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
     const fulfillmentModule = container.resolve<IFulfillmentModuleService>(
       Modules.FULFILLMENT
     )
@@ -248,6 +279,7 @@ export const createStoreFulfillmentOptionsStep = createStep(
     const created: CreateStoreFulfillmentOptionsRollback = {
       fulfillment_set_ids: createdSetIds,
       shipping_option_ids: createdOptionIds,
+      sales_channel_links: salesChannelLinks,
     }
     return new StepResponse(created, created)
   },
@@ -263,6 +295,11 @@ export const createStoreFulfillmentOptionsStep = createStep(
     if (rollback.fulfillment_set_ids.length) {
       await deleteFulfillmentSetsWorkflow(container).run({
         input: { ids: rollback.fulfillment_set_ids },
+      })
+    }
+    for (const link of rollback.sales_channel_links ?? []) {
+      await linkSalesChannelsToStockLocationWorkflow(container).run({
+        input: { id: link.location_id, remove: link.sales_channel_ids },
       })
     }
   }

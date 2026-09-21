@@ -792,6 +792,17 @@
       "tableItemAvailable": "{{availableCount}} available",
       "tableItem_one": "{{availableCount}} available at {{locationCount}} location",
       "tableItem_other": "{{availableCount}} available at {{locationCount}} locations",
+      "availability": {
+        "header": "Availability",
+        "availableLabel": "Available for sale",
+        "availableHint": "Turn off to mark this variant as sold out. Customers can't add it to their cart until it's turned back on.",
+        "availableUntilLabel": "Available again at",
+        "availableUntilHint": "Optional. The variant becomes available again automatically at this time.",
+        "available": "Available",
+        "unavailable": "Unavailable",
+        "unavailableUntil": "Unavailable until {{date}}",
+        "successToast": "Availability updated."
+      },
       "inventory": {
         "notManaged": "Not managed",
         "manageItems": "Manage inventory items",

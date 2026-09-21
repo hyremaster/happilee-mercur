@@ -6,6 +6,7 @@ import { useProduct, useProductVariants } from "@hooks/api/products"
 import { TwoColumnPageSkeleton } from "@components/common/skeleton"
 import { TwoColumnPage } from "@components/layout/pages"
 import { getExplicitVariantImages } from "../../../utils/get-explicit-variant-images"
+import { VariantAvailabilitySection } from "./components/variant-availability-section"
 import { VariantGeneralSection } from "./components/variant-general-section"
 import {
   InventorySectionPlaceholder,
@@ -81,6 +82,7 @@ export const ProductVariantDetail = () => {
         )}
       </TwoColumnPage.Main>
       <TwoColumnPage.Sidebar>
+        <VariantAvailabilitySection variant={productVariant} />
         <VariantPricesSection variant={productVariant} />
       </TwoColumnPage.Sidebar>
     </TwoColumnPage>
