@@ -82,6 +82,8 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       "variants.*",
       "variants.prices.*",
       "variants.options.*",
+      "variants.variant_availability.is_available",
+      "variants.variant_availability.unavailable_until",
       "collection_id",
       "type_id",
       "created_at",

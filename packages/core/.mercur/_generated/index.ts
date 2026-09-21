@@ -670,6 +670,7 @@ export type Routes = {
                 };
                 variants: typeof import("../../src/api/vendor/products/[id]/variants/route") & {
                     $variantId: typeof import("../../src/api/vendor/products/[id]/variants/[variant_id]/route") & {
+                        availability: typeof import("../../src/api/vendor/products/[id]/variants/[variant_id]/availability/route");
                         media: typeof import("../../src/api/vendor/products/[id]/variants/[variant_id]/media/route");
                     };
                 };

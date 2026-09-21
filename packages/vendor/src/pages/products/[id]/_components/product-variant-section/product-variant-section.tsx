@@ -8,6 +8,8 @@ import {
   createDataTableCommandHelper,
   createDataTableFilterHelper,
   DataTableAction,
+  Switch,
+  toast,
   Tooltip,
   usePrompt,
 } from "@medusajs/ui";
@@ -23,7 +25,9 @@ import {
   useDeleteVariantLazy,
   useProduct,
   useProductVariants,
+  useSetVariantAvailability,
 } from "../../../../../hooks/api/products";
+import { isVariantAvailable } from "../../../../product-variants/product-variant-detail/components/variant-availability-section";
 import { useQueryParams } from "../../../../../hooks/use-query-params";
 import { PRODUCT_VARIANT_IDS_KEY } from "../../../common/constants";
 import { Thumbnail } from "../../../../../components/common/thumbnail";
@@ -60,7 +64,7 @@ export const ProductVariantSection = () => {
         ? JSON.parse(manage_inventory)
         : undefined,
       fields:
-        "title,sku,thumbnail,*options,created_at,updated_at,*inventory_items.inventory.location_levels,inventory_quantity,manage_inventory",
+        "title,sku,thumbnail,*options,created_at,updated_at,*inventory_items.inventory.location_levels,inventory_quantity,manage_inventory,variant_availability.*",
     },
     {
       placeholderData: keepPreviousData,
@@ -374,6 +378,16 @@ const useColumns = (product: HttpTypes.AdminProduct) => {
         },
         maxSize: 250,
       }),
+      columnHelper.display({
+        id: "availability",
+        header: t("products.variant.availability.header"),
+        cell: ({ row }) => (
+          <VariantAvailabilityToggle
+            productId={product.id}
+            variant={row.original}
+          />
+        ),
+      }),
       columnHelper.action({
         actions: getActions,
       }),
@@ -428,4 +442,60 @@ const useCommands = () => {
       },
     }),
   ];
+};
+
+type VariantAvailabilityToggleProps = {
+  productId: string;
+  variant: HttpTypes.AdminProductVariant & {
+    variant_availability?: {
+      is_available?: boolean | null;
+      unavailable_until?: string | null;
+    } | null;
+  };
+};
+
+// Quick sold-out toggle so staff can flip a variant during service without
+// opening it. Rows are links, so the switch must not trigger navigation.
+const VariantAvailabilityToggle = ({
+  productId,
+  variant,
+}: VariantAvailabilityToggleProps) => {
+  const { t } = useTranslation();
+  const { mutateAsync, isPending } = useSetVariantAvailability(
+    productId,
+    variant.id,
+  );
+  const available = isVariantAvailable(variant.variant_availability);
+
+  return (
+    <div
+      className="flex items-center gap-x-2"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
+      <Switch
+        size="small"
+        checked={available}
+        disabled={isPending}
+        aria-label={t("products.variant.availability.availableLabel")}
+        onCheckedChange={(checked) =>
+          mutateAsync(
+            { is_available: checked },
+            {
+              onSuccess: () =>
+                toast.success(t("products.variant.availability.successToast")),
+              onError: (error) => toast.error(error.message),
+            },
+          )
+        }
+      />
+      <span className="txt-small text-ui-fg-subtle">
+        {available
+          ? t("products.variant.availability.available")
+          : t("products.variant.availability.unavailable")}
+      </span>
+    </div>
+  );
 };

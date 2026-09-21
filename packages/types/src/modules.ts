@@ -10,4 +10,5 @@ export enum MercurModules {
     ATTRIBUTE = "attribute",
     VENDOR_PRODUCT_ATTRIBUTE = "vendor_product_attribute",
     MARKETPLACE_PROFILE = "marketplace_profile",
+    VARIANT_AVAILABILITY = "variant_availability",
 }

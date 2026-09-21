@@ -281,3 +281,15 @@ export const VendorBatchVariantImages = z.object({
   add: z.array(z.string()).optional(),
   remove: z.array(z.string()).optional(),
 })
+
+export type VendorSetVariantAvailabilityType = z.infer<
+  typeof VendorSetVariantAvailability
+>
+export const VendorSetVariantAvailability = z
+  .object({
+    is_available: z.boolean(),
+    // When set with is_available: false, the variant becomes available again
+    // automatically once this moment passes.
+    unavailable_until: z.coerce.date().nullish(),
+  })
+  .strict()

@@ -690,6 +690,8 @@ export const ProductCreateForm = ({
         (finalPayload as any).collection_id || undefined,
       shipping_profile_id: undefined,
       enable_variants: undefined,
+      // Applied per variant below; not a product field.
+      manage_inventory: undefined,
       options:
         allOptions.length > 0
           ? allOptions
@@ -747,7 +749,7 @@ export const ProductCreateForm = ({
           ...variantWithoutMedia,
           sku:
             variant.sku === "" ? undefined : variant.sku,
-          manage_inventory: true,
+          manage_inventory: finalPayload.manage_inventory ?? true,
           allow_backorder: false,
           should_create: undefined,
           is_default: undefined,

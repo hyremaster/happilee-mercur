@@ -27,6 +27,7 @@ import {
   VendorUpdateProduct,
   VendorUpdateProductAttribute,
   VendorUpdateProductOption,
+  VendorSetVariantAvailability,
   VendorUpdateProductVariant,
 } from "./validators"
 import { maybeApplyPriceListsFilter } from "@medusajs/medusa/api/admin/products/utils/maybe-apply-price-lists-filter"
@@ -196,6 +197,11 @@ export const vendorProductsMiddlewares: MiddlewareRoute[] = [
     method: ["DELETE"],
     matcher: "/vendor/products/:id/attributes/:attribute_id",
     middlewares: [],
+  },
+  {
+    method: ["POST"],
+    matcher: "/vendor/products/:id/variants/:variant_id/availability",
+    middlewares: [validateAndTransformBody(VendorSetVariantAvailability)],
   },
   // Variant media route
   {
