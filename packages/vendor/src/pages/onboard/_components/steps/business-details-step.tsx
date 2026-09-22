@@ -30,6 +30,7 @@ import {
   STORE_NAME_INVALID_MESSAGE,
 } from "../store-name";
 import {
+  GSTIN_INVALID_MESSAGE,
   isValidTaxNumberFormat,
   TAX_NUMBER_INVALID_MESSAGE,
 } from "../tax-number";
@@ -63,8 +64,12 @@ export const BusinessDetailsStep = ({
       ? PIN_CODE_INVALID_MESSAGE
       : undefined;
   const taxNumberError =
-    data.taxNumber.trim() && !isValidTaxNumberFormat(data.taxNumber)
-      ? TAX_NUMBER_INVALID_MESSAGE
+    showValidationErrors &&
+    data.taxNumber.trim() &&
+    !isValidTaxNumberFormat(data.taxNumber, data.country)
+      ? resolveCountryIso2(data.country) === "in"
+        ? GSTIN_INVALID_MESSAGE
+        : TAX_NUMBER_INVALID_MESSAGE
       : undefined;
 
   return (

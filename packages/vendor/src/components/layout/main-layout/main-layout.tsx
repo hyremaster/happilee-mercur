@@ -140,7 +140,10 @@ const StoreList = ({ currentSellerId }: { currentSellerId: string }) => {
   return (
     <>
       {!!seller_members?.length && (
-        <DropdownMenu.RadioGroup value={currentSellerId}>
+        <DropdownMenu.RadioGroup
+          value={currentSellerId}
+          className="max-h-[300px] overflow-y-auto"
+        >
           {seller_members.map((member) => {
             const seller = member.seller;
             return (

@@ -28,6 +28,8 @@ type StorefrontSetupStepProps = {
   templates: StorefrontTemplate[];
   isLoadingTemplates: boolean;
   isTemplatesError: boolean;
+  /** Store is already live — the handle is locked and can only be changed while still a draft. */
+  isHandleLocked?: boolean;
   onRetryTemplates: () => void;
   onChange: (patch: Partial<StorefrontConfig>) => void;
   onPreviewTemplate: (templateKey: string) => void;
@@ -47,6 +49,7 @@ export const StorefrontSetupStep = ({
   templates,
   isLoadingTemplates,
   isTemplatesError,
+  isHandleLocked = false,
   onRetryTemplates,
   onChange,
   onPreviewTemplate,
@@ -65,15 +68,15 @@ export const StorefrontSetupStep = ({
   }, []);
 
   const handleCopy = async () => {
-    const value = data.handle?.trim() ?? "";
+    const handle = data.handle?.trim() ?? "";
 
-    if (!value) {
+    if (!handle) {
       toast.error("Nothing to copy");
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(value);
+      await navigator.clipboard.writeText(`${URL_PREFIX}${handle}`);
       toast.success("Copied");
       setDidCopy(true);
 
@@ -99,7 +102,11 @@ export const StorefrontSetupStep = ({
           </span>
         </div>
 
-        <div className="flex w-full items-center overflow-hidden rounded-md border border-border-primary shadow-xs">
+        <div
+          className={`flex w-full items-center overflow-hidden rounded-md border border-border-primary shadow-xs ${
+            isHandleLocked ? "bg-bg-secondary" : ""
+          }`}
+        >
           <span className="shrink-0 whitespace-nowrap border-r border-border-secondary bg-bg-secondary px-[14px] py-[10px] text-sm text-text-tertiary">
             {URL_PREFIX}
           </span>
@@ -108,6 +115,7 @@ export const StorefrontSetupStep = ({
             placeholder="store_name"
             size="md"
             unstyled
+            isDisabled={isHandleLocked}
             value={data.handle}
             onChange={(v) =>
               onChange({
@@ -144,22 +152,27 @@ export const StorefrontSetupStep = ({
         </div>
 
         <span className="text-sm text-text-tertiary">
-          This is your unique storefront URL.
+          {isHandleLocked
+            ? "Your storefront URL can't be changed after your store goes live."
+            : "This is your unique storefront URL."}
         </span>
-        {handleAvailability.isChecking && (
+        {!isHandleLocked && handleAvailability.isChecking && (
           <span className="text-sm text-text-tertiary">
             Checking availability...
           </span>
         )}
-        {!handleAvailability.isChecking && handleAvailability.isAvailable && (
-          <div className="flex items-center gap-xs">
-            <CheckCircle size={16} className="text-fg-success" />
-            <span className="text-sm text-text-success">
-              {handleAvailability.message}
-            </span>
-          </div>
-        )}
-        {!handleAvailability.isChecking &&
+        {!isHandleLocked &&
+          !handleAvailability.isChecking &&
+          handleAvailability.isAvailable && (
+            <div className="flex items-center gap-xs">
+              <CheckCircle size={16} className="text-fg-success" />
+              <span className="text-sm text-text-success">
+                {handleAvailability.message}
+              </span>
+            </div>
+          )}
+        {!isHandleLocked &&
+          !handleAvailability.isChecking &&
           !handleAvailability.isAvailable &&
           handleAvailability.message && (
             <span className="text-sm text-text-error">

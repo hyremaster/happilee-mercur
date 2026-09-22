@@ -46,9 +46,10 @@ export const useSelectSeller = (
   return useMutation({
     mutationFn: (payload) => sdk.vendor.sellers.select.mutate(payload),
     onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
-        queryKey: membersQueryKeys.me(),
-      });
+      // Switching the active store changes what every seller-scoped
+      // resource (products, orders, etc.) resolves to server-side, so all
+      // cached queries must be invalidated, not just the "me" query.
+      queryClient.invalidateQueries();
       options?.onSuccess?.(data, variables, context);
     },
     ...options,

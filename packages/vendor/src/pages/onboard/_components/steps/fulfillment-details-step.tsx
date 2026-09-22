@@ -269,9 +269,9 @@ export const FulfillmentDetailsStep = ({
           {centres.map((centre) => (
             <div
               key={centre.id}
-              className="flex items-center justify-between bg-bg-primary px-xl py-lg"
+              className="flex items-center justify-between gap-md bg-bg-primary px-xl py-lg"
             >
-              <div className="flex flex-col gap-xxs">
+              <div className="flex min-w-0 flex-col gap-xxs">
                 <div className="flex items-center gap-sm">
                   <span className="text-sm font-semibold text-text-primary">
                     {centre.name}
@@ -284,7 +284,7 @@ export const FulfillmentDetailsStep = ({
                     {centre.active ? "Active" : "Inactive"}
                   </Badge>
                 </div>
-                <span className="text-sm text-text-tertiary">
+                <span className="break-all text-sm text-text-tertiary">
                   {formatFulfillmentCentreAddress(centre)}
                 </span>
               </div>

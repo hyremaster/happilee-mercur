@@ -61,6 +61,31 @@ const professionalDetailsSchema = z.object({
     ),
 })
 
+// India's GSTIN is always exactly 15 alphanumeric characters (no separators).
+const GSTIN_PATTERN = /^[A-Za-z0-9]{15}$/
+
+function validateGstinForCountry(
+  data: {
+    address?: { country_code?: string | null } | null
+    professional_details?: { tax_id?: string | null } | null
+  },
+  ctx: z.RefinementCtx
+) {
+  const taxId = data.professional_details?.tax_id?.trim()
+  if (!taxId) {
+    return
+  }
+
+  const countryCode = data.address?.country_code?.trim().toLowerCase()
+  if (countryCode === "in" && !GSTIN_PATTERN.test(taxId)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["professional_details", "tax_id"],
+      message: "GST number must be exactly 15 alphanumeric characters.",
+    })
+  }
+}
+
 const paymentConfigSchema = z.object({
   online_enabled: z.boolean().optional(),
   payment_provider_id: z.string().nullable().optional(),
@@ -145,7 +170,7 @@ export const VendorCreateStore = z.object({
   fulfillment_methods: z.array(z.nativeEnum(StoreFulfillmentMethod)).nullable().optional(),
   storefront_template: z.string().nullable().optional(),
   metadata: z.record(z.unknown()).nullable().optional(),
-})
+}).superRefine(validateGstinForCountry)
 
 // POST /vendor/store-onboarding/:id — update store_profile extension data
 // (steps 2-4). Seller-native fields (name/address/professional) use the existing
@@ -273,4 +298,4 @@ export const VendorUpdateStore = z.object({
   payment_gateway: paymentGatewaySchema.optional(),
   order_statuses: z.array(orderStatusSchema).optional(),
   metadata: z.record(z.unknown()).nullable().optional(),
-})
+}).superRefine(validateGstinForCountry)
