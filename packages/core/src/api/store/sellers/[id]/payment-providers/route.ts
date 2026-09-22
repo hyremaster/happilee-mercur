@@ -6,10 +6,7 @@ import {
 import { MercurModules } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../../modules/marketplace-profile/service"
-
-// Medusa's "system" provider backs COD/manual payments; every other provider
-// (e.g. pp_razorpay_razorpay) is an online gateway.
-const COD_PROVIDER_ID = "pp_system_default"
+import { COD_PROVIDER_ID, isProviderAllowedForStore } from "../../../payment-rules"
 
 const COD_LABEL = "Cash on Delivery"
 const ONLINE_LABEL = "Online Payment"
@@ -30,8 +27,12 @@ type PaymentProvider = { id: string; is_enabled?: boolean }
  *
  *  - COD (`pp_system_default`) is included only when the store enabled COD.
  *  - Online providers are included only when the store enabled online payments;
- *    if the store pinned a specific online provider (`payment_provider_id`),
- *    only that provider is kept.
+ *    if the store pinned a specific online provider (`payment_provider_id`,
+ *    saved as e.g. "razorpay" for `pp_razorpay_razorpay`), only that one.
+ *
+ * The same rule is enforced when a payment session is started and at cart
+ * completion (see ../../../payment-rules.ts), so hiding a method here is not
+ * the only thing standing between a shopper and it.
  *
  * A seller with no payment config has enabled nothing, so the list is empty.
  * This is seller-scoped on purpose: the base Medusa `/store/payment-providers`
@@ -70,20 +71,9 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   )
   const config = profile?.payment_config
 
-  const providers = regionProviders.filter((p) => {
-    if (p.id === COD_PROVIDER_ID) {
-      return !!config?.cod_enabled
-    }
-    // Online provider: gated by online_enabled, and pinned to the store's
-    // chosen provider when it set one.
-    if (!config?.online_enabled) {
-      return false
-    }
-    if (config.payment_provider_id) {
-      return p.id === config.payment_provider_id
-    }
-    return true
-  })
+  const providers = regionProviders.filter((p) =>
+    isProviderAllowedForStore(config, p.id)
+  )
 
   const payment_providers = providers.map((p) => ({
     ...p,
