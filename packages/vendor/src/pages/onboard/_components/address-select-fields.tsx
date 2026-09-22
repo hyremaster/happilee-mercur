@@ -77,7 +77,7 @@ export function CountrySelectField({
       }}
     >
       {valueMissingFromList && (
-        <SelectItem id={value} textValue={value}>
+        <SelectItem id={value} textValue={value} className="truncate">
           {value}
         </SelectItem>
       )}
@@ -86,6 +86,7 @@ export function CountrySelectField({
           key={country.iso_2}
           id={country.iso_2.toLowerCase()}
           textValue={country.display_name}
+          className="truncate"
         >
           {country.display_name}
         </SelectItem>
@@ -165,7 +166,7 @@ export function StateSelectField({
       }}
     >
       {valueMissingFromList && (
-        <SelectItem id={value} textValue={value}>
+        <SelectItem id={value} textValue={value} className="truncate">
           {value}
         </SelectItem>
       )}
@@ -174,6 +175,7 @@ export function StateSelectField({
           key={province.code}
           id={province.name}
           textValue={province.name}
+          className="truncate"
         >
           {province.name}
         </SelectItem>

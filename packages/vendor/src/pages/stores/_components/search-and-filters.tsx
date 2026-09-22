@@ -6,7 +6,10 @@ type SearchAndFiltersProps = {
   onChange: (value: string) => void;
 };
 
-export const SearchAndFilters = ({ value, onChange }: SearchAndFiltersProps) => {
+export const SearchAndFilters = ({
+  value,
+  onChange,
+}: SearchAndFiltersProps) => {
   return (
     <div className="flex items-center gap-md">
       <InputField
@@ -19,7 +22,12 @@ export const SearchAndFilters = ({ value, onChange }: SearchAndFiltersProps) => 
         value={value}
         onChange={onChange}
       />
-      <Button hierarchy="secondary" size="md" iconLeading={<FilterLines />}>
+      <Button
+        className="hidden"
+        hierarchy="secondary"
+        size="md"
+        iconLeading={<FilterLines />}
+      >
         Filters
       </Button>
     </div>
