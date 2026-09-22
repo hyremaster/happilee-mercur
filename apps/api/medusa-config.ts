@@ -1,6 +1,8 @@
 import { loadEnv } from '@medusajs/framework/utils'
 import { withMercur } from '@mercurjs/core'
 
+import { redisModules, requireSecret } from './src/lib/runtime-config'
+
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
 /**
@@ -58,16 +60,22 @@ const fileModules = s3Bucket
     ]
   : []
 
+const redisUrl = process.env.REDIS_URL
+
 module.exports = withMercur({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
+    // Also backs the session store. The event bus, workflow engine and locking
+    // are moved onto Redis by redisModules() below.
+    redisUrl,
     http: {
       storeCors: process.env.STORE_CORS!,
       adminCors: process.env.ADMIN_CORS!,
       vendorCors: process.env.VENDOR_CORS!,
       authCors: process.env.AUTH_CORS!,
-      jwtSecret: process.env.JWT_SECRET || "supersecret",
-      cookieSecret: process.env.COOKIE_SECRET || "supersecret",
+      // Fatal if missing in production; see src/lib/runtime-config.ts.
+      jwtSecret: requireSecret('JWT_SECRET'),
+      cookieSecret: requireSecret('COOKIE_SECRET'),
     },
     // Vendor/admin auth rides a session cookie (SPA uses credentials:'include'),
     // so THIS governs how long a login lasts — not jwtExpiresIn. Default 1h,
@@ -83,6 +91,7 @@ module.exports = withMercur({
   },
   modules: [
     ...fileModules,
+    ...redisModules(redisUrl),
     {
       resolve: "@medusajs/medusa/payment",
       options: {

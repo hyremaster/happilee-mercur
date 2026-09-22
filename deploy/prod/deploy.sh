@@ -156,7 +156,8 @@ health_check() {
 }
 
 load_deploy_env() {
-  # Optional: SMOKE_PUBLISHABLE_KEY for the deeper health check.
+  # Optional: API_SECRET_ID (Secrets Manager secret holding the API's secrets)
+  # and SMOKE_PUBLISHABLE_KEY for the deeper health check.
   if [[ -f "$SHARED/deploy.env" ]]; then
     set -a
     # shellcheck disable=SC1091
@@ -168,6 +169,21 @@ load_deploy_env() {
   # lives in the deploy user's untracked ~/.npmrc, never in the repo.
   grep -q '^//npm.pkg.github.com/:_authToken=' "$HOME/.npmrc" 2>/dev/null \
     || die "No GitHub Packages token in ~/.npmrc (see README.md). bun install would fail on @happilee-app/*."
+}
+
+with_database_url() {
+  # Make DATABASE_URL available to the current (sub)shell: from Secrets Manager
+  # when API_SECRET_ID is configured, otherwise from shared/api.env.
+  local release="$1"
+  if [[ -n "${API_SECRET_ID:-}" ]]; then
+    # shellcheck source=load-secrets.sh
+    source "$release/deploy/prod/load-secrets.sh"
+    load_api_secrets || die "Could not load secrets '$API_SECRET_ID'."
+  else
+    DATABASE_URL="$(grep -E '^DATABASE_URL=' "$SHARED/api.env" | head -n1 | cut -d= -f2-)"
+  fi
+  [[ -n "${DATABASE_URL:-}" ]] || die "No DATABASE_URL (Secrets Manager or $SHARED/api.env)."
+  export DATABASE_URL
 }
 
 check_shared_files() {
@@ -230,7 +246,7 @@ cmd_setup() {
   info "Now create these in $SHARED (chmod 600), then run: $0 deploy <tag>"
   local entry
   for entry in "${SHARED_LINKS[@]}"; do info "  ${entry%%:*}"; done
-  info "  deploy.env              optional: SMOKE_PUBLISHABLE_KEY=pk_..."
+  info "  deploy.env              API_SECRET_ID=<secret name>, optional SMOKE_PUBLISHABLE_KEY=pk_..."
   info "  ecosystem.config.cjs    copy from deploy/prod/ in the repo"
   info "And in ~/.npmrc: //npm.pkg.github.com/:_authToken=<PAT, read:packages only>"
 }
@@ -302,20 +318,28 @@ cmd_deploy() {
   ( cd "$release/apps/vendor" && NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" bunx vite build --mode production )
 
   # ── Database: back up, then migrate while the old release still serves ──
+  # With API_SECRET_ID set (shared/deploy.env), the DB credentials come from
+  # Secrets Manager. They are loaded inside ( … ) subshells only: if they were
+  # exported here, `pm2 restart --update-env` below would copy them into pm2's
+  # saved state on disk.
   if (( skip_backup )); then
     info "skipping database backup (--skip-backup)"
   else
     require_cmd pg_dump
-    local db_url dump="$BACKUPS/pre-$(date -u +%Y%m%d%H%M%S)-${tag}.dump"
-    db_url="$(grep -E '^DATABASE_URL=' "$SHARED/api.env" | head -n1 | cut -d= -f2-)"
-    [[ -n "$db_url" ]] || die "DATABASE_URL not found in $SHARED/api.env."
+    local dump="$BACKUPS/pre-$(date -u +%Y%m%d%H%M%S)-${tag}.dump"
     step "Backing up database to $(basename "$dump")"
-    pg_dump --format=custom --no-owner --file="$dump" "$db_url"
+    (
+      with_database_url "$release"
+      pg_dump --format=custom --no-owner --file="$dump" "$DATABASE_URL"
+    )
     chmod 600 "$dump"
   fi
 
   step "Running migrations"
-  ( cd "$release/apps/api" && bunx medusa db:migrate )
+  (
+    with_database_url "$release"
+    cd "$release/apps/api" && bunx medusa db:migrate
+  )
 
   # ── Go live ──
   local previous
