@@ -6,6 +6,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../../modules/marketplace-profile/service"
+import { syncStoreFulfillmentOptionsWorkflow } from "../../../../../workflows/marketplace-profile/workflows/sync-store-fulfillment-options"
 import { createSellerStockLocationsWorkflow } from "../../../../../workflows/stock-location"
 import { refetchStockLocation } from "../../../stock-locations/helpers"
 import { assertStoreOwnership } from "../../helpers"
@@ -97,6 +98,35 @@ export const POST = async (
     is_active: is_active ?? true,
     latitude: latitude ?? null,
     longitude: longitude ?? null,
+  })
+
+  // A new fulfillment centre needs the same shipping setup onboarding gives
+  // the first ones, or checkout never offers it.
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const [profile] = await service.listStoreProfiles({ seller_id: sellerId })
+  const {
+    data: [seller],
+  } = await query.graph({
+    entity: "seller",
+    fields: ["id", "currency_code", "address.country_code"],
+    filters: { id: sellerId },
+  })
+  const sellerRow = seller as
+    | {
+        currency_code?: string | null
+        address?: { country_code?: string | null } | null
+      }
+    | undefined
+  await syncStoreFulfillmentOptionsWorkflow(req.scope).run({
+    input: {
+      seller_id: sellerId,
+      currency_code: sellerRow?.currency_code ?? "inr",
+      country_code:
+        address?.country_code ?? sellerRow?.address?.country_code ?? null,
+      fulfillment_methods:
+        (profile?.fulfillment_methods as string[] | null | undefined) ?? null,
+      location_ids: [locationId],
+    },
   })
 
   const stockLocation = await refetchStockLocation(
