@@ -28,7 +28,7 @@ repository and deploys separately.
 │   ├── admin.env.production     -> apps/admin/.env.production
 │   ├── vendor.env.production    -> apps/vendor/.env.production
 │   ├── ecosystem.config.cjs     pm2 definition for the API
-│   └── deploy.env               optional: SMOKE_PUBLISHABLE_KEY=pk_...
+│   └── deploy.env               API_SECRET_ID=..., optional SMOKE_PUBLISHABLE_KEY=pk_...
 ├── backups/                 pre-migration pg_dump files (newest 10 kept)
 └── deploy.log               who deployed which tag, when, and the result
 ```
@@ -45,13 +45,18 @@ Override paths and limits with environment variables — see the top of
    ./deploy.sh setup
    ```
 3. **Fill `shared/`** (every file `chmod 600`):
-   - `api.env` — production API env. Must include the production `DATABASE_URL`,
-     `REDIS_URL`, `JWT_SECRET`, `COOKIE_SECRET`, CORS values,
-     `FIREBASE_PROJECT_ID`, `AREASENSE_API_URL`. Start from
-     `apps/api/.env.template`. **Use fresh secrets — never copy dev or stage's.**
+   - `api.env` — **non-secret** API settings only: URLs, CORS, `REDIS_URL`,
+     `AREASENSE_API_URL`, S3 bucket, etc. Start from `apps/api/.env.template`.
+     Secrets go in Secrets Manager (next step), not here.
    - `admin.env.production`, `vendor.env.production` — `VITE_MERCUR_BACKEND_URL`
      pointing at the production API.
+   - `deploy.env` — `API_SECRET_ID=<secret name>`.
    - `ecosystem.config.cjs` — copy from this folder.
+   - Install the AWS CLI and the RDS CA bundle (TLS to the DB is verified):
+     ```
+     sudo curl -fsSL https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem \
+       -o /etc/ssl/certs/rds-global-bundle.pem
+     ```
 4. **GitHub Packages token** for `@happilee-app/*`, in the deploy user's
    `~/.npmrc` (never in the repo — see the repo's `.npmrc`):
    ```
@@ -66,6 +71,68 @@ Override paths and limits with environment variables — see the top of
    pm2 startup     # run the command it prints
    pm2 save
    ```
+
+## Secrets (AWS Secrets Manager)
+
+Secrets never live on disk. `start-api.sh` (pm2's entry point) and the deploy's
+backup/migrate steps load them from one Secrets Manager secret into process
+memory via `load-secrets.sh`, using the instance role.
+
+**1. A dedicated database user for the app.** Do not let the app use the RDS
+master user: its RDS-managed secret rotates every 7 days, and the API only reads
+credentials at start. As the master user:
+
+```sql
+CREATE ROLE happilee_ecom LOGIN PASSWORD '<generate a long random one>';
+CREATE DATABASE happilee_ecom OWNER happilee_ecom;
+REVOKE ALL ON DATABASE happilee_ecom FROM PUBLIC;
+```
+
+**2. The secret** (e.g. `happilee-ecom/prod/api`), a JSON object — every key is
+exported to the API as an environment variable:
+
+```json
+{
+  "DB_HOST": "<rds endpoint>",
+  "DB_PORT": "5432",
+  "DB_NAME": "happilee_ecom",
+  "DB_USERNAME": "happilee_ecom",
+  "DB_PASSWORD": "<from step 1>",
+  "JWT_SECRET": "<openssl rand -hex 48>",
+  "COOKIE_SECRET": "<openssl rand -hex 48>",
+  "PHONE_OTP_PEPPER": "<openssl rand -hex 32>",
+  "HAPPILEE_SSO_SECRET": "<main app's production SSO secret>",
+  "AREASENSE_API_KEY": "...",
+  "WHATSAPP_ACCESS_TOKEN": "...",
+  "WHATSAPP_PHONE_NUMBER_ID": "..."
+}
+```
+
+`DATABASE_URL` is built from the `DB_*` keys with TLS verified against the RDS
+CA bundle (`sslmode=verify-full`); set `DB_SSLMODE` to change that, or put a
+full `DATABASE_URL` in the secret instead. Keep rotation **off**: the API reads
+secrets only at start, so a rotation needs `pm2 restart happilee-api`.
+
+**3. Least-privilege IAM** on the instance role — this one secret only:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "secretsmanager:GetSecretValue",
+  "Resource": "arn:aws:secretsmanager:<region>:<account>:secret:happilee-ecom/prod/api-*"
+}
+```
+
+Anyone with a shell on the server can still read the secret through the role;
+this keeps secrets off disk, out of backups and AMIs, and audited in CloudTrail.
+
+## Redis
+
+`REDIS_URL` moves Medusa's event bus, workflow engine and locking onto Redis
+(`apps/api/src/lib/runtime-config.ts`); without it they run in process memory,
+losing events and workflow state on restart. For a local Redis, keep it bound to
+localhost with `appendonly yes` and `maxmemory-policy noeviction` — evicting
+keys would drop queued jobs.
 
 ## Release checklist
 
