@@ -18,12 +18,13 @@ export const AREA_SENSE_APP_URLS: Record<AppEnvironment, string> = {
 
 /**
  * Vendor panel hosts → deployment environment.
- * localhost / ramish.dev share the Happilee dev app; stage vendor maps to stage app.
+ * localhost / the dev vendor host share the Happilee dev app; stage vendor maps
+ * to the stage app.
  */
 const HOST_ENVIRONMENT_MAP: Record<string, AppEnvironment> = {
   localhost: "development",
   "127.0.0.1": "development",
-  "vendor-ecom.ramish.dev": "development",
+  "dev-vendor-ecom.happilee.io": "development",
   "stage-vendor-ecom.happilee.io": "staging",
 };
 
