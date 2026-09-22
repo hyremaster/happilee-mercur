@@ -22,6 +22,7 @@ import {
   maskGateway,
   sanitizeStoreProfile,
   isMaskedSecret,
+  prepareRazorpayGatewayForSave,
 } from "../helpers"
 
 // GET /vendor/store-onboarding/:id — store detail (seller + extension data).
@@ -225,20 +226,63 @@ export const POST = async (
       }
     }
 
+    // Gateways saved together can share a Razorpay account (one webhook secret).
+    const batchSecrets = new Map<string, string>()
+    const existingById = new Map(
+      (await service.listStorePaymentGateways({ seller_id: sellerId })).map(
+        (g) => [g.id, g]
+      )
+    )
+
     for (const entry of gatewayEntries) {
       const { id, gateway, label, is_active, credentials, metadata } = entry
       // Single-active invariant: deactivate siblings before activating this one.
       if (is_active) {
         await deactivateSiblingGateways(service, sellerId, gateway, id)
       }
+      const credentialsMasked = isMaskedSecret(credentials?.key_secret)
+
+      // New (unmasked) Razorpay credentials: register the webhook. Best-effort
+      // so a Razorpay outage never blocks saving the rest of the store.
+      let nextCredentials = credentials
+      let webhookMetadata: Record<string, unknown> = {}
+      if (!credentialsMasked) {
+        const existing = id ? existingById.get(id) : undefined
+        const prevSecret = (
+          existing?.credentials as Record<string, unknown> | null | undefined
+        )?.webhook_secret
+        const prepared = await prepareRazorpayGatewayForSave(
+          service,
+          gateway,
+          credentials as Record<string, unknown> | null | undefined,
+          {
+            previousWebhookSecret:
+              typeof prevSecret === "string" ? prevSecret : undefined,
+            gatewayId: id,
+            batchSecrets,
+            bestEffort: true,
+          }
+        )
+        nextCredentials = prepared.credentials as typeof credentials
+        webhookMetadata = prepared.metadata
+      }
+
       if (id) {
-        const credentialsMasked = isMaskedSecret(credentials?.key_secret)
+        const existingMetadata =
+          (existingById.get(id)?.metadata as Record<string, unknown> | null) ??
+          {}
+        const mergedMetadata =
+          metadata !== undefined
+            ? { ...(metadata ?? {}), ...webhookMetadata }
+            : Object.keys(webhookMetadata).length
+              ? { ...existingMetadata, ...webhookMetadata }
+              : undefined
         await service.updateStorePaymentGateways({
           id,
           label,
           is_active: is_active ?? false,
-          ...(credentialsMasked ? {} : { credentials }),
-          ...(metadata !== undefined ? { metadata } : {}),
+          ...(credentialsMasked ? {} : { credentials: nextCredentials }),
+          ...(mergedMetadata !== undefined ? { metadata: mergedMetadata } : {}),
         })
       } else {
         await service.createStorePaymentGateways({
@@ -246,8 +290,10 @@ export const POST = async (
           gateway,
           label,
           is_active: is_active ?? false,
-          credentials,
-          metadata: metadata ?? null,
+          credentials: nextCredentials,
+          metadata: Object.keys(webhookMetadata).length
+            ? { ...(metadata ?? {}), ...webhookMetadata }
+            : metadata ?? null,
         })
       }
     }

@@ -12,7 +12,7 @@ import {
   deactivateSiblingGateways,
   isMaskedSecret,
   maskGateway,
-  prepareRazorpayGatewayCredentials,
+  prepareRazorpayGatewayForSave,
   validateGatewayCredentials,
 } from "../../../helpers"
 
@@ -81,10 +81,15 @@ export const POST = async (
   if (credentials !== undefined && !credentialsMasked) {
     const prevSecret =
       (existing.credentials as Record<string, unknown> | null)?.webhook_secret
-    const prepared = await prepareRazorpayGatewayCredentials(
+    const prepared = await prepareRazorpayGatewayForSave(
+      service,
       existing.gateway,
       credentials as Record<string, unknown>,
-      typeof prevSecret === "string" ? prevSecret : undefined
+      {
+        previousWebhookSecret:
+          typeof prevSecret === "string" ? prevSecret : undefined,
+        gatewayId,
+      }
     )
     nextCredentials = prepared.credentials as typeof credentials
     webhookMetadata = prepared.metadata

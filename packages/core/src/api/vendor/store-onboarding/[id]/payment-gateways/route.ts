@@ -10,7 +10,7 @@ import {
   assertStoreOwnership,
   deactivateSiblingGateways,
   maskGateway,
-  prepareRazorpayGatewayCredentials,
+  prepareRazorpayGatewayForSave,
   validateGatewayCredentials,
 } from "../../helpers"
 
@@ -49,10 +49,14 @@ export const POST = async (
   // Razorpay: ensure a webhook_secret and register our webhook on the seller's
   // account so payment events reach the marketplace. Returns credentials with
   // the secret + metadata carrying the razorpay webhook id/url.
-  const prepared = await prepareRazorpayGatewayCredentials(gateway, credentials)
-
+  // Reuses the webhook secret of other stores on the same Razorpay account.
   const service = req.scope.resolve<MarketplaceProfileModuleService>(
     MercurModules.MARKETPLACE_PROFILE
+  )
+  const prepared = await prepareRazorpayGatewayForSave(
+    service,
+    gateway,
+    credentials
   )
 
   // Single-active invariant: deactivate siblings before activating this one.
