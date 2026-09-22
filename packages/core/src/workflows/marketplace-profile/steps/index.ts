@@ -22,6 +22,7 @@ import type {
 } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../modules/marketplace-profile/service"
+import { prepareRazorpayGatewayForSave } from "../../../api/vendor/store-onboarding/helpers"
 import { assertTransitionAllowed } from "../utils/order-status-transitions"
 import { resolveOrderStoreStatusContext } from "../utils/resolve-order-store-status"
 
@@ -209,7 +210,17 @@ export const createStorePaymentGatewaysStep = createStep(
     )
 
     const seenActive = new Set<string>()
-    const rows = input.map((g) => {
+    // Gateways in one submit can share a Razorpay account (one webhook secret).
+    const batchSecrets = new Map<string, string>()
+    const rows: {
+      seller_id: string
+      gateway: CreatePaymentGatewayInput["gateway"]
+      label: string
+      is_active: boolean
+      credentials: CreatePaymentGatewayInput["credentials"]
+      metadata: Record<string, unknown> | null
+    }[] = []
+    for (const g of input) {
       let isActive = g.is_active ?? false
       if (isActive) {
         if (seenActive.has(g.gateway)) {
@@ -218,15 +229,25 @@ export const createStorePaymentGatewaysStep = createStep(
           seenActive.add(g.gateway)
         }
       }
-      return {
+      // Register the Razorpay webhook (best-effort: a Razorpay outage must not
+      // block creating the store; the secret is kept for a later save).
+      const prepared = await prepareRazorpayGatewayForSave(
+        service,
+        g.gateway,
+        g.credentials as Record<string, unknown>,
+        { batchSecrets, bestEffort: true }
+      )
+      rows.push({
         seller_id: g.seller_id,
         gateway: g.gateway,
         label: g.label,
         is_active: isActive,
-        credentials: g.credentials,
-        metadata: g.metadata ?? null,
-      }
-    })
+        credentials: prepared.credentials as CreatePaymentGatewayInput["credentials"],
+        metadata: Object.keys(prepared.metadata).length
+          ? { ...(g.metadata ?? {}), ...prepared.metadata }
+          : g.metadata ?? null,
+      })
+    }
 
     const created = await service.createStorePaymentGateways(rows)
     return new StepResponse(
