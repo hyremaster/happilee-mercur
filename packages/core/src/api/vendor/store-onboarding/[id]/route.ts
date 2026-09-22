@@ -14,6 +14,7 @@ import {
   updateSellerAddressWorkflow,
   updateSellerProfessionalDetailsWorkflow,
 } from "../../../../workflows/seller"
+import { syncStoreFulfillmentOptionsWorkflow } from "../../../../workflows/marketplace-profile/workflows/sync-store-fulfillment-options"
 import { VendorUpdateStoreType } from "../validators"
 import {
   assertStoreOwnership,
@@ -132,6 +133,47 @@ export const POST = async (
       : {}),
     ...(body.metadata !== undefined ? { metadata: body.metadata } : {}),
   })
+
+  // Methods enabled after onboarding need their shipping infrastructure too;
+  // storing the list alone never reaches checkout. Only missing pieces are
+  // created, so re-saving the same methods is a no-op.
+  if (body.fulfillment_methods !== undefined) {
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+    const {
+      data: [seller],
+    } = await query.graph({
+      entity: "seller",
+      fields: ["id", "currency_code", "address.country_code"],
+      filters: { id: sellerId },
+    })
+    const { data: sellerLocations } = await query.graph({
+      entity: "stock_location_seller",
+      fields: ["stock_location_id"],
+      filters: { seller_id: sellerId },
+    })
+    const sellerRow = seller as
+      | {
+          currency_code?: string | null
+          address?: { country_code?: string | null } | null
+        }
+      | undefined
+
+    await syncStoreFulfillmentOptionsWorkflow(req.scope).run({
+      input: {
+        seller_id: sellerId,
+        currency_code: sellerRow?.currency_code ?? "inr",
+        country_code: sellerRow?.address?.country_code ?? null,
+        fulfillment_methods: body.fulfillment_methods,
+        location_ids: Array.from(
+          new Set(
+            (sellerLocations as { stock_location_id: string }[])
+              .map((l) => l.stock_location_id)
+              .filter(Boolean)
+          )
+        ),
+      },
+    })
+  }
 
   // Payment config (upsert, 1:1).
   if (body.payment_config) {
