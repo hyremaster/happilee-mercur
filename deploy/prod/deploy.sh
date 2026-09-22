@@ -313,6 +313,13 @@ cmd_deploy() {
   step "Building packages"
   ( cd "$release" && NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" bun run build )
 
+  # Workspace binaries (mercurjs, from packages/cli) point at dist/ files that
+  # do not exist during the first install, so bun skips their symlinks. Re-run
+  # the install now that the packages are built, or `bun run start` fails with
+  # "mercurjs: command not found".
+  step "Linking workspace binaries"
+  ( cd "$release" && bun install --frozen-lockfile )
+
   step "Building admin and vendor panels (production mode)"
   ( cd "$release/apps/admin"  && NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" bunx vite build --mode production )
   ( cd "$release/apps/vendor" && NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" bunx vite build --mode production )
