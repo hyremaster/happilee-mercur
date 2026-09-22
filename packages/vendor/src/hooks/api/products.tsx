@@ -236,6 +236,44 @@ export const useUpdateProductVariant = (
   });
 };
 
+export const useSetVariantAvailability = (
+  productId: string,
+  variantId: string,
+  options?: UseMutationOptions<
+    InferClientOutput<
+      typeof sdk.vendor.products.$id.variants.$variantId.availability.mutate
+    >,
+    ClientError,
+    Omit<
+      InferClientInput<
+        typeof sdk.vendor.products.$id.variants.$variantId.availability.mutate
+      >,
+      "$id" | "$variantId"
+    >
+  >
+) => {
+  return useMutation({
+    mutationFn: (payload) =>
+      sdk.vendor.products.$id.variants.$variantId.availability.mutate({
+        $id: productId,
+        $variantId: variantId,
+        ...payload,
+      }),
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: variantsQueryKeys.lists() });
+      queryClient.invalidateQueries({
+        queryKey: variantsQueryKeys.detail(variantId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: productsQueryKeys.detail(productId),
+      });
+
+      options?.onSuccess?.(data, variables, context);
+    },
+    ...options,
+  });
+};
+
 type UpdateVariantMediaPayload = {
   add?: string[];
   remove?: string[];

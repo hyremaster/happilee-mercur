@@ -10,7 +10,8 @@ function getDefaultValue(): ThemeOption {
     return persisted
   }
 
-  return "system"
+  localStorage?.setItem(THEME_KEY, "light")
+  return "light"
 }
 
 function getThemeValue(selected: ThemeOption): ThemeValue {

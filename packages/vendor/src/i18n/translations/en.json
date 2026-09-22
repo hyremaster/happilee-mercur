@@ -792,6 +792,17 @@
       "tableItemAvailable": "{{availableCount}} available",
       "tableItem_one": "{{availableCount}} available at {{locationCount}} location",
       "tableItem_other": "{{availableCount}} available at {{locationCount}} locations",
+      "availability": {
+        "header": "Availability",
+        "availableLabel": "Available for sale",
+        "availableHint": "Turn off to mark this variant as sold out. Customers can't add it to their cart until it's turned back on.",
+        "availableUntilLabel": "Available again at",
+        "availableUntilHint": "Optional. The variant becomes available again automatically at this time.",
+        "available": "Available",
+        "unavailable": "Unavailable",
+        "unavailableUntil": "Unavailable until {{date}}",
+        "successToast": "Availability updated."
+      },
       "inventory": {
         "notManaged": "Not managed",
         "manageItems": "Manage inventory items",
@@ -1213,6 +1224,17 @@
     "return": "Return",
     "cancelWarning": "You are about to cancel the order {{id}}. This action cannot be undone.",
     "orderCanceled": "Order canceled successfully",
+    "storeStatus": {
+      "title": "Order status",
+      "selectPlaceholder": "Select next status",
+      "update": "Update",
+      "history": "Status history",
+      "terminal": "This order has reached a final status and can no longer be changed.",
+      "updated": "Order status updated",
+      "cancelTitle": "Cancel this order?",
+      "cancelWarning": "You are about to cancel order {{id}}. This action cannot be undone.",
+      "changedBySystem": "System"
+    },
     "onDateFromSalesChannel": "{{date}} from {{salesChannel}}",
     "list": {
       "noRecordsMessage": "Your orders will show up here."
@@ -1291,6 +1313,9 @@
       "capturePaymentSuccess": "Payment of {{amount}} successfully captured",
       "markAsPaidPayment": "Payment of {{amount}} will be marked as paid.",
       "markAsPaidPaymentSuccess": "Payment of {{amount}} successfully marked as paid",
+      "markAsPaidConfirmTitle": "Mark payment as paid?",
+      "markAsPaidConfirmBody": "This confirms the Cash on Delivery payment was collected and captures it. This cannot be undone.",
+      "markedAsPaid": "Payment marked as paid",
       "createRefund": "Create Refund",
       "refundPaymentSuccess": "Refund of amount {{amount}} successful",
       "createRefundWrongQuantity": "Quantity should be a number between 1 and {{number}}",

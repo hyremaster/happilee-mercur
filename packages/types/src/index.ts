@@ -3,6 +3,9 @@ export * from '@medusajs/types'
 // Seller types
 export * from "./seller"
 
+// Marketplace profile types (fork extension)
+export * from "./marketplace"
+
 // Order Group types
 export * from "./order-group"
 

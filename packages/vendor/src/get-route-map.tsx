@@ -323,6 +323,10 @@ export function getRouteMap({
                     },
                     children: [
                       {
+                        path: "create",
+                        lazy: () => import("./pages/categories/create"),
+                      },
+                      {
                         path: "organize",
                         lazy: () => import("./pages/categories/organize"),
                       },
@@ -1236,6 +1240,13 @@ export function getRouteMap({
                         await import("./pages/settings/product-tags");
                       return { Component: ProductTagListPage };
                     },
+                    children: [
+                      {
+                        path: "create",
+                        lazy: () =>
+                          import("./pages/settings/product-tags/create"),
+                      },
+                    ],
                   },
                   {
                     path: ":id",
@@ -1437,6 +1448,18 @@ export function getRouteMap({
                   await import("./pages/store-select");
                 return { Component: StoreSelectPage };
               },
+            },
+            {
+              path: "/sample",
+              lazy: () => import("./pages/sample"),
+            },
+            {
+              path: "/onboard",
+              lazy: () => import("./pages/onboard"),
+            },
+            {
+              path: "/stores",
+              lazy: () => import("./pages/stores"),
             },
             ...customPublicRoutes,
             {

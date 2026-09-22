@@ -9,6 +9,7 @@ import { OrderCustomerSection } from "./_components/order-customer-section";
 import { OrderFulfillmentSection } from "./_components/order-fulfillment-section";
 import { OrderGeneralSection } from "./_components/order-general-section";
 import { OrderPaymentSection } from "./_components/order-payment-section";
+import { OrderStoreStatusSection } from "./_components/order-store-status-section";
 import { OrderSummarySection } from "./_components/order-summary-section";
 import { DEFAULT_FIELDS } from "./constants";
 
@@ -60,6 +61,7 @@ const Root = ({ children }: { children?: ReactNode }) => {
         <TwoColumnPage data={order} hasOutlet>
           <TwoColumnPage.Main>
             <OrderGeneralSection order={order} />
+            <OrderStoreStatusSection order={order} />
             <OrderSummarySection order={order} />
             <OrderPaymentSection order={order} />
             <OrderFulfillmentSection order={order} />
@@ -77,6 +79,7 @@ export const OrderDetailPage = Object.assign(Root, {
   Main: TwoColumnPage.Main,
   Sidebar: TwoColumnPage.Sidebar,
   MainGeneralSection: OrderGeneralSection,
+  MainStoreStatusSection: OrderStoreStatusSection,
   MainSummarySection: OrderSummarySection,
   MainPaymentSection: OrderPaymentSection,
   MainFulfillmentSection: OrderFulfillmentSection,

@@ -4,6 +4,30 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 
+export const validateSellerCategory = async (
+  scope: MedusaContainer,
+  sellerId: string,
+  categoryId: string
+) => {
+  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+
+  const { data: links } = await query.graph({
+    entity: "product_category_seller",
+    filters: {
+      seller_id: sellerId,
+      product_category_id: categoryId,
+    },
+    fields: ["product_category_id"],
+  })
+
+  if (!links.length) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Product category with id ${categoryId} was not found`
+    )
+  }
+}
+
 export const validateSellerProducts = async (
   scope: MedusaContainer,
   sellerId: string,

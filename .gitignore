@@ -11,7 +11,11 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
-
+.env.production
+.env.staging
+.env.*.local
+.npmrc
+.env.example
 # Testing
 coverage
 
@@ -37,5 +41,11 @@ yarn-error.log*
 .DS_Store
 *.pem
 
+# Vite dev cache
+vite.config.ts.timestamp-*.mjs
+
 apps/backend/.medusa
 packages/modules/*
+
+docs/dev-tracking
+scripts/*

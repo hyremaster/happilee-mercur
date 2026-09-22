@@ -20,10 +20,13 @@ export const membersQueryKeys = {
 };
 
 export const useMe = (
-  options?: UseQueryOptions<
-    any,
-    ClientError,
-    InferClientOutput<typeof sdk.vendor.members.me.query>
+  options?: Omit<
+    UseQueryOptions<
+      any,
+      ClientError,
+      InferClientOutput<typeof sdk.vendor.members.me.query>
+    >,
+    "queryKey" | "queryFn"
   >,
 ) => {
   const { data, ...rest } = useQuery({

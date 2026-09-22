@@ -2533,6 +2533,50 @@
             "tableItem_other": {
               "type": "string"
             },
+            "availability": {
+              "type": "object",
+              "properties": {
+                "header": {
+                  "type": "string"
+                },
+                "availableLabel": {
+                  "type": "string"
+                },
+                "availableHint": {
+                  "type": "string"
+                },
+                "availableUntilLabel": {
+                  "type": "string"
+                },
+                "availableUntilHint": {
+                  "type": "string"
+                },
+                "available": {
+                  "type": "string"
+                },
+                "unavailable": {
+                  "type": "string"
+                },
+                "unavailableUntil": {
+                  "type": "string"
+                },
+                "successToast": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "header",
+                "availableLabel",
+                "availableHint",
+                "availableUntilLabel",
+                "availableUntilHint",
+                "available",
+                "unavailable",
+                "unavailableUntil",
+                "successToast"
+              ],
+              "additionalProperties": false
+            },
             "inventory": {
               "type": "object",
               "properties": {
@@ -2655,6 +2699,7 @@
             "tableItemAvailable",
             "tableItem_one",
             "tableItem_other",
+            "availability",
             "inventory"
           ],
           "additionalProperties": false
@@ -4356,6 +4401,15 @@
               "type": "string"
             },
             "markAsPaidPaymentSuccess": {
+              "type": "string"
+            },
+            "markAsPaidConfirmTitle": {
+              "type": "string"
+            },
+            "markAsPaidConfirmBody": {
+              "type": "string"
+            },
+            "markedAsPaid": {
               "type": "string"
             },
             "createRefund": {

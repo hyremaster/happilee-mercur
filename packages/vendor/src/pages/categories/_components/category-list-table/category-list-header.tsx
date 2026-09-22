@@ -1,6 +1,7 @@
 import { Children, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Heading, Text } from "@medusajs/ui";
+import { Link } from "react-router-dom";
+import { Button, Heading, Text } from "@medusajs/ui";
 
 export const CategoryListTitle = () => {
   const { t } = useTranslation();
@@ -19,9 +20,18 @@ export const CategoryListActions = ({
 }: {
   children?: ReactNode;
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-x-2">
-      {Children.count(children) > 0 ? children : null}
+      {Children.count(children) > 0 ? (
+        children
+      ) : (
+        <Link to="/categories/create">
+          <Button size="small" variant="secondary">
+            {t("actions.create")}
+          </Button>
+        </Link>
+      )}
     </div>
   );
 };

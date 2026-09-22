@@ -18,6 +18,7 @@ import {
   useFieldArray,
   useWatch,
 } from "react-hook-form"
+import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Form } from "@components/common/form"
@@ -27,6 +28,7 @@ import { ChipInput } from "@components/inputs/chip-input"
 import { useTabbedForm } from "@components/tabbed-form"
 import { ProductCreateSchemaType } from "../../../types"
 import { decorateVariantsWithDefaultValues } from "@pages/products/create/utils"
+import { useDefaultManageInventory } from "@hooks/use-default-manage-inventory"
 
 const getPermutations = (
   data: { title: string; values: string[] }[]
@@ -59,6 +61,18 @@ const getVariantName = (options: Record<string, string>) => {
 export const ProductCreateVariantsSection = () => {
   const { t } = useTranslation()
   const form = useTabbedForm<ProductCreateSchemaType>()
+
+  // Default "Manage inventory" from the store's industry once it is known,
+  // unless the vendor already changed the switch.
+  const defaultManageInventory = useDefaultManageInventory()
+  useEffect(() => {
+    if (
+      defaultManageInventory !== undefined &&
+      !form.getFieldState("manage_inventory").isDirty
+    ) {
+      form.setValue("manage_inventory", defaultManageInventory)
+    }
+  }, [defaultManageInventory, form])
 
   const options = useFieldArray({
     control: form.control,
@@ -306,6 +320,12 @@ export const ProductCreateVariantsSection = () => {
               createDefaultOptionAndVariant()
             }
           }}
+        />
+        <SwitchBox
+          control={form.control}
+          name="manage_inventory"
+          label={t("products.variant.inventory.manageInventoryLabel")}
+          description={t("products.variant.inventory.manageInventoryHint")}
         />
       </div>
       {watchedAreVariantsEnabled && (

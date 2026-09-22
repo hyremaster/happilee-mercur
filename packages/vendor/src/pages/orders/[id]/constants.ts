@@ -47,6 +47,8 @@ const DEFAULT_RELATIONS = [
   "region.automatic_taxes",
   "*payment_collections",
   "*payment_collections.payments",
+  "*payment_collections.payment_sessions",
+  "payment_collections.status",
   "payment_status",
   "*returns",
 ]

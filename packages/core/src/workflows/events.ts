@@ -16,6 +16,22 @@ export const OrderGroupWorkflowEvents = {
     CREATED: "order_group.created",
 }
 
+export const MarketplaceOrderStatusWorkflowEvents = {
+  /**
+   * Emitted when a seller order's marketplace status changes.
+   *
+   * @eventPayload
+   * ```ts
+   * {
+   *   order_id, // The ID of the order
+   *   seller_id, // The ID of the seller
+   *   status, // The new StoreOrderStatusType
+   * }
+   * ```
+   */
+  UPDATED: "order.store_status.updated",
+}
+
 export const SellerWorkflowEvents = {
   CREATED: "seller.created",
   UPDATED: "seller.updated",

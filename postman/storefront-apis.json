@@ -1,0 +1,1150 @@
+{
+  "info": {
+    "_postman_id": "adb67eca-ad40-4939-af7a-76d23562faa7",
+    "name": "Happilee Commerce — Storefront API",
+    "description": "All APIs required to browse products and place orders on a Happilee store.\n\nBase URL: https://api.happilee.io (set via {{base_url}} variable)\nStore URL pattern: https://commerce.happilee.io/store/{store_handle}\n\nVariables to configure:\n- base_url\n- publishable_key\n- seller_id\n- store_handle",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "26776924",
+    "_collection_link": "https://go.postman.co/collection/26776924-adb67eca-ad40-4939-af7a-76d23562faa7?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "0. Customer Auth",
+      "item": [
+        {
+          "name": "Register Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('customer_token', json.token);",
+                  "  console.log('Customer token saved.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"securepassword\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/customer/emailpass/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "customer",
+                "emailpass",
+                "register"
+              ]
+            },
+            "description": "Register a new customer. Saves the returned JWT to {{customer_token}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Login Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('customer_token', json.token);",
+                  "  console.log('Customer token saved.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"securepassword\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/customer/emailpass",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "customer",
+                "emailpass"
+              ]
+            },
+            "description": "Login existing customer. Saves the returned JWT to {{customer_token}}."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1. Store / Seller",
+      "item": [
+        {
+          "name": "List Sellers (by handle)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.sellers && json.sellers.length > 0) {",
+                  "  pm.collectionVariables.set('seller_id', json.sellers[0].id);",
+                  "  console.log('seller_id saved:', json.sellers[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/sellers?handle={{store_handle}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "sellers"
+              ],
+              "query": [
+                {
+                  "key": "handle",
+                  "value": "{{store_handle}}",
+                  "description": "Store handle from URL path"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Full-text search",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Resolve a store handle to a seller profile. Saves first result to {{seller_id}}."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Seller by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/sellers/{{seller_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "sellers",
+                "{{seller_id}}"
+              ]
+            },
+            "description": "Retrieve a single seller by ID."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Products",
+      "item": [
+        {
+          "name": "List Products (by seller)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.products && json.products.length > 0) {",
+                  "  const p = json.products[0];",
+                  "  pm.collectionVariables.set('product_id', p.id);",
+                  "  if (p.variants && p.variants.length > 0) {",
+                  "    pm.collectionVariables.set('variant_id', p.variants[0].id);",
+                  "    console.log('product_id saved:', p.id);",
+                  "    console.log('variant_id saved:', p.variants[0].id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/products?seller_id={{seller_id}}&fields=id,title,description,thumbnail,status,variants.id,variants.title,variants.sku,variants.prices,options",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "seller_id",
+                  "value": "{{seller_id}}",
+                  "description": "Filter products to this seller"
+                },
+                {
+                  "key": "fields",
+                  "value": "id,title,description,thumbnail,status,variants.id,variants.title,variants.sku,variants.prices,options"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Search term",
+                  "disabled": true
+                },
+                {
+                  "key": "category_id[]",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "collection_id[]",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List published products for a seller. Saves first product_id and variant_id."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Retrieve full product details including all variants and options."
+          },
+          "response": []
+        },
+        {
+          "name": "store-products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9000/store/sellers/{{seller_id}}/products",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9000",
+              "path": [
+                "store",
+                "sellers",
+                "{{seller_id}}",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "str-pr",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:9000/store/products?seller_id=sel_01KVZ1DS060AM2WF5B2DRE7SEP",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "9000",
+              "path": [
+                "store",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "seller_id",
+                  "value": "sel_01KVZ1DS060AM2WF5B2DRE7SEP"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Regions",
+      "item": [
+        {
+          "name": "List Regions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.regions && json.regions.length > 0) {",
+                  "  pm.collectionVariables.set('region_id', json.regions[0].id);",
+                  "  console.log('region_id saved:', json.regions[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/regions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "regions"
+              ]
+            },
+            "description": "Fetch available regions (currency, tax). Saves first region_id."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Cart",
+      "item": [
+        {
+          "name": "Create Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.cart && json.cart.id) {",
+                  "  pm.collectionVariables.set('cart_id', json.cart.id);",
+                  "  console.log('cart_id saved:', json.cart.id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"region_id\": \"{{region_id}}\",\n  \"currency_code\": \"inr\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts"
+              ]
+            },
+            "description": "Create a new cart. Saves cart_id. Must have region_id set first."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Line Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"variant_id\": \"{{variant_id}}\",\n  \"quantity\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/line-items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "line-items"
+              ]
+            },
+            "description": "Add a product variant to the cart. Repeat for multiple products."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Line Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/line-items/:line_item_id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "line-items",
+                ":line_item_id"
+              ],
+              "variable": [
+                {
+                  "key": "line_item_id",
+                  "value": "",
+                  "description": "Line item ID from cart"
+                }
+              ]
+            },
+            "description": "Update quantity of a line item."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Line Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/line-items/:line_item_id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "line-items",
+                ":line_item_id"
+              ],
+              "variable": [
+                {
+                  "key": "line_item_id",
+                  "value": "",
+                  "description": "Line item ID from cart"
+                }
+              ]
+            },
+            "description": "Remove a line item from the cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Cart (email + address)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"shipping_address\": {\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"address_1\": \"123 Main St\",\n    \"city\": \"Mumbai\",\n    \"country_code\": \"in\",\n    \"postal_code\": \"400001\",\n    \"phone\": \"+919876543210\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}"
+              ]
+            },
+            "description": "Set customer email and shipping address on cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}"
+              ]
+            },
+            "description": "Retrieve current cart state (items, totals, addresses)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Shipping",
+      "item": [
+        {
+          "name": "List Shipping Options",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.shipping_options && json.shipping_options.length > 0) {",
+                  "  pm.collectionVariables.set('shipping_option_id', json.shipping_options[0].id);",
+                  "  console.log('shipping_option_id saved:', json.shipping_options[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/shipping-options?cart_id={{cart_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "shipping-options"
+              ],
+              "query": [
+                {
+                  "key": "cart_id",
+                  "value": "{{cart_id}}",
+                  "description": "Required — filters options for this cart"
+                },
+                {
+                  "key": "is_return",
+                  "value": "false",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Fetch available shipping methods for the cart. Saves first shipping_option_id."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Shipping Method to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"option_id\": \"{{shipping_option_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/shipping-methods",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "shipping-methods"
+              ]
+            },
+            "description": "Apply a shipping option to the cart."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Promotions",
+      "item": [
+        {
+          "name": "Apply Promo Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"promo_codes\": [\"SAVE10\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/promotions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "promotions"
+              ]
+            },
+            "description": "Apply one or more promo codes to the cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Promo Code",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"promo_codes\": [\"SAVE10\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/promotions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "promotions"
+              ]
+            },
+            "description": "Remove promo codes from the cart."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Payment",
+      "item": [
+        {
+          "name": "Create Payment Collection",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.payment_collection && json.payment_collection.id) {",
+                  "  pm.collectionVariables.set('payment_collection_id', json.payment_collection.id);",
+                  "  console.log('payment_collection_id saved:', json.payment_collection.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cart_id\": \"{{cart_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/store/payment-collections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "payment-collections"
+              ]
+            },
+            "description": "Initialize a payment collection for the cart. Saves payment_collection_id."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider_id\": \"pp_system_default\"\n  //seller id?\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/store/payment-collections/{{payment_collection_id}}/payment-sessions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "payment-collections",
+                "{{payment_collection_id}}",
+                "payment-sessions"
+              ]
+            },
+            "description": "Create a payment session. Use pp_system_default for COD. Replace provider_id with Razorpay/Stripe provider ID for online payments."
+          },
+          "response": []
+        },
+        {
+          "name": "list payment providers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/payment-providers?region_id={{region_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "payment-providers"
+              ],
+              "query": [
+                {
+                  "key": "region_id",
+                  "value": "{{region_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Complete Cart (Place Order)",
+      "item": [
+        {
+          "name": "Complete Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.type === 'order_group' && json.order_group) {",
+                  "  pm.collectionVariables.set('order_group_id', json.order_group.id);",
+                  "  console.log('Order placed! order_group_id:', json.order_group.id);",
+                  "} else if (json.type === 'cart') {",
+                  "  console.warn('Payment action required:', json.error?.message);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/complete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "complete"
+              ]
+            },
+            "description": "Place the order. Returns type=order_group on success (cart splits into per-seller orders). Returns type=cart with error if payment action is required.\n\nSaves order_group_id on success."
+          },
+          "response": []
+        },
+        {
+          "name": "verify-payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "pk_13f70d89d9f3e6200d167058747c62811d5639851fd4524d5cbff208ba54a9a2"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"data\": {\n      \"razorpay_payment_id\": \"<from_razorpay_callback>\",\n      \"razorpay_order_id\": \"<order_id_from_session>\",\n      \"razorpay_signature\": \"<from_razorpay_callback>\",\n      \"seller_id\": \"sel_01KVZ1DS060AM2WF5B2DRE7SEP\"\n    }\n  }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/store/payment-collections/{{payment_collection_id}}/payment-sessions/{{payment_session_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "payment-collections",
+                "{{payment_collection_id}}",
+                "payment-sessions",
+                "{{payment_session_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "9. Order History (Auth Required)",
+      "item": [
+        {
+          "name": "List Order Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_token}}"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/order-groups",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "order-groups"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all orders for the logged-in customer. Requires customer JWT."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order Group by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_token}}"
+              },
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/order-groups/{{order_group_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "order-groups",
+                "{{order_group_id}}"
+              ]
+            },
+            "description": "Retrieve a single order group with nested per-seller orders, items, and variants."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:9000"
+    },
+    {
+      "key": "publishable_key",
+      "value": ""
+    },
+    {
+      "key": "seller_id",
+      "value": "sel_01KVZ1DS060AM2WF5B2DRE7SEP"
+    },
+    {
+      "key": "store_handle",
+      "value": "my-store"
+    },
+    {
+      "key": "customer_token",
+      "secret": true
+    },
+    {
+      "key": "cart_id",
+      "value": ""
+    },
+    {
+      "key": "region_id",
+      "value": ""
+    },
+    {
+      "key": "variant_id",
+      "value": ""
+    },
+    {
+      "key": "product_id",
+      "value": ""
+    },
+    {
+      "key": "shipping_option_id",
+      "value": ""
+    },
+    {
+      "key": "payment_collection_id",
+      "value": ""
+    },
+    {
+      "key": "order_group_id",
+      "value": ""
+    }
+  ]
+}

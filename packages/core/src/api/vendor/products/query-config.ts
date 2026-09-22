@@ -34,6 +34,7 @@ export const vendorProductFields = [
   "*variants.prices",
   "*variants.options",
   "*variants.inventory_items",
+  "variants.variant_availability.*",
   "*categories",
   "*attribute_values",
   "*attribute_values.attribute",
@@ -50,14 +51,19 @@ export const vendorProductQueryConfig = {
   },
 }
 
+const vendorProductVariantFields = [
+  ...defaultAdminProductVariantFields,
+  "variant_availability.*",
+]
+
 export const vendorProductVariantQueryConfig = {
   list: {
-    defaults: defaultAdminProductVariantFields,
+    defaults: vendorProductVariantFields,
     isList: true,
     defaultLimit: 50,
   },
   retrieve: {
-    defaults: defaultAdminProductVariantFields,
+    defaults: vendorProductVariantFields,
     isList: false,
   },
 }

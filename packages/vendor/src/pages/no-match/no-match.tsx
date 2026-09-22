@@ -1,14 +1,14 @@
-import { ExclamationCircle } from "@medusajs/icons"
-import { Button, Text } from "@medusajs/ui"
-import { useTranslation } from "react-i18next"
-import { Link } from "react-router-dom"
+import { ExclamationCircle } from "@medusajs/icons";
+import { Button, Text } from "@medusajs/ui";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 
 // TODO: Add 404 page
 export const NoMatch = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
-  const title = t("errorBoundary.notFoundTitle")
-  const message = t("errorBoundary.noMatchMessage")
+  const title = t("errorBoundary.notFoundTitle");
+  const message = t("errorBoundary.noMatchMessage");
 
   return (
     <div className="flex size-full min-h-screen items-center justify-center">
@@ -32,5 +32,5 @@ export const NoMatch = () => {
         </Button>
       </div>
     </div>
-  )
-}
+  );
+};

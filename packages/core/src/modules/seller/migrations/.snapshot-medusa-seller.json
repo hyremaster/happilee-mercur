@@ -421,13 +421,13 @@
           "expression": "CREATE INDEX IF NOT EXISTS \"IDX_seller_deleted_at\" ON \"seller\" (\"deleted_at\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_seller_email_unique",
+          "keyName": "IDX_seller_email",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_seller_email_unique\" ON \"seller\" (\"email\") WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_seller_email\" ON \"seller\" (\"email\") WHERE deleted_at IS NULL"
         },
         {
           "keyName": "IDX_seller_name_unique",

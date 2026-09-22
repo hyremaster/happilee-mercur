@@ -2,6 +2,7 @@ export interface CreateSellerDTO {
   name: string
   handle?: string
   email: string
+  phone?: string | null
   description?: string | null
   logo?: string | null
   banner?: string | null
@@ -27,6 +28,7 @@ export interface UpdateSellerDTO {
   external_id?: string | null
   status?: string
   status_reason?: string | null
+  approved_at?: Date | null
   is_premium?: boolean
   closed_from?: Date | null
   closed_to?: Date | null

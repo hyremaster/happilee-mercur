@@ -20,6 +20,7 @@ import {
   VendorGetOrderChangesParams,
   VendorGetOrderParams,
   VendorGetOrdersParams,
+  VendorUpdateOrderStoreStatus,
 } from "./validators"
 
 const applySellerLinkFilter = (
@@ -90,6 +91,26 @@ export const vendorOrdersMiddlewares: MiddlewareRoute[] = [
       validateAndTransformQuery(
         VendorGetOrderChangesParams,
         vendorOrderChangesQueryConfig.list
+      ),
+    ],
+  },
+  {
+    method: ["GET"],
+    matcher: "/vendor/orders/:id/store-status",
+    middlewares: [],
+  },
+  {
+    method: ["POST"],
+    matcher: "/vendor/orders/:id/store-status",
+    middlewares: [validateAndTransformBody(VendorUpdateOrderStoreStatus)],
+  },
+  {
+    method: ["POST"],
+    matcher: "/vendor/orders/:id/payment/mark-as-paid",
+    middlewares: [
+      validateAndTransformQuery(
+        VendorGetOrderParams,
+        vendorOrderQueryConfig.retrieve
       ),
     ],
   },

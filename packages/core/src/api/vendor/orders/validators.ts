@@ -4,6 +4,7 @@ import {
   createOperatorMap,
   createSelectParams,
 } from "@medusajs/medusa/api/utils/validators"
+import { StoreOrderStatusType } from "@mercurjs/types"
 
 export type VendorGetOrderParamsType = z.infer<typeof VendorGetOrderParams>
 export const VendorGetOrderParams = createSelectParams()
@@ -43,6 +44,14 @@ export const VendorCreateFulfillment = z.object({
   ),
   requires_shipping: z.boolean(),
   location_id: z.string(),
+})
+
+export type VendorUpdateOrderStoreStatusType = z.infer<
+  typeof VendorUpdateOrderStoreStatus
+>
+export const VendorUpdateOrderStoreStatus = z.object({
+  status: z.nativeEnum(StoreOrderStatusType),
+  note: z.string().optional(),
 })
 
 export type VendorCreateShipmentType = z.infer<typeof VendorCreateShipment>

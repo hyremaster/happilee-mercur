@@ -1,0 +1,917 @@
+{
+  "info": {
+    "_postman_id": "d77d08ce-05d4-457b-ba2f-5f041ab41ee1",
+    "name": "Mercur — Store Onboarding (Vendor)",
+    "description": "Vendor store-onboarding API (M2 + M2b + M2c).\n\nImport, then run requests top-to-bottom: Auth > Register captures {{token}} and a unique {{email}}; later requests auto-capture {{store_id}}, {{location_id}}, {{draft_id}} into collection variables via test scripts. Set {{base_url}} if not http://localhost:9000.\n\nDrafts flow (M2c): Create draft -> Save step 1..4 -> Get/Resume -> Submit (creates the real store).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "26776924",
+    "_collection_link": "https://go.postman.co/collection/26776924-d77d08ce-05d4-457b-ba2f-5f041ab41ee1?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register member",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('email')) {",
+                  "  pm.collectionVariables.set('email', 'vendor_' + Date.now() + '@test.com');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) { pm.collectionVariables.set('token', j.token); }",
+                  "pm.test('has token', () => pm.expect(j.token).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/member/emailpass/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "member",
+                "emailpass",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login member (refresh token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.token) { pm.collectionVariables.set('token', j.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/member/emailpass",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "member",
+                "emailpass"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "happilee-sso",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Stores (direct create)",
+      "item": [
+        {
+          "name": "Create store",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.store && j.store.seller && j.store.seller.id;",
+                  "if (id) { pm.collectionVariables.set('store_id', id); }",
+                  "pm.test('201 created', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Freshkart Daily\",\n  \"email\": \"{{$timestamp}}{{email}}\",\n  \"currency_code\": \"inr\",\n  \"handle\": \"freshkart-{{$timestamp}}\",\n  \"member_email\": \"{{email}}\",\n  \"owner_handle\": \"drew\",\n  \"industry\": \"grocery\",\n  \"address\": {\n    \"address_1\": \"123 Commerce St\",\n    \"city\": \"Mumbai\",\n    \"country_code\": \"in\",\n    \"province\": \"Maharashtra\",\n    \"postal_code\": \"400001\"\n  },\n  \"professional_details\": { \"corporate_name\": \"Freshkart Pvt Ltd\", \"tax_id\": \"27AAACC1234B1Z5\" },\n  \"commerce_type\": \"local_delivery\",\n  \"fulfillment_methods\": [\"delivery\", \"pickup\"],\n  \"storefront_template\": \"classic\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List my stores (union: stores + drafts)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding"
+              ]
+            },
+            "description": "Returns one merged list: object='store' (submitted) or object='store_draft' (in-progress). Drafts first. Works even with no member yet."
+          },
+          "response": []
+        },
+        {
+          "name": "List — drafts only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding?status=draft",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "draft"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List — active stores only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding?status=active",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Store detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-seller-id",
+                "value": "{{store_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/{{store_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "{{store_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update store (steps 2-4)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commerce_type\": \"local_delivery\",\n  \"fulfillment_methods\": [\"delivery\", \"pickup\"],\n  \"storefront_template\": \"modern_minimal\",\n  \"payment_config\": {\n    \"online_enabled\": true,\n    \"payment_provider_id\": null,\n    \"cod_enabled\": true,\n    \"cod_min_amount\": 100,\n    \"cod_max_amount\": 5000,\n    \"currency_code\": \"inr\"\n  },\n  \"order_statuses\": [\n    { \"status\": \"order_placed\", \"display_name\": \"Order placed\", \"is_active\": true, \"is_required\": true, \"rank\": 0 },\n    { \"status\": \"confirmed\", \"display_name\": \"Confirmed\", \"is_active\": true, \"rank\": 1 },\n    { \"status\": \"delivered\", \"display_name\": \"Delivered\", \"is_active\": true, \"is_required\": true, \"rank\": 2 },\n    { \"status\": \"cancelled\", \"display_name\": \"Cancelled\", \"is_active\": true, \"is_required\": true, \"rank\": 3 }\n  ],\n  \"owner_handle\": \"drew\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/{{store_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "{{store_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List - templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/storefront-templates",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "storefront-templates"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "check url availability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/check-handle?handle=freshkart-1782379371",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "check-handle"
+              ],
+              "query": [
+                {
+                  "key": "handle",
+                  "value": "freshkart-1782379371"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "default-statuses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/default-statuses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "default-statuses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update-payment-gateway",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Fulfillment centres (locations)",
+      "item": [
+        {
+          "name": "Add location",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.location && j.location.id;",
+                  "if (id) { pm.collectionVariables.set('location_id', id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Whitefield outlet\",\n  \"address\": {\n    \"address_1\": \"42 Whitefield Main Road, Hoodi\",\n    \"city\": \"Bengaluru\",\n    \"country_code\": \"in\",\n    \"province\": \"Karnataka\",\n    \"postal_code\": \"560066\"\n  },\n  \"is_active\": true,\n  \"latitude\": 12.9698,\n  \"longitude\": 77.7500\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/{{store_id}}/locations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "{{store_id}}",
+                "locations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List locations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/{{store_id}}/locations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "{{store_id}}",
+                "locations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update location",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Whitefield outlet (closed)\",\n  \"is_active\": false,\n  \"latitude\": 13.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/{{store_id}}/locations/{{location_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "{{store_id}}",
+                "locations",
+                "{{location_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete location",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/{{store_id}}/locations/{{location_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "{{store_id}}",
+                "locations",
+                "{{location_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Drafts (save & resume)",
+      "item": [
+        {
+          "name": "Start draft",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "const id = j.draft && j.draft.id;",
+                  "if (id) { pm.collectionVariables.set('draft_id', id); }",
+                  "pm.test('201 created', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/drafts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "drafts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save step 1 — business",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"step\": 1,\n  \"data\": {\n    \"name\": \"Draft Store {{$timestamp}}\",\n    \"email\": \"{{$timestamp}}{{email}}\",\n    \"owner_handle\": \"drew{{$timestamp}}\",\n    \"industry\": \"grocery\",\n    \"address\": {\n      \"address_1\": \"123 Commerce St\",\n      \"city\": \"Mumbai\",\n      \"country_code\": \"in\",\n      \"province\": \"Maharashtra\",\n      \"postal_code\": \"400001\"\n    },\n    \"professional_details\": { \"corporate_name\": \"Draft Pvt Ltd\", \"tax_id\": \"27AAACC1234B1Z5\" }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/drafts/{{draft_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "drafts",
+                "{{draft_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save step 2 — commerce",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"step\": 2,\n    \"data\": {\n        \"commerce_type\": \"local_delivery\",\n        \"fulfillment_methods\": [\n            \"delivery\",\n            \"pickup\"\n        ],\n        \"delivery_areas\": [\n            {\n                \"area_sense_id\": \"PXiwdxbrtr9HlGCCR611c\",\n                \"area_name\": \"pattom\",\n                \"metadata\": {\n                    \"area_type\": \"geo_locations\"\n                }\n            },\n            {\n                \"area_sense_id\": \"AS-102\",\n                \"area_name\": \"Edappally\"\n            }\n        ],\n        \"order_statuses\": [\n            {\n                \"status\": \"order_placed\",\n                \"display_name\": \"Order placed\",\n                \"is_active\": true,\n                \"is_required\": true,\n                \"rank\": 0\n            },\n            {\n                \"status\": \"confirmed\",\n                \"display_name\": \"Confirmeddd\",\n                \"is_active\": true,\n                \"rank\": 1\n            },\n            {\n                \"status\": \"delivered\",\n                \"display_name\": \"Delivereddd\",\n                \"is_active\": true,\n                \"is_required\": true,\n                \"rank\": 2\n            },\n            {\n                \"status\": \"cancelled\",\n                \"display_name\": \"Cancelleddd\",\n                \"is_active\": true,\n                \"is_required\": true,\n                \"rank\": 3\n            }\n        ]\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/drafts/{{draft_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "drafts",
+                "{{draft_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save step 3 — fulfillment (payment + locations)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"step\": 3,\n    \"data\": {\n        \"payment\": {\n            \"online_enabled\": true,\n            \"cod_enabled\": true,\n            \"cod_min_amount\": 100,\n            \"cod_max_amount\": 5000,\n            \"currency_code\": \"inr\"\n        },\n        \"payment_gateway\": {\n            \"gateway\": \"razorpay\",\n            \"is_active\": true,\n            \"credentials\": {\n                \"key_id\": \"rzp_test_1234\",\n                \"key_secret\": \"your-secret11\",\n                \"webhook_secret\": \"whsec_abc11\"\n            }\n        },\n        \"locations\": [\n            {\n                \"name\": \"Whitefield outlet\",\n                \"address\": {\n                    \"address_1\": \"42 Whitefield\",\n                    \"city\": \"Bengaluru\",\n                    \"country_code\": \"in\",\n                    \"province\": \"Karnataka\",\n                    \"postal_code\": \"560066\"\n                },\n                \"is_active\": true,\n                \"latitude\": 12.9698,\n                \"longitude\": 77.75\n            }\n        ]\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/drafts/{{draft_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "drafts",
+                "{{draft_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save step 4 — storefront",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"step\": 4,\n  \"data\": {\n    \"handle\": \"draft-store-{{$timestamp}}\",\n    \"storefront_template\": \"classic\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/drafts/{{draft_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "drafts",
+                "{{draft_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List drafts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/drafts?status=draft",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "drafts"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "draft"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get / resume draft",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/drafts/{{draft_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "drafts",
+                "{{draft_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Submit draft (materialize store)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.seller_id) { pm.collectionVariables.set('store_id', j.seller_id); }",
+                  "pm.test('201 created', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/drafts/{{draft_id}}/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "drafts",
+                "{{draft_id}}",
+                "submit"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Discard draft",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/drafts/{{draft_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "drafts",
+                "{{draft_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "delivery areas",
+      "item": [
+        {
+          "name": "save selected areas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer $TOKEN"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"areas\": [\n        {\n            \"area_sense_id\": \"PXiwdxbrtr9HlGCCR611c\",\n            \"area_name\": \"pattom\",\n            \"metadata\": {\n                \"area_type\": \"geo_locations\"\n            }\n        },\n        {\n            \"area_sense_id\": \"AS-102\",\n            \"area_name\": \"Edappally\"\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/{{store_id}}/delivery-areas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "{{store_id}}",
+                "delivery-areas"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "list saved areas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer $TOKEN"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/{{store_id}}/delivery-areas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "{{store_id}}",
+                "delivery-areas"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "list delivery areas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/store-onboarding/area-sense/areas?search=pattom",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendor",
+                "store-onboarding",
+                "area-sense",
+                "areas"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "pattom"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:9000"
+    },
+    {
+      "key": "email",
+      "value": "example@gmail.com"
+    },
+    {
+      "key": "password",
+      "value": "password"
+    },
+    {
+      "key": "token",
+      "secret": true
+    },
+    {
+      "key": "store_id",
+      "value": ""
+    },
+    {
+      "key": "location_id",
+      "value": ""
+    },
+    {
+      "key": "draft_id",
+      "value": "",
+      "disabled": true
+    },
+    {
+      "key": "draft_id",
+      "value": ""
+    }
+  ]
+}

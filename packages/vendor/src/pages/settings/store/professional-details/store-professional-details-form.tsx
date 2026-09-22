@@ -17,7 +17,19 @@ type StoreProfessionalDetailsFormProps = {
 const StoreProfessionalDetailsSchema = zod.object({
   corporate_name: zod.string().optional().or(zod.literal("")),
   registration_number: zod.string().optional().or(zod.literal("")),
-  tax_id: zod.string().optional().or(zod.literal("")),
+  tax_id: zod
+    .string()
+    .optional()
+    .or(zod.literal(""))
+    .refine(
+      (value) =>
+        !value ||
+        /^[A-Za-z0-9\s\-\/.]+$/.test(value.trim()),
+      {
+        message:
+          "Tax/GST number can only include letters, numbers, spaces, hyphens, dots, and slashes.",
+      }
+    ),
 });
 
 export const StoreProfessionalDetailsForm = ({
