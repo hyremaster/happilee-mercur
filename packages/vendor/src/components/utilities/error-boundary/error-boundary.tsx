@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Navigate, useLocation, useRouteError } from "react-router-dom"
 
 import { isClientError } from "../../../lib/is-fetch-error"
+import { getSessionExpiredRedirectUrl } from "../../../lib/environment"
 
 export const ErrorBoundary = () => {
   const error = useRouteError()
@@ -14,7 +15,12 @@ export const ErrorBoundary = () => {
 
   if (isClientError(error)) {
     if (error.status === 401) {
-      return <Navigate to="/login" state={{ from: location }} replace />
+      const redirectUrl = getSessionExpiredRedirectUrl()
+      if (redirectUrl.startsWith("http")) {
+        window.location.href = redirectUrl
+        return null
+      }
+      return <Navigate to={redirectUrl} state={{ from: location }} replace />
     }
 
     code = error.status ?? null

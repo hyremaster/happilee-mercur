@@ -9,11 +9,20 @@
 export type AppEnvironment = "development" | "staging" | "production";
 
 const AREA_SENSE_APP_PATH = "/my-apps/area-sense";
+const MY_APPS_PATH = "/my-apps";
+const LOCAL_SESSION_EXPIRED_PATH = "/login?reason=Unauthorized";
 
 export const AREA_SENSE_APP_URLS: Record<AppEnvironment, string> = {
   development: `https://dev-app.happilee.io${AREA_SENSE_APP_PATH}`,
   staging: `https://stage-app.happilee.io${AREA_SENSE_APP_PATH}`,
   production: `https://app.happilee.io${AREA_SENSE_APP_PATH}`,
+};
+
+/** Happilee My Apps hub for each deployment (session-expired redirect target). */
+export const MY_APPS_URLS: Record<AppEnvironment, string> = {
+  development: `https://dev-app.happilee.io${MY_APPS_PATH}`,
+  staging: `https://stage-app.happilee.io${MY_APPS_PATH}`,
+  production: `https://app.happilee.io${MY_APPS_PATH}`,
 };
 
 /**
@@ -24,9 +33,12 @@ export const AREA_SENSE_APP_URLS: Record<AppEnvironment, string> = {
 const HOST_ENVIRONMENT_MAP: Record<string, AppEnvironment> = {
   localhost: "development",
   "127.0.0.1": "development",
+  "vendor-ecom.ramish.dev": "development",
   "dev-vendor-ecom.happilee.io": "development",
   "stage-vendor-ecom.happilee.io": "staging",
 };
+
+const LOCAL_VENDOR_HOSTS = new Set(["localhost", "127.0.0.1"]);
 
 export type EnvironmentConfigOptions = {
   hostname?: string;
@@ -61,6 +73,32 @@ export function detectAppEnvironment(
 ): AppEnvironment {
   const normalized = resolveHostname(hostname).toLowerCase();
   return HOST_ENVIRONMENT_MAP[normalized] ?? "production";
+}
+
+/** True when the vendor panel is running on a local machine (not a deployed host). */
+export function isLocalVendorHost(hostname?: string): boolean {
+  return LOCAL_VENDOR_HOSTS.has(resolveHostname(hostname).toLowerCase());
+}
+
+/**
+ * Where to send the user when the vendor session expires.
+ * - localhost / 127.0.0.1 → local vendor login
+ * - deployed hosts → matching Happilee My Apps hub
+ */
+export function getSessionExpiredRedirectUrl(
+  options: Pick<EnvironmentConfigOptions, "hostname"> = {},
+): string {
+  if (isLocalVendorHost(options.hostname)) {
+    return LOCAL_SESSION_EXPIRED_PATH;
+  }
+  return MY_APPS_URLS[detectAppEnvironment(options.hostname)];
+}
+
+/** Full-page redirect used by fetch/error handlers on 401. */
+export function redirectOnSessionExpired(
+  options: Pick<EnvironmentConfigOptions, "hostname"> = {},
+): void {
+  window.location.href = getSessionExpiredRedirectUrl(options);
 }
 
 /**
