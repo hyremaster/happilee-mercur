@@ -14,6 +14,7 @@ import {
   updateSellerAddressWorkflow,
   updateSellerProfessionalDetailsWorkflow,
 } from "../../../../workflows/seller"
+import { syncStoreFulfillmentOptionsWorkflow } from "../../../../workflows/marketplace-profile/workflows/sync-store-fulfillment-options"
 import { VendorUpdateStoreType } from "../validators"
 import {
   assertStoreOwnership,
@@ -21,6 +22,8 @@ import {
   maskGateway,
   sanitizeStoreProfile,
   isMaskedSecret,
+  prepareRazorpayGatewayForSave,
+  validateGatewayCredentials,
 } from "../helpers"
 
 // GET /vendor/store-onboarding/:id — store detail (seller + extension data).
@@ -82,6 +85,14 @@ export const POST = async (
   const memberId = await assertStoreOwnership(req, sellerId)
   const body = req.validatedBody
 
+  // The wizard saves payment settings through this route, so gateway
+  // credentials are verified against the provider before anything is written:
+  // a store must never end up with keys that do not authenticate.
+  for (const entry of body.payment_gateways ??
+    (body.payment_gateway ? [body.payment_gateway] : [])) {
+    await validateGatewayCredentials(entry.gateway, entry.credentials)
+  }
+
   const service = req.scope.resolve<MarketplaceProfileModuleService>(
     MercurModules.MARKETPLACE_PROFILE
   )
@@ -133,6 +144,47 @@ export const POST = async (
     ...(body.metadata !== undefined ? { metadata: body.metadata } : {}),
   })
 
+  // Methods enabled after onboarding need their shipping infrastructure too;
+  // storing the list alone never reaches checkout. Only missing pieces are
+  // created, so re-saving the same methods is a no-op.
+  if (body.fulfillment_methods !== undefined) {
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+    const {
+      data: [seller],
+    } = await query.graph({
+      entity: "seller",
+      fields: ["id", "currency_code", "address.country_code"],
+      filters: { id: sellerId },
+    })
+    const { data: sellerLocations } = await query.graph({
+      entity: "stock_location_seller",
+      fields: ["stock_location_id"],
+      filters: { seller_id: sellerId },
+    })
+    const sellerRow = seller as
+      | {
+          currency_code?: string | null
+          address?: { country_code?: string | null } | null
+        }
+      | undefined
+
+    await syncStoreFulfillmentOptionsWorkflow(req.scope).run({
+      input: {
+        seller_id: sellerId,
+        currency_code: sellerRow?.currency_code ?? "inr",
+        country_code: sellerRow?.address?.country_code ?? null,
+        fulfillment_methods: body.fulfillment_methods,
+        location_ids: Array.from(
+          new Set(
+            (sellerLocations as { stock_location_id: string }[])
+              .map((l) => l.stock_location_id)
+              .filter(Boolean)
+          )
+        ),
+      },
+    })
+  }
+
   // Payment config (upsert, 1:1).
   if (body.payment_config) {
     const [existing] = await service.listStorePaymentConfigs({
@@ -183,20 +235,63 @@ export const POST = async (
       }
     }
 
+    // Gateways saved together can share a Razorpay account (one webhook secret).
+    const batchSecrets = new Map<string, string>()
+    const existingById = new Map(
+      (await service.listStorePaymentGateways({ seller_id: sellerId })).map(
+        (g) => [g.id, g]
+      )
+    )
+
     for (const entry of gatewayEntries) {
       const { id, gateway, label, is_active, credentials, metadata } = entry
       // Single-active invariant: deactivate siblings before activating this one.
       if (is_active) {
         await deactivateSiblingGateways(service, sellerId, gateway, id)
       }
+      const credentialsMasked = isMaskedSecret(credentials?.key_secret)
+
+      // New (unmasked) Razorpay credentials: register the webhook. Best-effort
+      // so a Razorpay outage never blocks saving the rest of the store.
+      let nextCredentials = credentials
+      let webhookMetadata: Record<string, unknown> = {}
+      if (!credentialsMasked) {
+        const existing = id ? existingById.get(id) : undefined
+        const prevSecret = (
+          existing?.credentials as Record<string, unknown> | null | undefined
+        )?.webhook_secret
+        const prepared = await prepareRazorpayGatewayForSave(
+          service,
+          gateway,
+          credentials as Record<string, unknown> | null | undefined,
+          {
+            previousWebhookSecret:
+              typeof prevSecret === "string" ? prevSecret : undefined,
+            gatewayId: id,
+            batchSecrets,
+            bestEffort: true,
+          }
+        )
+        nextCredentials = prepared.credentials as typeof credentials
+        webhookMetadata = prepared.metadata
+      }
+
       if (id) {
-        const credentialsMasked = isMaskedSecret(credentials?.key_secret)
+        const existingMetadata =
+          (existingById.get(id)?.metadata as Record<string, unknown> | null) ??
+          {}
+        const mergedMetadata =
+          metadata !== undefined
+            ? { ...(metadata ?? {}), ...webhookMetadata }
+            : Object.keys(webhookMetadata).length
+              ? { ...existingMetadata, ...webhookMetadata }
+              : undefined
         await service.updateStorePaymentGateways({
           id,
           label,
           is_active: is_active ?? false,
-          ...(credentialsMasked ? {} : { credentials }),
-          ...(metadata !== undefined ? { metadata } : {}),
+          ...(credentialsMasked ? {} : { credentials: nextCredentials }),
+          ...(mergedMetadata !== undefined ? { metadata: mergedMetadata } : {}),
         })
       } else {
         await service.createStorePaymentGateways({
@@ -204,8 +299,10 @@ export const POST = async (
           gateway,
           label,
           is_active: is_active ?? false,
-          credentials,
-          metadata: metadata ?? null,
+          credentials: nextCredentials,
+          metadata: Object.keys(webhookMetadata).length
+            ? { ...(metadata ?? {}), ...webhookMetadata }
+            : metadata ?? null,
         })
       }
     }

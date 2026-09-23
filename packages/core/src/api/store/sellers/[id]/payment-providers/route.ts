@@ -6,10 +6,13 @@ import {
 import { MercurModules } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../../modules/marketplace-profile/service"
-
-// Medusa's "system" provider backs COD/manual payments; every other provider
-// (e.g. pp_razorpay_razorpay) is an online gateway.
-const COD_PROVIDER_ID = "pp_system_default"
+import {
+  codAmountRestriction,
+  COD_PROVIDER_ID,
+  getSellerOrderValues,
+  isProviderAllowedForStore,
+  toAmount,
+} from "../../../payment-rules"
 
 const COD_LABEL = "Cash on Delivery"
 const ONLINE_LABEL = "Online Payment"
@@ -22,7 +25,7 @@ const providerLabel = (id: string): string =>
 type PaymentProvider = { id: string; is_enabled?: boolean }
 
 /**
- * GET /store/sellers/:id/payment-providers?region_id=...
+ * GET /store/sellers/:id/payment-providers?region_id=...&cart_id=...
  *
  * Lists the payment providers available to a shopper checking out with this
  * seller. Starts from the region's enabled providers (region_id required) and
@@ -30,8 +33,16 @@ type PaymentProvider = { id: string; is_enabled?: boolean }
  *
  *  - COD (`pp_system_default`) is included only when the store enabled COD.
  *  - Online providers are included only when the store enabled online payments;
- *    if the store pinned a specific online provider (`payment_provider_id`),
- *    only that provider is kept.
+ *    if the store pinned a specific online provider (`payment_provider_id`,
+ *    saved as e.g. "razorpay" for `pp_razorpay_razorpay`), only that one.
+ *
+ * The same rule is enforced when a payment session is started and at cart
+ * completion (see ../../../payment-rules.ts), so hiding a method here is not
+ * the only thing standing between a shopper and it.
+ *
+ * When `cart_id` is given, COD is also dropped if this seller's order value in
+ * the cart is outside the store's COD minimum / maximum. The COD entry carries
+ * `cod_min_amount` / `cod_max_amount` so the storefront can explain the range.
  *
  * A seller with no payment config has enabled nothing, so the list is empty.
  * This is seller-scoped on purpose: the base Medusa `/store/payment-providers`
@@ -39,7 +50,10 @@ type PaymentProvider = { id: string; is_enabled?: boolean }
  */
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const seller_id = req.params.id
-  const { region_id } = req.query as { region_id?: string }
+  const { region_id, cart_id } = req.query as {
+    region_id?: string
+    cart_id?: string
+  }
 
   if (!region_id) {
     throw new MedusaError(
@@ -70,17 +84,17 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   )
   const config = profile?.payment_config
 
+  // With a cart, COD is also held to the store's COD order-value range.
+  const orderValue = cart_id
+    ? (await getSellerOrderValues(req.scope, cart_id)).get(seller_id) ?? 0
+    : null
+
   const providers = regionProviders.filter((p) => {
-    if (p.id === COD_PROVIDER_ID) {
-      return !!config?.cod_enabled
-    }
-    // Online provider: gated by online_enabled, and pinned to the store's
-    // chosen provider when it set one.
-    if (!config?.online_enabled) {
+    if (!isProviderAllowedForStore(config, p.id)) {
       return false
     }
-    if (config.payment_provider_id) {
-      return p.id === config.payment_provider_id
+    if (p.id === COD_PROVIDER_ID && orderValue !== null) {
+      return codAmountRestriction(config, orderValue) === null
     }
     return true
   })
@@ -88,6 +102,13 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const payment_providers = providers.map((p) => ({
     ...p,
     label: providerLabel(p.id),
+    // Let the storefront explain the COD range (e.g. "COD for ₹100–₹5000").
+    ...(p.id === COD_PROVIDER_ID
+      ? {
+          cod_min_amount: toAmount(config?.cod_min_amount),
+          cod_max_amount: toAmount(config?.cod_max_amount),
+        }
+      : {}),
   }))
 
   res.json({

@@ -276,6 +276,107 @@ export async function prepareRazorpayGatewayCredentials(
 }
 
 /**
+ * The webhook secret already used for this Razorpay account by another stored
+ * gateway. Stores can share one Razorpay account, and Razorpay keeps a single
+ * webhook per URL per account, so every gateway on that account must use the
+ * same secret or registering one store's gateway breaks the others'.
+ */
+export async function findSharedRazorpayWebhookSecret(
+  service: MarketplaceProfileModuleService,
+  keyId: string,
+  excludeGatewayId?: string
+): Promise<string | undefined> {
+  if (!keyId) {
+    return undefined
+  }
+  const gateways = await service.listStorePaymentGateways({
+    gateway: StorePaymentGatewayType.RAZORPAY,
+  })
+  for (const g of gateways) {
+    if (g.id === excludeGatewayId) {
+      continue
+    }
+    const creds = isObject(g.credentials) ? g.credentials : {}
+    if (
+      creds.key_id === keyId &&
+      typeof creds.webhook_secret === "string" &&
+      creds.webhook_secret
+    ) {
+      return creds.webhook_secret
+    }
+  }
+  return undefined
+}
+
+/**
+ * Prepare a gateway's credentials for saving: reuse the Razorpay account's
+ * shared webhook secret (else the gateway's own, else a new one) and register
+ * the webhook. `batchSecrets` carries secrets across gateways saved together
+ * (not yet in the database). With `bestEffort`, a Razorpay failure keeps the
+ * secret but skips registration instead of failing the save, so onboarding
+ * and the store edit never break on a Razorpay outage.
+ */
+export async function prepareRazorpayGatewayForSave(
+  service: MarketplaceProfileModuleService,
+  gateway: string,
+  credentials: Record<string, unknown> | null | undefined,
+  options: {
+    previousWebhookSecret?: string
+    gatewayId?: string
+    batchSecrets?: Map<string, string>
+    bestEffort?: boolean
+  } = {}
+): Promise<{
+  credentials: Record<string, unknown> | null | undefined
+  metadata: Record<string, unknown>
+}> {
+  if (
+    gateway !== StorePaymentGatewayType.RAZORPAY ||
+    !isObject(credentials) ||
+    isMaskedSecret(credentials.key_secret)
+  ) {
+    return { credentials, metadata: {} }
+  }
+
+  const keyId = typeof credentials.key_id === "string" ? credentials.key_id : ""
+  const shared =
+    options.batchSecrets?.get(keyId) ??
+    (await findSharedRazorpayWebhookSecret(service, keyId, options.gatewayId))
+  const previous = shared ?? options.previousWebhookSecret
+
+  let prepared: {
+    credentials: Record<string, unknown> | null | undefined
+    metadata: Record<string, unknown>
+  }
+  try {
+    prepared = await prepareRazorpayGatewayCredentials(
+      gateway,
+      credentials,
+      previous
+    )
+  } catch (e) {
+    if (!options.bestEffort) {
+      throw e
+    }
+    prepared = {
+      credentials: {
+        ...credentials,
+        webhook_secret: previous ?? generateWebhookSecret(),
+      },
+      metadata: {},
+    }
+  }
+
+  const secret = isObject(prepared.credentials)
+    ? prepared.credentials.webhook_secret
+    : undefined
+  if (keyId && typeof secret === "string") {
+    options.batchSecrets?.set(keyId, secret)
+  }
+  return prepared
+}
+
+/**
  * Validate every payment gateway embedded in a wizard step-3 (fulfillment)
  * payload before it is stored on the draft. Accepts the loose `data` object
  * with `payment_gateway` (singular) and/or `payment_gateways` (array). Masked

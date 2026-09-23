@@ -4,6 +4,7 @@ import { HttpTypes } from "@mercurjs/types"
 
 import { completeCartWithSplitOrdersWorkflow } from "../../../../../workflows/cart"
 import { assertVariantsAvailable } from "../../../../../workflows/variant-availability/steps/validate-variants-available"
+import { assertCartPaymentProviderAllowed } from "../../../payment-rules"
 import { checkCartDeliveryAvailability } from "../../delivery"
 import { defaultStoreCartFields, refetchCart } from "../../helpers"
 import { StoreCompleteCartParamsType } from "./validators"
@@ -70,6 +71,30 @@ export const POST = async (
         req.scope,
         cartItems.map((item) => item?.variant_id)
     )
+
+    // The payment method must still be one every store in the cart offers: a
+    // session started before the store changed its payment settings (or one
+    // created around the storefront) must not become an order.
+    const { data: sessionRows } = await query.graph({
+        entity: "cart",
+        fields: ["payment_collection.payment_sessions.provider_id"],
+        filters: { id: cart_id },
+    })
+    const sessions =
+        (sessionRows[0] as
+            | {
+                  payment_collection?: {
+                      payment_sessions?: ({ provider_id?: string } | null)[]
+                  } | null
+              }
+            | undefined)?.payment_collection?.payment_sessions ?? []
+    for (const providerId of new Set(
+        sessions
+            .map((session) => session?.provider_id)
+            .filter((id): id is string => !!id)
+    )) {
+        await assertCartPaymentProviderAllowed(req.scope, cart_id, providerId)
+    }
 
     // Gate completion on Area Sense delivery availability: every seller in the
     // cart must serve the shipping location, else we stop before placing orders.
