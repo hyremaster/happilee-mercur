@@ -29,7 +29,7 @@ repository and deploys separately.
 │   ├── vendor.env.production    -> apps/vendor/.env.production
 │   ├── ecosystem.config.cjs     pm2 definition for the API
 │   └── deploy.env               API_SECRET_ID=..., optional SMOKE_PUBLISHABLE_KEY=pk_...
-├── backups/                 pre-migration pg_dump files (newest 10 kept)
+├── backups/                 pg_dump files, only when deploying with --dump (newest 10 kept)
 └── deploy.log               who deployed which tag, when, and the result
 ```
 
@@ -142,7 +142,17 @@ keys would drop queued jobs.
    ```
    git tag -a v1.4.0 -m "v1.4.0" && git push origin v1.4.0
    ```
-4. On the server: `./deploy.sh deploy v1.4.0`.
+4. **Take an RDS snapshot** — the deploy does not back up for you, and a
+   rollback does not undo migrations:
+   ```
+   aws rds create-db-snapshot \
+     --db-instance-identifier happilee-ecom-prod \
+     --db-snapshot-identifier pre-v1-4-0-$(date -u +%Y%m%d%H%M) \
+     --region ap-south-1
+   ```
+   It starts in seconds and captures the database as of that moment; the deploy
+   need not wait for it to finish.
+5. On the server: `./deploy.sh deploy v1.4.0`.
 
 The script refuses a tag that is not on `main` (override with
 `--allow-off-branch` only in an emergency) and refuses branch names outright.
@@ -153,7 +163,7 @@ The script refuses a tag that is not on `main` (override with
 |---|---|
 | Check out the tag into a new `releases/` directory | old release serves traffic |
 | `bun install --frozen-lockfile`, build packages and panels | old release serves traffic |
-| `pg_dump` to `backups/`, then `medusa db:migrate` | old release serves traffic, on the migrated schema |
+| `medusa db:migrate` (plus a `pg_dump` only with `--dump`) | old release serves traffic, on the migrated schema |
 | Repoint `current`, `pm2 restart` the API | a few seconds of API restart |
 | Health check `/health` (+ `/store/regions` if `SMOKE_PUBLISHABLE_KEY` set) | — |
 | Unhealthy → repoint `current` back, restart, delete the failed release | — |
@@ -161,13 +171,33 @@ The script refuses a tag that is not on `main` (override with
 A build that fails removes its half-built release and leaves the live site
 untouched. Deploys are serialised by a lock file.
 
+## Database safety
+
+The deploy takes **no backup**. Two safety nets exist instead, both outside this
+box:
+
+1. **The snapshot you take before deploying** (release checklist step 4).
+2. **Automated backups on the RDS instance** — 7-day retention, so you can
+   restore to any second before a migration ran.
+
+Restoring either one creates a *new* RDS instance; point the app at it by
+updating `DB_HOST` in the Secrets Manager secret and restarting the API.
+
+`--dump` additionally writes a `pg_dump` to `backups/`, which is useful for
+loading production data into another environment. Use it deliberately:
+
+- the file grows with your data, on the same disk as the releases and the
+  12 GB swapfile — a full disk breaks the running API, not just the deploy;
+- it puts customer data (orders, addresses, phone numbers) in the clear on this
+  box, whereas RDS snapshots stay encrypted.
+
 ## Things it cannot do for you
 
 - **Migrations are not rolled back.** Rollback swaps code, not schema. Keep each
   release's migrations compatible with the release before it: add columns and
   tables freely; drop or rename them only in a *later* release, once nothing
-  reads them. To undo a bad migration, restore from `backups/` — and know that
-  loses writes made since.
+  reads them. To undo a bad migration, restore the pre-deploy snapshot or use
+  point-in-time recovery — and know that loses writes made since.
 - **The build competes with live traffic** for CPU and RAM. The script refuses to
   start below `MIN_FREE_MB` (2 GB) rather than stopping the API to make room.
   If builds regularly hit that, resize the instance or add swap.
