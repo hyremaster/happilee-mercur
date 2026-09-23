@@ -176,7 +176,7 @@ export const BusinessDetailsStep = ({
             }
           />
 
-          <div className="grid w-full grid-cols-4 gap-lg">
+          <div className="grid w-full grid-cols-4 gap-lg [&>*]:min-w-0">
             <CountrySelectField
               label="Country"
               isRequired

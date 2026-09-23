@@ -105,7 +105,10 @@ export function isFulfillmentValid(
   }
 
   if (payment.methods.includes("cod")) {
-    if (getCodMinError(payment) || getCodMaxError(payment)) {
+    const min = parsePositiveAmount(payment.codMin);
+    const max = parsePositiveAmount(payment.codMax);
+
+    if (min === null || max === null || max <= min) {
       return false;
     }
   }
@@ -392,6 +395,7 @@ export const FulfillmentDetailsStep = ({
             <div className="grid grid-cols-2 gap-md">
               <InputField
                 label="Minimum order value"
+                isRequired
                 placeholder="Enter value"
                 size="sm"
                 inputMode="decimal"
@@ -406,6 +410,7 @@ export const FulfillmentDetailsStep = ({
               />
               <InputField
                 label="Maximum order value"
+                isRequired
                 placeholder="Enter value"
                 size="sm"
                 inputMode="decimal"

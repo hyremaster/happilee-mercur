@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle } from "@happilee-app/icons";
+import { ArrowLeft, Check } from "@happilee-app/icons";
 import { Button, Modal } from "@happilee-app/ui";
 import { ReviewSubmitContent } from "../steps/review-submit-step";
 import type { StoreSetupState, WizardStep } from "../types";
@@ -45,7 +45,7 @@ export const ReviewSubmitModal = ({
           <Button
             hierarchy="primary"
             size="md"
-            iconTrailing={<CheckCircle />}
+            iconTrailing={<Check />}
             isDisabled={isConfirmLoading}
             onPress={onConfirm}
           >

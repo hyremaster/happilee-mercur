@@ -6,6 +6,14 @@ import { getCountryProvinceObjectByIso2 } from "../../../lib/data/country-states
 
 type FieldSize = "sm" | "md";
 
+/**
+ * SelectField's trigger value is an inline span with `truncate`.
+ * Ellipsis only works on block-level boxes, so long labels overflow the
+ * chevron unless we force the value stack to shrink and truncate.
+ */
+const SELECT_FIELD_OVERFLOW_CLASSNAME =
+  "min-w-0 [&_button]:min-w-0 [&_button>div]:min-w-0 [&_button>div]:overflow-hidden [&_button>div>span]:min-w-0 [&_button>div>span]:overflow-hidden [&_button>div>span>span]:block [&_button>div>span>span]:truncate";
+
 export function resolveCountryIso2(value: string): string | undefined {
   const trimmed = value.trim();
 
@@ -67,6 +75,7 @@ export function CountrySelectField({
       isRequired={isRequired}
       placeholder={placeholder ?? "Select country"}
       size={size}
+      className={SELECT_FIELD_OVERFLOW_CLASSNAME}
       selectedKey={selectedIso2}
       onSelectionChange={(key) => {
         if (key == null) {
@@ -155,6 +164,7 @@ export function StateSelectField({
       isRequired={isRequired}
       placeholder={placeholder ?? "Select state"}
       size={size}
+      className={SELECT_FIELD_OVERFLOW_CLASSNAME}
       isDisabled={!countryIso2}
       selectedKey={value || undefined}
       onSelectionChange={(key) => {

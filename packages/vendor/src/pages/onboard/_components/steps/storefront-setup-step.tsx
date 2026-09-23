@@ -9,10 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "@medusajs/ui";
 import type { StorefrontTemplate } from "../../../../services/onboardingServices";
 import { URL_PREFIX } from "../constants";
-import {
-  clampFieldLength,
-  FIELD_LIMIT_STORE_HANDLE,
-} from "../field-limits";
+import { clampFieldLength, FIELD_LIMIT_STORE_HANDLE } from "../field-limits";
 import { getHandleFormatStatus } from "../handle-utils";
 import { StorefrontTemplateSkeleton } from "../shared/storefront-template-option";
 import type { HandleAvailabilityState } from "../use-handle-availability";
@@ -119,36 +116,37 @@ export const StorefrontSetupStep = ({
             value={data.handle}
             onChange={(v) =>
               onChange({
-                handle: clampFieldLength(v.toLowerCase(), FIELD_LIMIT_STORE_HANDLE),
+                handle: clampFieldLength(
+                  v.toLowerCase(),
+                  FIELD_LIMIT_STORE_HANDLE,
+                ),
               })
-            }
-            iconTrailing={
-              <button
-                type="button"
-                aria-label="Copy store URL slug"
-                onClick={handleCopy}
-                className={`
-                  relative inline-flex items-center justify-center rounded-sm p-1 text-text-tertiary
-                  transition-transform duration-150 ease-out hover:text-text-secondary focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand
-                  ${didCopy ? "scale-110" : "scale-100"}
-                `}
-              >
-                <Copy01
-                  className={`
-                    transition-all duration-150 ease-out
-                    ${didCopy ? "opacity-0 scale-75" : "opacity-100 scale-100"}
-                  `}
-                />
-                <CheckCircle
-                  className={`
-                    absolute transition-all duration-150 ease-out
-                    ${didCopy ? "opacity-100 scale-100 text-fg-success" : "opacity-0 scale-75"}
-                  `}
-                />
-              </button>
             }
             className="min-w-0 flex-1"
           />
+          <button
+            type="button"
+            aria-label="Copy store URL slug"
+            onClick={handleCopy}
+            className={`
+              relative inline-flex shrink-0 items-center justify-center rounded-sm p-2 mr-[14px] text-text-tertiary
+              transition-transform duration-150 ease-out hover:text-text-secondary focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand
+              ${didCopy ? "scale-110" : "scale-100"}
+            `}
+          >
+            <Copy01
+              className={`
+                transition-all duration-150 ease-out
+                ${didCopy ? "opacity-0 scale-75" : "opacity-100 scale-100"}
+              `}
+            />
+            <CheckCircle
+              className={`
+                absolute transition-all duration-150 ease-out
+                ${didCopy ? "opacity-100 scale-100 text-fg-success" : "opacity-0 scale-75"}
+              `}
+            />
+          </button>
         </div>
 
         <span className="text-sm text-text-tertiary">
