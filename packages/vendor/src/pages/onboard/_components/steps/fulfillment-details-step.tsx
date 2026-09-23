@@ -105,7 +105,10 @@ export function isFulfillmentValid(
   }
 
   if (payment.methods.includes("cod")) {
-    if (getCodMinError(payment) || getCodMaxError(payment)) {
+    const min = parsePositiveAmount(payment.codMin);
+    const max = parsePositiveAmount(payment.codMax);
+
+    if (min === null || max === null || max <= min) {
       return false;
     }
   }
@@ -269,9 +272,9 @@ export const FulfillmentDetailsStep = ({
           {centres.map((centre) => (
             <div
               key={centre.id}
-              className="flex items-center justify-between bg-bg-primary px-xl py-lg"
+              className="flex items-center justify-between gap-md bg-bg-primary px-xl py-lg"
             >
-              <div className="flex flex-col gap-xxs">
+              <div className="flex min-w-0 flex-col gap-xxs">
                 <div className="flex items-center gap-sm">
                   <span className="text-sm font-semibold text-text-primary">
                     {centre.name}
@@ -284,7 +287,7 @@ export const FulfillmentDetailsStep = ({
                     {centre.active ? "Active" : "Inactive"}
                   </Badge>
                 </div>
-                <span className="text-sm text-text-tertiary">
+                <span className="break-all text-sm text-text-tertiary">
                   {formatFulfillmentCentreAddress(centre)}
                 </span>
               </div>
@@ -392,6 +395,7 @@ export const FulfillmentDetailsStep = ({
             <div className="grid grid-cols-2 gap-md">
               <InputField
                 label="Minimum order value"
+                isRequired
                 placeholder="Enter value"
                 size="sm"
                 inputMode="decimal"
@@ -406,6 +410,7 @@ export const FulfillmentDetailsStep = ({
               />
               <InputField
                 label="Maximum order value"
+                isRequired
                 placeholder="Enter value"
                 size="sm"
                 inputMode="decimal"

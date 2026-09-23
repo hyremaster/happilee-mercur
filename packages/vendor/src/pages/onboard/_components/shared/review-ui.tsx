@@ -1,4 +1,4 @@
-import { Edit01, CheckCircle } from "@happilee-app/icons";
+import { Edit01, Signal01 } from "@happilee-app/icons";
 import { Button, FeaturedIcon } from "@happilee-app/ui";
 import { ReactNode } from "react";
 
@@ -46,7 +46,7 @@ export function ReviewSection({
 export function ReadyToGoLiveBanner() {
   return (
     <div className="flex w-full items-start gap-lg rounded-xl border border-brand bg-brand-25 p-xl">
-      <FeaturedIcon icon={<CheckCircle />} color="brand" theme="dark" size="md" />
+      <FeaturedIcon icon={<Signal01 />} color="brand" theme="light" size="md" />
       <div className="flex min-w-0 flex-col gap-xs">
         <p className="text-sm font-semibold text-text-brand">Ready to go live</p>
         <p className="text-sm text-text-tertiary">

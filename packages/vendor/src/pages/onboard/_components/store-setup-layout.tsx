@@ -45,15 +45,15 @@ export const StoreSetupLayout = ({
           }
           className="min-h-0 flex-1"
         />
-        <div className="flex shrink-0 flex-col items-center p-2">
-          <div
+        <div className="flex shrink-0 flex-col items-center p-2 ">
+          {/* <div
             className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-border-brand text-fg-quaternary"
             title={accountName ?? "Account"}
             aria-label={accountName ?? "Account"}
             data-testid="sidebar-account"
           >
             <User01 size={20} />
-          </div>
+          </div> */}
         </div>
       </div>
 

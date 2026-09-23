@@ -226,7 +226,7 @@ export const StoresPage = () => {
               >
                 <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-bg-secondary">
                   <Column className="max-w-[280px]">Store name</Column>
-                  <Column allowsSorting>Status</Column>
+                  <Column>Status</Column>
                   <Column>Industry</Column>
                   <Column helpText="How orders are fulfilled and shipped to customers">
                     Commerce type

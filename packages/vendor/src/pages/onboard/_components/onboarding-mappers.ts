@@ -649,7 +649,7 @@ export const isBusinessDetailsValid = (data: BusinessDetails): boolean => {
     isValidEmailFormat(data.email) &&
     address.length <= 200 &&
     isValidPinCodeFormat(data.pinCode, data.country) &&
-    isValidTaxNumberFormat(data.taxNumber)
+    isValidTaxNumberFormat(data.taxNumber, data.country)
   );
 };
 
