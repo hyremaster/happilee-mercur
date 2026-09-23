@@ -45,6 +45,9 @@ export const ReviewSubmitContent = ({
     (s) => s.active,
   ).length;
 
+  const needsDeliveryArea =
+    commerce.localFulfillment.includes("delivery") ||
+    commerce.ecomFulfillment.includes("shipping");
   const deliveryAreaLabel = commerce.deliveryAreaName || "—";
 
   const selectedOnlineMethod = payment.onlinePaymentMethods.find(
@@ -99,7 +102,9 @@ export const ReviewSubmitContent = ({
           label="Active order statuses"
           value={`${activeStatusCount} Statuses enabled`}
         />
-        <SummaryRow label="Delivery areas" value={deliveryAreaLabel} />
+        {needsDeliveryArea && (
+          <SummaryRow label="Delivery areas" value={deliveryAreaLabel} />
+        )}
       </ReviewSection>
 
       <ReviewSection title="Fulfillment details" onEdit={() => onEdit(3)}>

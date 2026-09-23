@@ -62,6 +62,7 @@ export const WizardShell = ({
                 hierarchy="secondary"
                 size="md"
                 iconLeading={<ArrowLeft />}
+                isDisabled={isContinueLoading}
                 onPress={onBack}
               >
                 Back

@@ -127,6 +127,7 @@ export const MainSidebar = () => {
 const StoreList = ({ currentSellerId }: { currentSellerId: string }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { seller_member } = useMe();
   const { seller_members } = useSellers();
   const { mutateAsync: selectSeller } = useSelectSeller();
@@ -134,7 +135,13 @@ const StoreList = ({ currentSellerId }: { currentSellerId: string }) => {
   const handleSelect = async (sellerId: string) => {
     if (sellerId === currentSellerId) return;
     await selectSeller({ seller_id: sellerId });
-    navigate("/", { replace: true });
+
+    // Stay on the current section (e.g. /orders, /products) instead of
+    // hard-redirecting to the orders home page. Drop any nested detail
+    // segment (e.g. /orders/123) since that record belonged to the store
+    // being switched away from and won't resolve for the new one.
+    const [, section] = location.pathname.split("/");
+    navigate(section ? `/${section}` : "/", { replace: true });
   };
 
   return (

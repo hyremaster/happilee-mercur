@@ -45,11 +45,15 @@ export const useSelectSeller = (
 ) => {
   return useMutation({
     mutationFn: (payload) => sdk.vendor.sellers.select.mutate(payload),
-    onSuccess: (data, variables, context) => {
+    onSuccess: async (data, variables, context) => {
       // Switching the active store changes what every seller-scoped
       // resource (products, orders, etc.) resolves to server-side, so all
-      // cached queries must be invalidated, not just the "me" query.
-      queryClient.invalidateQueries();
+      // cached queries must be invalidated, not just the "me" query. This
+      // is awaited so callers only proceed once seller-scoped data has
+      // actually been refetched, instead of racing a navigation against an
+      // in-flight refetch and risking stale data being shown until a
+      // manual page refresh.
+      await queryClient.invalidateQueries();
       options?.onSuccess?.(data, variables, context);
     },
     ...options,

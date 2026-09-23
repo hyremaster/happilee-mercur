@@ -324,7 +324,17 @@ export const CommerceTypeStep = ({
               <CheckboxCardGroup
                 aria-label="Choose how you fulfill"
                 value={data.localFulfillment}
-                onChange={(value) => onChange({ localFulfillment: value as string[] })}
+                onChange={(value) => {
+                  const localFulfillment = value as string[]
+                  const clearsArea =
+                    data.localFulfillment.includes("delivery") &&
+                    !localFulfillment.includes("delivery")
+
+                  onChange({
+                    localFulfillment,
+                    ...(clearsArea && { deliveryArea: "", deliveryAreaName: "" }),
+                  })
+                }}
               >
                 <CheckboxCard
                   value="delivery"
@@ -380,7 +390,17 @@ export const CommerceTypeStep = ({
               <CheckboxCardGroup
                 aria-label="Choose how you fulfill (ecommerce)"
                 value={data.ecomFulfillment}
-                onChange={(value) => onChange({ ecomFulfillment: value as string[] })}
+                onChange={(value) => {
+                  const ecomFulfillment = value as string[]
+                  const clearsArea =
+                    data.ecomFulfillment.includes("shipping") &&
+                    !ecomFulfillment.includes("shipping")
+
+                  onChange({
+                    ecomFulfillment,
+                    ...(clearsArea && { deliveryArea: "", deliveryAreaName: "" }),
+                  })
+                }}
               >
                 <CheckboxCard
                   value="shipping"
