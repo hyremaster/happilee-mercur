@@ -121,6 +121,66 @@ medusaIntegrationTestRunner({
         expect(handles.size).toEqual(1)
       })
 
+      it("returns each store's own handle", async () => {
+        for (const [name, handle] of [
+          ["First Store", "first-store"],
+          ["Second Store", "second-store"],
+        ]) {
+          const res = await api.post(
+            "/vendor/store-onboarding",
+            {
+              name,
+              handle,
+              email: `${handle}@test.com`,
+              currency_code: "usd",
+            },
+            ownerHeaders
+          )
+          expect(res.status).toEqual(201)
+        }
+
+        const response = await api.get(
+          "/vendor/store-onboarding?offset=0&limit=100",
+          ownerHeaders
+        )
+        const handleByName = new Map(
+          response.data.stores.map((s: { name: string; handle: string | null }) => [
+            s.name,
+            s.handle,
+          ])
+        )
+        expect(handleByName.get("First Store")).toEqual("first-store")
+        expect(handleByName.get("Second Store")).toEqual("second-store")
+      })
+
+      it("returns the handle chosen on a draft's storefront step", async () => {
+        const draft = await api.post(
+          "/vendor/store-onboarding/drafts",
+          {},
+          ownerHeaders
+        )
+        const draftId = draft.data.draft.id
+        await api.post(
+          `/vendor/store-onboarding/drafts/${draftId}`,
+          { step: 1, data: { name: "Draft Shop", email: "draft@test.com" } },
+          ownerHeaders
+        )
+        await api.post(
+          `/vendor/store-onboarding/drafts/${draftId}`,
+          { step: 4, data: { handle: "draft-shop" } },
+          ownerHeaders
+        )
+
+        const response = await api.get(
+          "/vendor/store-onboarding?offset=0&limit=100&status=draft",
+          ownerHeaders
+        )
+        const row = response.data.stores.find(
+          (s: { id: string }) => s.id === draftId
+        )
+        expect(row.handle).toEqual("draft-shop")
+      })
+
       it("matches the set of stores returned by /vendor/sellers", async () => {
         const [onboarding, sellers] = await Promise.all([
           api.get("/vendor/store-onboarding?offset=0&limit=100", teamMemberHeaders),
