@@ -1,4 +1,4 @@
-import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { MedusaResponse, MedusaStoreRequest } from "@medusajs/framework/http"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -6,7 +6,9 @@ import {
 } from "@medusajs/framework/utils"
 import { SellerStatus } from "@mercurjs/types"
 
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+import { resolveVariantAvailability } from "./variant-availability"
+
+export const GET = async (req: MedusaStoreRequest, res: MedusaResponse) => {
   const { id: seller_id } = req.params
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -95,6 +97,12 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       take: Number(limit),
     },
   })
+
+  await resolveVariantAvailability(
+    query,
+    products,
+    req.publishable_key_context?.sales_channel_ids ?? []
+  )
 
   res.json({
     products,
