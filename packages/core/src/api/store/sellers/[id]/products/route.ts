@@ -6,6 +6,10 @@ import {
 } from "@medusajs/framework/utils"
 import { SellerStatus } from "@mercurjs/types"
 
+import {
+  applyStoreHandles,
+  productIdsForStoreHandle,
+} from "../../../../../workflows/marketplace-profile/utils/store-product-handles"
 import { resolveVariantAvailability } from "./variant-availability"
 
 export const GET = async (req: MedusaStoreRequest, res: MedusaResponse) => {
@@ -41,9 +45,18 @@ export const GET = async (req: MedusaStoreRequest, res: MedusaResponse) => {
     filters: { seller_id },
   })
 
-  const productIds = productLinks.map(
+  let productIds = productLinks.map(
     (l: { product_id: string }) => l.product_id
   )
+
+  // ?handle= is the store-scoped handle (the same one shown to the vendor).
+  const { handle } = req.query as Record<string, unknown>
+  if (typeof handle === "string" && handle) {
+    const matched = new Set(
+      await productIdsForStoreHandle(req.scope, seller_id, handle)
+    )
+    productIds = productIds.filter((id) => matched.has(id))
+  }
 
   if (!productIds.length) {
     return res.json({ products: [], count: 0, offset: 0, limit: 50 })
@@ -97,6 +110,8 @@ export const GET = async (req: MedusaStoreRequest, res: MedusaResponse) => {
       take: Number(limit),
     },
   })
+
+  await applyStoreHandles(req.scope, products)
 
   await resolveVariantAvailability(
     query,

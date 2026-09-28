@@ -5,15 +5,24 @@ import { LinkDefinition } from "@medusajs/framework/types"
 import { Link, Query } from "@medusajs/framework/modules-sdk"
 import { MercurModules } from "@mercurjs/types"
 
+import type MarketplaceProfileModuleService from "../../modules/marketplace-profile/service"
 import { productsCreatedHookHandler } from "../product-attribute/utils/products-created-handler"
+
+type HookCompensation = {
+  productLinks: LinkDefinition[]
+  inventoryLinks: LinkDefinition[]
+  storeHandleIds: string[]
+}
 
 createProductsWorkflow.hooks.productsCreated(
   async ({ products, additional_data }, { container }) => {
     if (!additional_data?.seller_id) {
-      return new StepResponse(
-        { productLinks: [] as LinkDefinition[], inventoryLinks: [] as LinkDefinition[] },
-        { productLinks: [] as LinkDefinition[], inventoryLinks: [] as LinkDefinition[] }
-      )
+      const empty: HookCompensation = {
+        productLinks: [],
+        inventoryLinks: [],
+        storeHandleIds: [],
+      }
+      return new StepResponse(empty, empty)
     }
 
     const link: Link = container.resolve(ContainerRegistrationKeys.LINK)
@@ -68,6 +77,23 @@ createProductsWorkflow.hooks.productsCreated(
       await link.create(inventoryLinks)
     }
 
+    // Store-scoped handle. The vendor API passes the handle the vendor chose
+    // (product.handle then holds an internal, globally unique value); anything
+    // else keeps its Medusa handle as the store handle.
+    const requestedStoreHandle =
+      products.length === 1 && typeof additional_data.store_handle === "string"
+        ? additional_data.store_handle
+        : null
+    const storeHandles = await container
+      .resolve<MarketplaceProfileModuleService>(MercurModules.MARKETPLACE_PROFILE)
+      .createStoreProductHandles(
+        products.map((product) => ({
+          product_id: product.id,
+          seller_id: additional_data.seller_id as string,
+          handle: requestedStoreHandle ?? product.handle,
+        }))
+      )
+
     // Process attribute assignments from additional_data
     await productsCreatedHookHandler({
       products,
@@ -75,19 +101,27 @@ createProductsWorkflow.hooks.productsCreated(
       container,
     })
 
-    return new StepResponse(
-      { productLinks: links, inventoryLinks },
-      { productLinks: links, inventoryLinks }
-    )
+    const result: HookCompensation = {
+      productLinks: links,
+      inventoryLinks,
+      storeHandleIds: storeHandles.map((h) => h.id),
+    }
+    return new StepResponse(result, result)
   },
   async (data, { container }) => {
     if (!data) {
       return
     }
 
-    const { productLinks, inventoryLinks } = data
+    const { productLinks, inventoryLinks, storeHandleIds } = data
 
     const link: Link = container.resolve(ContainerRegistrationKeys.LINK)
+
+    if (storeHandleIds?.length) {
+      await container
+        .resolve<MarketplaceProfileModuleService>(MercurModules.MARKETPLACE_PROFILE)
+        .deleteStoreProductHandles(storeHandleIds)
+    }
 
     if (productLinks?.length) {
       await link.dismiss(productLinks)

@@ -31,6 +31,38 @@ import {
   VendorUpdateProductVariant,
 } from "./validators"
 import { maybeApplyPriceListsFilter } from "@medusajs/medusa/api/admin/products/utils/maybe-apply-price-lists-filter"
+import { applyStoreHandles } from "../../../workflows/marketplace-profile/utils/store-product-handles"
+
+type ProductBody = {
+  product?: { id?: string; handle?: string | null }
+  products?: { id?: string; handle?: string | null }[]
+}
+
+/**
+ * Vendors see each product's store-scoped handle, not Medusa's internal
+ * product.handle, in every /vendor/products response.
+ */
+const withStoreProductHandles = (
+  req: AuthenticatedMedusaRequest,
+  res: MedusaResponse,
+  next: MedusaNextFunction
+) => {
+  const json = res.json.bind(res)
+  res.json = ((body: ProductBody) => {
+    const products = [
+      ...(body?.product ? [body.product] : []),
+      ...(Array.isArray(body?.products) ? body.products : []),
+    ]
+    if (!products.length) {
+      return json(body)
+    }
+    applyStoreHandles(req.scope, products)
+      .then(() => json(body))
+      .catch(next)
+    return res
+  }) as typeof res.json
+  next()
+}
 
 const applySellerProductLinkFilter = (
   req: AuthenticatedMedusaRequest,
@@ -47,6 +79,10 @@ const applySellerProductLinkFilter = (
 }
 
 export const vendorProductsMiddlewares: MiddlewareRoute[] = [
+  {
+    matcher: "/vendor/products*",
+    middlewares: [withStoreProductHandles],
+  },
   {
     method: ["GET"],
     matcher: "/vendor/products",

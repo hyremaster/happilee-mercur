@@ -9,6 +9,11 @@ import {
 } from "@medusajs/framework/utils"
 import { HttpTypes } from "@mercurjs/types"
 
+import {
+  assertStoreHandleAvailable,
+  setStoreProductHandle,
+  toStoreHandle,
+} from "../../../../workflows/marketplace-profile/utils/store-product-handles"
 import { validateSellerProduct } from "../helpers"
 import { VendorUpdateProductType } from "../validators"
 import { transformProductWithInformationalAttributes } from "../utils/transform-product-attributes"
@@ -51,9 +56,20 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const sellerId =  req.seller_context!.seller_id
-  const { additional_data, ...update } = req.validatedBody
+  const { additional_data, handle, ...update } = req.validatedBody
 
   await validateSellerProduct(req.scope, sellerId, req.params.id)
+
+  // A handle change is store-scoped; Medusa's internal product.handle stays.
+  const storeHandle = handle === undefined ? undefined : toStoreHandle(handle)
+  if (storeHandle) {
+    await assertStoreHandleAvailable(
+      req.scope,
+      sellerId,
+      storeHandle,
+      req.params.id
+    )
+  }
 
   const { result } = await updateProductWithVariantImagesWorkflow(
     req.scope
@@ -67,6 +83,14 @@ export const POST = async (
       },
     },
   })
+
+  if (storeHandle) {
+    await setStoreProductHandle(req.scope, {
+      product_id: req.params.id,
+      seller_id: sellerId,
+      handle: storeHandle,
+    })
+  }
 
   const {
     data: [product],
