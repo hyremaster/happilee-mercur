@@ -79,7 +79,8 @@ medusaIntegrationTestRunner({
       const createLocation = async (
         name: string,
         coords: Coords | null,
-        methods: ("shipping" | "pickup")[]
+        methods: ("shipping" | "pickup")[],
+        shippingTypeCode = "standard"
       ) => {
         const suffix = `${name}-${++counter}`
         const location = (
@@ -143,7 +144,7 @@ medusaIntegrationTestRunner({
               type:
                 type === "pickup"
                   ? { label: "Pickup", description: "Pickup", code: "pickup" }
-                  : { label: "Standard", description: "Standard", code: "standard" },
+                  : { label: "Standard", description: "Standard", code: shippingTypeCode },
               prices: [{ currency_code: "inr", amount: 0 }],
               rules: [
                 { attribute: "enabled_in_store", value: "true", operator: "eq" },
@@ -247,6 +248,23 @@ medusaIntegrationTestRunner({
         expect(standard(options)).toHaveLength(1)
       })
 
+      it("names each pickup option after its location", async () => {
+        const far = await createLocation("Kazhakkoottam", KAZHAKKOOTTAM, [
+          "shipping",
+          "pickup",
+        ])
+        const near = await createLocation("Palayam", PALAYAM, ["shipping", "pickup"])
+        const variantId = await createProduct(false)
+
+        const options = await shippingOptionsFor(variantId, CUSTOMER_NEAR_PALAYAM)
+        const nameOf = (id: string) => options.find((o) => o.id === id)?.name
+
+        expect(nameOf(far.optionIds.pickup)).toEqual("Pickup – Kazhakkoottam")
+        expect(nameOf(near.optionIds.pickup)).toEqual("Pickup – Palayam")
+        // Delivery keeps its own name.
+        expect(nameOf(near.optionIds.shipping)).toEqual("Standard Shipping")
+      })
+
       it("ships from the nearest location that has the items in stock", async () => {
         const far = await createLocation("Kazhakkoottam", KAZHAKKOOTTAM, ["shipping"])
         await createLocation("Palayam", PALAYAM, ["shipping"])
@@ -271,6 +289,32 @@ medusaIntegrationTestRunner({
           await shippingOptionsFor(variantId, CUSTOMER_NEAR_PALAYAM)
         )
         expect(options.map((o) => o.id)).toEqual([far.optionIds.shipping])
+      })
+
+      it("never lists two pickup options with the same name", async () => {
+        // Two branches that happen to share a name.
+        await createLocation("Kitchen", KAZHAKKOOTTAM, ["pickup"])
+        const near = await createLocation("Kitchen", PALAYAM, ["pickup"])
+        const variantId = await createProduct(false)
+
+        const pickups = (
+          await shippingOptionsFor(variantId, CUSTOMER_NEAR_PALAYAM)
+        ).filter((o) => o.service_zone.fulfillment_set.type === "pickup")
+
+        expect(pickups.map((o) => o.name)).toEqual(["Pickup – Kitchen"])
+        expect(pickups[0].id).toEqual(near.optionIds.pickup)
+      })
+
+      it("never lists two delivery options with the same name", async () => {
+        // Same name, different type codes: still one "Standard Shipping".
+        await createLocation("Kazhakkoottam", KAZHAKKOOTTAM, ["shipping"], "standard")
+        const near = await createLocation("Palayam", PALAYAM, ["shipping"], "standard-2")
+        const variantId = await createProduct(false)
+
+        const options = standard(
+          await shippingOptionsFor(variantId, CUSTOMER_NEAR_PALAYAM)
+        )
+        expect(options.map((o) => o.id)).toEqual([near.optionIds.shipping])
       })
 
       it("still offers one Standard Shipping when locations have no coordinates", async () => {

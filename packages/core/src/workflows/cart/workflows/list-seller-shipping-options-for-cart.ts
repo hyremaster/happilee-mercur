@@ -211,6 +211,7 @@ export const listSellerShippingOptionsForCartWorkflow = createWorkflow(
                 "service_zone.fulfillment_set_id",
                 "service_zone.fulfillment_set.type",
                 "service_zone.fulfillment_set.location.id",
+                "service_zone.fulfillment_set.location.name",
                 "service_zone.fulfillment_set.location.address.*",
 
                 "type.id",
@@ -306,7 +307,8 @@ export const listSellerShippingOptionsForCartWorkflow = createWorkflow(
             }
         )
 
-        // One delivery option per type per seller, from the nearest location.
+        // One delivery option per type per seller, from the nearest location;
+        // pickup options named after their location.
         const nearestShippingOptions = keepNearestShippingOptionsStep({
             shipping_options: sellerShippingOptionsMap,
             shipping_address: cart.shipping_address,

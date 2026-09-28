@@ -13,7 +13,7 @@ type ListedShippingOption = {
   service_zone?: {
     fulfillment_set?: {
       type?: string | null
-      location?: { id?: string | null } | null
+      location?: { id?: string | null; name?: string | null } | null
     } | null
   } | null
 }
@@ -53,6 +53,16 @@ const locationId = (option: ListedShippingOption) =>
 const isPickup = (option: ListedShippingOption) =>
   option.service_zone?.fulfillment_set?.type === "pickup"
 
+/** "Pickup" → "Pickup – Palayam", so a store's pickup points can be told apart. */
+const withLocationName = (option: ListedShippingOption): ListedShippingOption => {
+  const location = option.service_zone?.fulfillment_set?.location?.name?.trim()
+  const name = option.name?.trim()
+  if (!location || !name || name.includes(location)) {
+    return option
+  }
+  return { ...option, name: `${name} – ${location}` }
+}
+
 /**
  * A store gets its own shipping options at every location, so a store with
  * three locations lists "Standard Shipping" three times. For each seller, keep
@@ -61,7 +71,13 @@ const isPickup = (option: ListedShippingOption) =>
  * stock. The order is then fulfilled from that location.
  *
  * Pickup options are kept per location — picking a branch is the customer's
- * choice. Locations without coordinates rank after those with them.
+ * choice — and named after it. Locations without coordinates rank after those
+ * with them.
+ *
+ * As a fallback, the list is then made distinct by kind (pickup / delivery)
+ * and shown name, keeping the best-ranked option, so the customer never sees
+ * two identical entries (e.g. two branches with the same name, or delivery
+ * options sharing a name under different type codes).
  */
 export const keepNearestShippingOptionsStep = createStep(
   "keep-nearest-shipping-options",
@@ -95,28 +111,49 @@ export const keepNearestShippingOptionsStep = createStep(
       return customer && coords ? distanceKm(customer, coords) : Infinity
     }
 
-    const result: Record<string, ListedShippingOption[]> = {}
+    // Lower is better: in stock first, then nearest.
+    const isBetter = (a: ListedShippingOption, b: ListedShippingOption) => {
+      const aShort = !!a.insufficient_inventory
+      const bShort = !!b.insufficient_inventory
+      if (aShort !== bShort) {
+        return !aShort
+      }
+      return distanceTo(a) < distanceTo(b)
+    }
 
-    for (const [sellerId, options] of Object.entries(input.shipping_options)) {
+    /** Keep the best option per key; the rest are dropped, order preserved. */
+    const distinctBy = (
+      options: ListedShippingOption[],
+      keyOf: (option: ListedShippingOption) => string
+    ) => {
       const best = new Map<string, ListedShippingOption>()
       for (const option of options) {
-        if (isPickup(option)) {
-          continue
-        }
-        const key = option.type?.code ?? option.name ?? option.id
+        const key = keyOf(option)
         const current = best.get(key)
-        const better =
-          !current ||
-          (!!current.insufficient_inventory && !option.insufficient_inventory) ||
-          (!!current.insufficient_inventory === !!option.insufficient_inventory &&
-            distanceTo(option) < distanceTo(current))
-        if (better) {
+        if (!current || isBetter(option, current)) {
           best.set(key, option)
         }
       }
-
       const kept = new Set(Array.from(best.values()).map((o) => o.id))
-      result[sellerId] = options.filter((o) => isPickup(o) || kept.has(o.id))
+      return options.filter((o) => kept.has(o.id))
+    }
+
+    const kind = (option: ListedShippingOption) =>
+      isPickup(option) ? "pickup" : "delivery"
+
+    const result: Record<string, ListedShippingOption[]> = {}
+
+    for (const [sellerId, options] of Object.entries(input.shipping_options)) {
+      // One delivery option per type; pickups stay per location, named after it.
+      const perType = distinctBy(options, (o) =>
+        isPickup(o) ? `pickup:${o.id}` : `delivery:${o.type?.code ?? o.name ?? o.id}`
+      ).map((o) => (isPickup(o) ? withLocationName(o) : o))
+
+      // Fallback: never two entries of the same kind with the same shown name.
+      result[sellerId] = distinctBy(
+        perType,
+        (o) => `${kind(o)}:${(o.name ?? o.id).trim().toLowerCase()}`
+      )
     }
 
     return new StepResponse(result)
