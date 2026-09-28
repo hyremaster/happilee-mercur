@@ -477,6 +477,8 @@ const VariantAvailabilityToggle = ({
     >
       <Switch
         size="small"
+        className="h-[16px] w-[28px] shrink-0 rtl:rotate-180"
+        dir="ltr"
         checked={available}
         disabled={isPending}
         aria-label={t("products.variant.availability.availableLabel")}

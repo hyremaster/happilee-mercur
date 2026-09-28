@@ -68,6 +68,8 @@ export const VariantAvailabilitySection = ({
         <div className="flex items-start gap-x-3">
           <Switch
             id="variant-available"
+            className="h-[18px] w-[32px] shrink-0 rtl:rotate-180"
+            dir="ltr"
             checked={available}
             disabled={isPending}
             onCheckedChange={(checked) => save({ is_available: checked })}

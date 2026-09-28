@@ -3,6 +3,8 @@ import { ReactNode } from "react"
 import { ControllerProps, FieldPath, FieldValues } from "react-hook-form"
 
 import { Form } from "../../common/form"
+// Ensures Medusa Switch size/state utilities are always present in the CSS bundle.
+import "../../../styles/medusa-switch-safelist"
 
 interface HeadlessControllerProps<
   TFieldValues extends FieldValues = FieldValues,
@@ -50,7 +52,7 @@ export const SwitchBox = <
             <div className="bg-ui-bg-component shadow-elevation-card-rest flex items-start gap-x-3 rounded-lg p-3">
               <Form.Control>
                 <Switch
-                  className="rtl:rotate-180"
+                  className="h-[18px] w-[32px] shrink-0 rtl:rotate-180"
                   dir="ltr"
                   {...field}
                   checked={value}

@@ -174,7 +174,11 @@ export const NavItem = ({
         <RadixCollapsible.Root open={open} onOpenChange={setOpen}>
           <RadixCollapsible.Trigger
             className={clx(
-              "flex w-full items-center gap-x-2 rounded-md py-0.5 pl-0.5 pr-2 text-ui-fg-subtle outline-none transition-fg hover:bg-ui-bg-subtle-hover hover:text-ui-fg-base lg:hidden",
+              // Use `hidden max-lg:flex` (not `flex lg:hidden`) so the mobile
+              // accordion trigger stays display:none on desktop even when a
+              // base `flex` utility would otherwise win the cascade — that was
+              // rendering a second Products/Promotions row in the sidebar.
+              "hidden w-full max-lg:flex items-center gap-x-2 rounded-md py-0.5 pl-0.5 pr-2 text-ui-fg-subtle outline-none transition-fg hover:bg-ui-bg-subtle-hover hover:text-ui-fg-base",
               { "pl-2": isSetting },
             )}
           >
@@ -191,7 +195,7 @@ export const NavItem = ({
               data-testid={`sidebar-nav-nested-items-${to.replace(/\//g, "-").replace(/^-/, "")}`}
             >
               <ul className="flex flex-col gap-y-0.5">
-                <li className="flex w-full items-center gap-x-1 lg:hidden">
+                <li className="hidden w-full max-lg:flex items-center gap-x-1">
                   <NavItemTooltip to={to}>
                     <NavLink
                       to={to}
