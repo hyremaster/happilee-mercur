@@ -132,14 +132,6 @@ const buildStep1ProfilePatch = (
   if (currentData.industry !== baselineData.industry) {
     patch.industry = currentData.industry;
   }
-  if (
-    (currentData.owner_handle ?? undefined) !==
-    (baselineData.owner_handle ?? undefined)
-  ) {
-    if (currentData.owner_handle) {
-      patch.owner_handle = currentData.owner_handle;
-    }
-  }
   if (!areEqual(currentData.address, baselineData.address)) {
     patch.address = currentData.address as unknown as Record<string, unknown>;
   }

@@ -12,6 +12,7 @@ import {
 import { sdk } from "../../lib/client";
 import { queryClient } from "../../lib/query-client";
 import { queryKeysFactory } from "../../lib/query-key-factory";
+import { resetQueriesAfterStoreSwitch } from "../../utils/store-switch";
 import { membersQueryKeys } from "./members";
 
 const SELLERS_QUERY_KEY = "sellers" as const;
@@ -44,14 +45,17 @@ export const useSelectSeller = (
   >,
 ) => {
   return useMutation({
-    mutationFn: (payload) => sdk.vendor.sellers.select.mutate(payload),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
-        queryKey: membersQueryKeys.me(),
-      });
-      options?.onSuccess?.(data, variables, context);
-    },
     ...options,
+    mutationFn: (payload) => sdk.vendor.sellers.select.mutate(payload),
+    onSuccess: async (data, variables, context) => {
+      // Switching the active store changes what every seller-scoped
+      // resource resolves to server-side. Clear the cache immediately so
+      // the next screen never briefly shows the previous store — but do
+      // not await a full refetch of every mounted query (that was the
+      // store-switch lag). Fresh data loads after navigation.
+      resetQueriesAfterStoreSwitch(queryClient);
+      await options?.onSuccess?.(data, variables, context);
+    },
   });
 };
 

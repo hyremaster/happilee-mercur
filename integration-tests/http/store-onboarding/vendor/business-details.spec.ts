@@ -76,6 +76,29 @@ medusaIntegrationTestRunner({
           tax_id: "27AAACC1234B1Z5",
         })
       })
+
+      it("rejects a GST number that isn't 15 alphanumeric characters for an Indian address", async () => {
+        const res = await api
+          .post(
+            `/vendor/store-onboarding/${seller.id}`,
+            {
+              professional_details: {
+                tax_id: "27AAACC1234B1Z",
+              },
+              address: {
+                address_1: "123 Commerce Street, Floor 4",
+                country_code: "in",
+                province: "Maharashtra",
+                city: "Mumbai",
+                postal_code: "400001",
+              },
+            },
+            headers
+          )
+          .catch((e) => e.response)
+
+        expect(res.status).toBe(400)
+      })
     })
   },
 })

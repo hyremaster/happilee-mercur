@@ -14,6 +14,7 @@ import {
 import { deduplicate, filterObjectByKeys, isDefined } from "@medusajs/framework/utils"
 import { cartFieldsForPricingContext, pricingContextResult, shippingOptionsContextResult } from "../utils"
 import { SellerDTO } from "@mercurjs/types"
+import { keepNearestShippingOptionsStep } from "../steps/keep-nearest-shipping-options"
 
 export type ListSellerShippingOptionsForCartWorkflowInput = {
     cart_id: string
@@ -31,6 +32,8 @@ export const listSellerShippingOptionsForCartWorkflow = createWorkflow(
             filters: { id: input.cart_id },
             fields: [
                 ...cartFieldsForPricingContext,
+                // Customer coordinates, used to pick the nearest location.
+                "shipping_address.metadata",
                 "items.*",
                 "items.variant.id",
                 "items.variant.product.id",
@@ -208,6 +211,7 @@ export const listSellerShippingOptionsForCartWorkflow = createWorkflow(
                 "service_zone.fulfillment_set_id",
                 "service_zone.fulfillment_set.type",
                 "service_zone.fulfillment_set.location.id",
+                "service_zone.fulfillment_set.location.name",
                 "service_zone.fulfillment_set.location.address.*",
 
                 "type.id",
@@ -303,7 +307,14 @@ export const listSellerShippingOptionsForCartWorkflow = createWorkflow(
             }
         )
 
-        return new WorkflowResponse(sellerShippingOptionsMap, {
+        // One delivery option per type per seller, from the nearest location;
+        // pickup options named after their location.
+        const nearestShippingOptions = keepNearestShippingOptionsStep({
+            shipping_options: sellerShippingOptionsMap,
+            shipping_address: cart.shipping_address,
+        }) as unknown as typeof sellerShippingOptionsMap
+
+        return new WorkflowResponse(nearestShippingOptions, {
             hooks: [setPricingContext, setShippingOptionsContext] as const,
         })
     }

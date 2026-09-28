@@ -14,7 +14,8 @@ set -Eeuo pipefail
 HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 RELEASE_ROOT="$(cd "$HERE/../.." && pwd)"
 
-export PATH="$HOME/.bun/bin:$PATH"
+# Release-local binaries first (mercurjs and friends), then bun itself.
+export PATH="$RELEASE_ROOT/apps/api/node_modules/.bin:$RELEASE_ROOT/node_modules/.bin:$HOME/.bun/bin:$PATH"
 
 if [[ -n "${API_SECRET_ID:-}" ]]; then
   # shellcheck source=load-secrets.sh

@@ -1,4 +1,4 @@
-import { Mail01 } from "@happilee-app/icons";
+import { Mail01, SearchLg } from "@happilee-app/icons";
 import { Button, InputField, Modal, Textarea } from "@happilee-app/ui";
 import { CountrySelectField, StateSelectField } from "../address-select-fields";
 import {
@@ -133,6 +133,7 @@ export const LocationModal = ({
   const [center, setCenter] = useState<LatLng>(() => resolveInitialCenter(centre));
   const [isLocating, setIsLocating] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
 
   const centerRef = useRef(center);
   centerRef.current = center;
@@ -164,6 +165,54 @@ export const LocationModal = ({
   const markInputsChange = () => {
     lastUpdateSourceRef.current = null;
     setMapError(null);
+  };
+
+  const handleMapSearch = async (query: string) => {
+    if (!query.trim()) return;
+
+    try {
+      setIsLocating(true);
+      setMapError(null);
+
+      if (geocodeAbortRef.current) geocodeAbortRef.current.abort();
+      const ac = new AbortController();
+      geocodeAbortRef.current = ac;
+
+      const url = new URL("https://nominatim.openstreetmap.org/search");
+      url.searchParams.set("format", "json");
+      url.searchParams.set("q", query);
+      url.searchParams.set("limit", "1");
+
+      const res = await fetch(url.toString(), {
+        signal: ac.signal,
+        headers: NOMINATIM_HEADERS,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Geocode failed (${res.status})`);
+      }
+
+      const json = (await res.json()) as NominatimSearchResult[];
+      const first = json[0];
+      if (!first) {
+        setMapError("No location found. Try a different search.");
+        return;
+      }
+
+      const next = clampLatLng({
+        lat: Number(first.lat),
+        lng: Number(first.lon),
+      });
+
+      lastUpdateSourceRef.current = "inputs";
+      setCenter(next);
+      syncMapView(next, true);
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      setMapError("Couldn't find this location. Try adding more details.");
+    } finally {
+      setIsLocating(false);
+    }
   };
 
   const searchQuery = useMemo(() => {
@@ -438,7 +487,7 @@ export const LocationModal = ({
           }}
         />
 
-        <div className="grid grid-cols-4 gap-lg">
+        <div className="grid grid-cols-4 gap-lg [&>*]:min-w-0">
           <CountrySelectField
             label="Country"
             placeholder="Select country"
@@ -485,6 +534,22 @@ export const LocationModal = ({
           <span className="text-sm font-medium text-text-secondary">
             Pin location on map
           </span>
+
+          <div className="flex flex-col gap-sm">
+            <InputField
+              placeholder="Search for an address"
+              iconLeading={<SearchLg />}
+              value={searchInput}
+              onChange={setSearchInput}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  void handleMapSearch(searchInput);
+                }
+              }}
+              isDisabled={isLocating}
+              size="sm"
+            />
+          </div>
 
           <div className="location-map relative h-[280px] w-full overflow-hidden rounded-md border border-border-secondary">
             <div

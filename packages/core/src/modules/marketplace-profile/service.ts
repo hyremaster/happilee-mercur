@@ -21,6 +21,7 @@ import {
   StoreDeliveryArea,
   HappileeIdentityKey,
   PhoneOtp,
+  StoreProductHandle,
 } from "./models"
 
 type InjectedDependencies = {
@@ -57,6 +58,7 @@ class MarketplaceProfileModuleService extends MedusaService({
   StoreDeliveryArea,
   HappileeIdentityKey,
   PhoneOtp,
+  StoreProductHandle,
 }) {
   protected readonly baseRepository_: DAL.RepositoryService
 

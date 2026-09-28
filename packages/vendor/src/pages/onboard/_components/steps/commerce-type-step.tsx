@@ -23,11 +23,18 @@ import { getAreaSenseAppUrl } from "@lib/environment";
 import type { AreaSenseArea } from "../../../services/onboardingServices";
 import type { CommerceConfig } from "../types";
 import { filterAreaSenseAreasByType } from "../area-sense-area-type";
+import { getOrderStatusDisplayNameError } from "../commerce-type";
 import {
   clampFieldLength,
   FIELD_LIMIT_ORDER_STATUS_DISPLAY_NAME,
 } from "../field-limits";
 import { useAreaSenseAreas } from "../use-area-sense-areas";
+
+export {
+  getOrderStatusDisplayNameError,
+  isCommerceTypeValid,
+  ORDER_STATUS_DISPLAY_NAME_REQUIRED_MESSAGE,
+} from "../commerce-type";
 
 type CommerceTypeStepProps = {
   data: CommerceConfig;
@@ -130,28 +137,6 @@ function DeliveryAreaSelect({
   );
 }
 
-export function isCommerceTypeValid(data: CommerceConfig) {
-  if (!data.commerceType) return false;
-
-  const fulfillment =
-    data.commerceType === "local-delivery"
-      ? data.localFulfillment
-      : data.ecomFulfillment;
-
-  if (fulfillment.length === 0) return false;
-
-  const needsArea =
-    data.commerceType === "local-delivery"
-      ? data.localFulfillment.includes("delivery")
-      : data.ecomFulfillment.includes("shipping");
-
-  if (needsArea && !data.deliveryArea) return false;
-
-  if (data.orderStatuses.length === 0) return false;
-
-  return true;
-}
-
 type OrderStatusesTableProps = {
   orderStatuses: CommerceConfig["orderStatuses"];
   isLoading: boolean;
@@ -226,46 +211,52 @@ function OrderStatusesTable({
                   </Cell>
                 </Row>
               ) : (
-                orderStatuses.map((row) => (
-                  <Row key={row.id}>
-                    <Cell>
-                      <span className="inline-flex items-center gap-xs">
-                        <StatusDot color={row.color} />
-                        <span className="text-sm font-medium text-text-secondary">{row.label}</span>
-                        {row.required ? (
-                          <span className="text-text-brand" aria-hidden="true">*</span>
-                        ) : (
-                          <span className="font-normal text-text-tertiary">(optional)</span>
-                        )}
-                      </span>
-                    </Cell>
-                    <Cell>
-                      <InputField
-                        aria-label={`Display name for ${row.label}`}
-                        value={row.displayName}
-                        onChange={(v) =>
-                          onUpdateStatus(row.id, {
-                            displayName: clampFieldLength(
-                              v,
-                              FIELD_LIMIT_ORDER_STATUS_DISPLAY_NAME,
-                            ),
-                          })
-                        }
-                        size="sm"
-                        isDisabled={row.required}
-                      />
-                    </Cell>
-                    <Cell>
-                      <Toggle
-                        aria-label={`${row.label} active`}
-                        isSelected={row.active}
-                        onChange={(active) => onUpdateStatus(row.id, { active })}
-                        isDisabled={row.required}
-                        size="sm"
-                      />
-                    </Cell>
-                  </Row>
-                ))
+                orderStatuses.map((row) => {
+                  const displayNameError = getOrderStatusDisplayNameError(row);
+
+                  return (
+                    <Row key={row.id}>
+                      <Cell>
+                        <span className="inline-flex items-center gap-xs">
+                          <StatusDot color={row.color} />
+                          <span className="text-sm font-medium text-text-secondary">{row.label}</span>
+                          {row.required ? (
+                            <span className="text-text-brand" aria-hidden="true">*</span>
+                          ) : (
+                            <span className="font-normal text-text-tertiary">(optional)</span>
+                          )}
+                        </span>
+                      </Cell>
+                      <Cell>
+                        <InputField
+                          aria-label={`Display name for ${row.label}`}
+                          value={row.displayName}
+                          onChange={(v) =>
+                            onUpdateStatus(row.id, {
+                              displayName: clampFieldLength(
+                                v,
+                                FIELD_LIMIT_ORDER_STATUS_DISPLAY_NAME,
+                              ),
+                            })
+                          }
+                          size="sm"
+                          isDisabled={row.required}
+                          isInvalid={!!displayNameError}
+                          errorMessage={displayNameError}
+                        />
+                      </Cell>
+                      <Cell>
+                        <Toggle
+                          aria-label={`${row.label} active`}
+                          isSelected={row.active}
+                          onChange={(active) => onUpdateStatus(row.id, { active })}
+                          isDisabled={row.required}
+                          size="sm"
+                        />
+                      </Cell>
+                    </Row>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -324,7 +315,17 @@ export const CommerceTypeStep = ({
               <CheckboxCardGroup
                 aria-label="Choose how you fulfill"
                 value={data.localFulfillment}
-                onChange={(value) => onChange({ localFulfillment: value as string[] })}
+                onChange={(value) => {
+                  const localFulfillment = value as string[]
+                  const clearsArea =
+                    data.localFulfillment.includes("delivery") &&
+                    !localFulfillment.includes("delivery")
+
+                  onChange({
+                    localFulfillment,
+                    ...(clearsArea && { deliveryArea: "", deliveryAreaName: "" }),
+                  })
+                }}
               >
                 <CheckboxCard
                   value="delivery"
@@ -380,7 +381,17 @@ export const CommerceTypeStep = ({
               <CheckboxCardGroup
                 aria-label="Choose how you fulfill (ecommerce)"
                 value={data.ecomFulfillment}
-                onChange={(value) => onChange({ ecomFulfillment: value as string[] })}
+                onChange={(value) => {
+                  const ecomFulfillment = value as string[]
+                  const clearsArea =
+                    data.ecomFulfillment.includes("shipping") &&
+                    !ecomFulfillment.includes("shipping")
+
+                  onChange({
+                    ecomFulfillment,
+                    ...(clearsArea && { deliveryArea: "", deliveryAreaName: "" }),
+                  })
+                }}
               >
                 <CheckboxCard
                   value="shipping"

@@ -23,6 +23,7 @@ import {
   sanitizeStoreProfile,
   isMaskedSecret,
   prepareRazorpayGatewayForSave,
+  validateGatewayCredentials,
 } from "../helpers"
 
 // GET /vendor/store-onboarding/:id — store detail (seller + extension data).
@@ -83,6 +84,14 @@ export const POST = async (
   const sellerId = req.params.id
   const memberId = await assertStoreOwnership(req, sellerId)
   const body = req.validatedBody
+
+  // The wizard saves payment settings through this route, so gateway
+  // credentials are verified against the provider before anything is written:
+  // a store must never end up with keys that do not authenticate.
+  for (const entry of body.payment_gateways ??
+    (body.payment_gateway ? [body.payment_gateway] : [])) {
+    await validateGatewayCredentials(entry.gateway, entry.credentials)
+  }
 
   const service = req.scope.resolve<MarketplaceProfileModuleService>(
     MercurModules.MARKETPLACE_PROFILE

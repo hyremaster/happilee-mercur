@@ -60,6 +60,9 @@ export const GET = async (
     is_draft: boolean
     status: string
     name: string | null
+    // Store contact email — per store, unlike owner_handle, which belongs to
+    // the member and is the same for every store they own.
+    email: string | null
     owner_handle: string | null
     industry: string | null
     commerce_type: string | null
@@ -131,6 +134,7 @@ export const GET = async (
         is_draft: false,
         status: seller.status,
         name: seller.name ?? null,
+        email: seller.email ?? null,
         owner_handle: ownerHandleBySeller.get(sm.seller_id) ?? null,
         industry: profile?.industry ?? null,
         commerce_type: profile?.commerce_type ?? null,
@@ -153,15 +157,19 @@ export const GET = async (
       const data = asObject(d.draft_data)
       const business = asObject(data.business)
       const commerce = asObject(data.commerce)
+      const storefront = asObject(data.storefront)
       draftRows.push({
         id: d.id,
         object: "store_draft",
         is_draft: true,
         status: "draft",
         name: asString(business.name),
+        email: asString(business.email),
         owner_handle: asString(business.owner_handle),
         industry: asString(business.industry),
         commerce_type: asString(commerce.commerce_type),
+        // Chosen on the storefront step; same precedence as submit.
+        handle: asString(storefront.handle) ?? asString(business.handle),
         draft_id: d.id,
         onboarding_step: d.onboarding_step,
         created_at: d.created_at,

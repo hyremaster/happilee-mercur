@@ -46,6 +46,11 @@ import {
   CommerceTypeStep,
   isCommerceTypeValid,
 } from "./_components/steps/commerce-type-step";
+import { getApiErrorMessage } from "./_components/api-error";
+import {
+  getOrderStatusDisplayNameError,
+  ORDER_STATUS_DISPLAY_NAME_REQUIRED_MESSAGE,
+} from "./_components/commerce-type";
 import {
   FulfillmentDetailsStep,
   isFulfillmentValid,
@@ -57,7 +62,12 @@ import {
   STORE_NAME_INVALID_MESSAGE,
   isValidStoreNameFormat,
 } from "./_components/store-name";
-import { TAX_NUMBER_INVALID_MESSAGE, isValidTaxNumberFormat } from "./_components/tax-number";
+import { resolveCountryIso2 } from "./_components/address-select-fields";
+import {
+  GSTIN_INVALID_MESSAGE,
+  TAX_NUMBER_INVALID_MESSAGE,
+  isValidTaxNumberFormat,
+} from "./_components/tax-number";
 import { PIN_CODE_INVALID_MESSAGE, isValidPinCodeFormat } from "./_components/pin-code";
 import type { FulfillmentCentre, WizardStep } from "./_components/types";
 import { useHandleAvailability } from "./_components/use-handle-availability";
@@ -387,8 +397,11 @@ export const OnboardPage = () => {
                 ? EMAIL_INVALID_MESSAGE
                 : pinCode.trim() && !isValidPinCodeFormat(pinCode, country)
                   ? PIN_CODE_INVALID_MESSAGE
-                  : taxNumber.trim() && !isValidTaxNumberFormat(taxNumber)
-                    ? TAX_NUMBER_INVALID_MESSAGE
+                  : taxNumber.trim() &&
+                      !isValidTaxNumberFormat(taxNumber, country)
+                    ? resolveCountryIso2(country) === "in"
+                      ? GSTIN_INVALID_MESSAGE
+                      : TAX_NUMBER_INVALID_MESSAGE
                     : "Please complete all required business details.",
           );
           return;
@@ -446,7 +459,14 @@ export const OnboardPage = () => {
         const commerce = stateRef.current.commerce;
 
         if (!isCommerceTypeValid(commerce)) {
-          toast.error("Please complete all required commerce type details.");
+          const hasDisplayNameError = commerce.orderStatuses.some(
+            (status) => getOrderStatusDisplayNameError(status) !== undefined,
+          );
+          toast.error(
+            hasDisplayNameError
+              ? ORDER_STATUS_DISPLAY_NAME_REQUIRED_MESSAGE
+              : "Please complete all required commerce type details.",
+          );
           return;
         }
 
@@ -530,8 +550,13 @@ export const OnboardPage = () => {
           );
           await saveDraftStep(draftId!, { step: 3, data: stepData });
           nextStep();
-        } catch {
-          toast.error("Failed to save fulfillment details. Please try again.");
+        } catch (error) {
+          toast.error(
+            getApiErrorMessage(
+              error,
+              "Failed to save fulfillment details. Please try again.",
+            ),
+          );
         } finally {
           setIsSavingStep(false);
         }
@@ -869,6 +894,7 @@ export const OnboardPage = () => {
             templates={storefrontTemplates}
             isLoadingTemplates={isLoadingStorefrontTemplates}
             isTemplatesError={isStorefrontTemplatesError}
+            isHandleLocked={isEditingActiveStore}
             onRetryTemplates={() => void refetchStorefrontTemplates()}
             onChange={(patch) =>
               updateState({ storefront: { ...state.storefront, ...patch } })

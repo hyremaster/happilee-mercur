@@ -35,11 +35,11 @@ export const LocationItem = ({
           data-testid={`inventory-manage-locations-form-location-item-${location.id}-checkbox`}
         />
       </div>
-      <div className="flex w-full flex-col" data-testid={`inventory-manage-locations-form-location-item-${location.id}-details`}>
-        <Text size="small" leading="compact" weight="plus" data-testid={`inventory-manage-locations-form-location-item-${location.id}-name`}>
+      <div className="flex w-full min-w-0 flex-col" data-testid={`inventory-manage-locations-form-location-item-${location.id}-details`}>
+        <Text size="small" leading="compact" weight="plus" className="break-words" data-testid={`inventory-manage-locations-form-location-item-${location.id}-name`}>
           {location.name}
         </Text>
-        <Text size="small" leading="compact" className="text-ui-fg-subtle" data-testid={`inventory-manage-locations-form-location-item-${location.id}-address`}>
+        <Text size="small" leading="compact" className="break-words text-ui-fg-subtle" data-testid={`inventory-manage-locations-form-location-item-${location.id}-address`}>
           {[
             location.address?.address_1,
             location.address?.city,

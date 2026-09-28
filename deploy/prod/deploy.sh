@@ -10,14 +10,15 @@
 #   ./deploy.sh list                   list releases on disk
 #
 # Deploy flags:
-#   --skip-backup        do not pg_dump before running migrations
+#   --dump               also pg_dump the database to backups/ before migrating
+#                        (off by default: take an RDS snapshot instead, see README)
 #   --allow-off-branch   deploy a tag that is not on $RELEASE_BRANCH
 #
 # How a deploy works (see README.md next to this file):
 #   1. check out <tag> into releases/<timestamp>-<tag>/ while the current
 #      release keeps serving traffic
 #   2. link the shared env files in, install, build API packages and panels
-#   3. back up the database, run migrations
+#   3. run migrations (take an RDS snapshot first — a manual release step)
 #   4. atomically repoint `current` at the new release, restart the API
 #   5. health-check; on failure, repoint `current` back and restart again
 #
@@ -252,17 +253,17 @@ cmd_setup() {
 }
 
 cmd_deploy() {
-  local tag="" skip_backup=0 allow_off_branch=0
+  local tag="" want_dump=0 allow_off_branch=0
   while (( $# )); do
     case "$1" in
-      --skip-backup) skip_backup=1 ;;
+      --dump) want_dump=1 ;;
       --allow-off-branch) allow_off_branch=1 ;;
       -*) die "Unknown flag: $1" ;;
       *) [[ -z "$tag" ]] && tag="$1" || die "Unexpected argument: $1" ;;
     esac
     shift
   done
-  [[ -n "$tag" ]] || die "Usage: $0 deploy <tag> [--skip-backup] [--allow-off-branch]"
+  [[ -n "$tag" ]] || die "Usage: $0 deploy <tag> [--dump] [--allow-off-branch]"
 
   require_cmd git; require_cmd bun; require_cmd pm2; require_cmd curl; require_cmd flock
   [[ -d "$REPO_CACHE/.git" ]] || die "Run '$0 setup' first."
@@ -313,26 +314,34 @@ cmd_deploy() {
   step "Building packages"
   ( cd "$release" && NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" bun run build )
 
+  # Workspace binaries (mercurjs, from packages/cli) point at dist/ files that
+  # do not exist during the first install, so bun skips their symlinks. Re-run
+  # the install now that the packages are built, or `bun run start` fails with
+  # "mercurjs: command not found".
+  step "Linking workspace binaries"
+  ( cd "$release" && bun install --frozen-lockfile )
+
   step "Building admin and vendor panels (production mode)"
   ( cd "$release/apps/admin"  && NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" bunx vite build --mode production )
   ( cd "$release/apps/vendor" && NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" bunx vite build --mode production )
 
-  # ── Database: back up, then migrate while the old release still serves ──
-  # With API_SECRET_ID set (shared/deploy.env), the DB credentials come from
-  # Secrets Manager. They are loaded inside ( … ) subshells only: if they were
-  # exported here, `pm2 restart --update-env` below would copy them into pm2's
-  # saved state on disk.
-  if (( skip_backup )); then
-    info "skipping database backup (--skip-backup)"
-  else
+  # ── Database: migrate while the old release still serves ──
+  # No backup is taken here. Migrations are not undone by a rollback, so the
+  # release procedure is to take an RDS snapshot BEFORE deploying (README →
+  # "Release checklist"): it is block-level, needs no disk on this box, and
+  # keeps customer data inside encrypted RDS instead of a dump file here.
+  # --dump additionally writes a portable pg_dump to backups/ (watch the disk:
+  # it grows with your data, alongside releases and the swapfile).
+  if (( want_dump )); then
     require_cmd pg_dump
     local dump="$BACKUPS/pre-$(date -u +%Y%m%d%H%M%S)-${tag}.dump"
-    step "Backing up database to $(basename "$dump")"
+    step "Dumping database to $(basename "$dump") (--dump)"
     (
       with_database_url "$release"
       pg_dump --format=custom --no-owner --file="$dump" "$DATABASE_URL"
     )
     chmod 600 "$dump"
+    info "dump size: $(du -h "$dump" | cut -f1), disk free now: $(df -h "$BACKUPS" | awk 'NR==2{print $4}')"
   fi
 
   step "Running migrations"

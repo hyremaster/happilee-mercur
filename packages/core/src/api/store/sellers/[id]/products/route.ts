@@ -1,4 +1,4 @@
-import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { MedusaResponse, MedusaStoreRequest } from "@medusajs/framework/http"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -6,7 +6,13 @@ import {
 } from "@medusajs/framework/utils"
 import { SellerStatus } from "@mercurjs/types"
 
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+import {
+  applyStoreHandles,
+  productIdsForStoreHandle,
+} from "../../../../../workflows/marketplace-profile/utils/store-product-handles"
+import { resolveVariantAvailability } from "./variant-availability"
+
+export const GET = async (req: MedusaStoreRequest, res: MedusaResponse) => {
   const { id: seller_id } = req.params
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -39,9 +45,18 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     filters: { seller_id },
   })
 
-  const productIds = productLinks.map(
+  let productIds = productLinks.map(
     (l: { product_id: string }) => l.product_id
   )
+
+  // ?handle= is the store-scoped handle (the same one shown to the vendor).
+  const { handle } = req.query as Record<string, unknown>
+  if (typeof handle === "string" && handle) {
+    const matched = new Set(
+      await productIdsForStoreHandle(req.scope, seller_id, handle)
+    )
+    productIds = productIds.filter((id) => matched.has(id))
+  }
 
   if (!productIds.length) {
     return res.json({ products: [], count: 0, offset: 0, limit: 50 })
@@ -95,6 +110,14 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       take: Number(limit),
     },
   })
+
+  await applyStoreHandles(req.scope, products)
+
+  await resolveVariantAvailability(
+    query,
+    products,
+    req.publishable_key_context?.sales_channel_ids ?? []
+  )
 
   res.json({
     products,
