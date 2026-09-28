@@ -17,6 +17,15 @@ import { useStockLocations } from "@hooks/api/stock-locations"
 import { ProductCreateVariantSchema } from "../constants"
 import { ProductCreateSchemaType } from "../types"
 import { decorateVariantsWithDefaultValues } from "../utils"
+import {
+  buildVariantAttributes,
+  buildVariantsFromAttributes,
+  getAttributeFormSliceKey,
+  getOptionsSliceKey,
+  getVariantStructureKey,
+  haveSameVariantOptionStructure,
+  type VariantAttribute,
+} from "./variant-attribute-sync"
 
 type MediaItem = {
   file?: File
@@ -43,6 +52,10 @@ type VariantWithIndex = ProductCreateVariantSchema & {
   originalIndex: number
 }
 
+/**
+ * NOTE: anything that goes to the DataGrid component needs to be memoised
+ * otherwise DataGrid will rerender and inputs will lose focus.
+ */
 export const ProductCreateVariantsForm = ({
   form,
   store,
@@ -60,92 +73,64 @@ export const ProductCreateVariantsForm = ({
     defaultValue: [],
   })
 
+  const options = useWatch({
+    control: form.control,
+    name: "options",
+    defaultValue: [],
+  })
+
   const attributesResult = useAttributes()
-  const allAttributes = (attributesResult as any).attributes || []
+  const allAttributes = (attributesResult as { attributes?: unknown[] })
+    .attributes
+
+  const stableAttributes = useMemo(() => {
+    return Array.isArray(allAttributes) ? allAttributes : []
+  }, [allAttributes])
 
   const { stock_locations = [] } = useStockLocations({
     limit: 9999,
     fields: "id,name",
   })
 
+  // Whole-form watch is only used to read attribute field values when the
+  // attribute/option *structure* keys change — not on every price keystroke.
   const formValues = useWatch({
     control: form.control,
-  })
+  }) as Record<string, unknown> | undefined
+
+  const attributeSliceKey = useMemo(
+    () => getAttributeFormSliceKey(formValues, stableAttributes),
+    [formValues, stableAttributes]
+  )
+
+  const optionsSliceKey = useMemo(
+    () => getOptionsSliceKey(options),
+    [options]
+  )
 
   const variantAttributes = useMemo(() => {
-    const result: Array<{
-      handle: string
-      name: string
-      selectedValues: Array<{ id: string; value: string }>
-    }> = []
-
-    allAttributes.forEach((attr: any) => {
-      if (attr.ui_component === "multivalue") {
-        const useForVariants = (formValues as any)?.[
-          `${attr.handle}UseForVariants`
-        ]
-        if (useForVariants === false) return
-
-        const selectedValueIds = (formValues as any)?.[attr.handle]
-
-        if (
-          selectedValueIds &&
-          Array.isArray(selectedValueIds) &&
-          selectedValueIds.length > 0
-        ) {
-          const selectedValues = selectedValueIds
-            .map((valueId: string) => {
-              const possibleValue = attr.possible_values?.find(
-                (pv: any) => pv.id === valueId
-              )
-              return possibleValue
-                ? { id: valueId, value: possibleValue.value }
-                : null
-            })
-            .filter(
-              (item: any): item is { id: string; value: string } =>
-                item !== null
-            )
-
-          if (selectedValues.length > 0) {
-            result.push({
-              handle: attr.handle,
-              name: attr.name,
-              selectedValues,
-            })
-          }
-        }
-      }
-    })
-
-    const options = (formValues as any)?.options || []
-    options.forEach((option: any) => {
-      if (
-        option?.useForVariants !== false &&
-        option?.title &&
-        option?.values &&
-        Array.isArray(option.values) &&
-        option.values.length > 0
-      ) {
-        result.push({
-          handle: `option-${option.title}`,
-          name: option.title,
-          selectedValues: option.values.map((value: string) => ({
-            id: value,
-            value,
-          })),
-        })
-      }
-    })
-
-    return result
+    return buildVariantAttributes(
+      form.getValues() as Record<string, unknown>,
+      stableAttributes,
+      form.getValues("options") || []
+    )
+    // Rebuild only when attribute/option axes change — not when variants/prices change.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [formValues, allAttributes])
+  }, [attributeSliceKey, optionsSliceKey, stableAttributes, form])
+
+  const variantStructureKey = useMemo(
+    () => getVariantStructureKey(variantAttributes),
+    [variantAttributes]
+  )
+
+  const variantAttributesRef = useRef(variantAttributes)
+  variantAttributesRef.current = variantAttributes
 
   const hasProductMedia = productMedia.length > 0
 
   const columns = useColumns({
     variantAttributes,
+    variantStructureKey,
     store,
     regions,
     pricePreferences,
@@ -160,57 +145,25 @@ export const ProductCreateVariantsForm = ({
     const ret: VariantWithIndex[] = []
 
     if (variantAttributes.length > 0) {
-      const totalCombinations = variantAttributes.reduce(
-        (acc, attr) => acc * attr.selectedValues.length,
-        1
-      )
+      const built = buildVariantsFromAttributes(variantAttributes, variants)
 
-      for (let i = 0; i < totalCombinations; i++) {
-        const variantOptions: Record<string, string> = {}
-        variantAttributes.forEach((attr) => {
-          let valueIndex = 0
-          let divisor = 1
-
-          for (let j = variantAttributes.length - 1; j >= 0; j--) {
-            if (variantAttributes[j].handle === attr.handle) {
-              valueIndex =
-                Math.floor(i / divisor) %
-                attr.selectedValues.length
-              break
-            }
-            divisor *= variantAttributes[j].selectedValues.length
-          }
-
-          variantOptions[attr.name] =
-            attr.selectedValues[valueIndex]?.value || ""
-        })
-
-        const autoTitle = variantAttributes
-          .map((attr) => variantOptions[attr.name])
-          .filter(Boolean)
-          .join(" / ")
-
+      built.forEach((variant, i) => {
         const existingVariant = variants.find((v) => {
           if (!v.options) return false
           return variantAttributes.every(
-            (attr) => v.options[attr.name] === variantOptions[attr.name]
+            (attr) => v.options[attr.name] === variant.options[attr.name]
           )
         })
 
         ret.push({
-          title: autoTitle,
-          should_create: existingVariant?.should_create ?? true,
-          variant_rank: i,
-          options: variantOptions,
-          sku: existingVariant?.sku || "",
-          prices: existingVariant?.prices || {},
-          is_default: i === 0,
-          media: existingVariant?.media || [],
+          ...variant,
+          prices: variant.prices as ProductCreateVariantSchema["prices"],
+          media: variant.media as ProductCreateVariantSchema["media"],
           originalIndex: existingVariant
             ? variants.indexOf(existingVariant)
             : i,
         } as VariantWithIndex)
-      }
+      })
     } else {
       variants.forEach((v, i) => {
         if (v.should_create) {
@@ -233,114 +186,62 @@ export const ProductCreateVariantsForm = ({
     )
   }, [variantData, searchValue])
 
-  const variantStructureKey = useMemo(() => {
-    return variantAttributes
-      .map(
-        (attr) =>
-          `${attr.handle}:${attr.selectedValues.map((v) => v.id).join(",")}`
-      )
-      .join("|")
-  }, [variantAttributes])
-
   useEffect(() => {
-    if (variantAttributes.length > 0) {
-      const totalCombinations = variantAttributes.reduce(
-        (acc, attr) => acc * attr.selectedValues.length,
-        1
-      )
+    const attrs = variantAttributesRef.current
+
+    if (attrs.length > 0) {
       const currentVariants = form.getValues("variants") || []
-      const newVariants: any[] = []
+      const newVariants = buildVariantsFromAttributes(attrs, currentVariants)
 
-      for (let i = 0; i < totalCombinations; i++) {
-        const variantOptions: Record<string, string> = {}
-        variantAttributes.forEach((attr) => {
-          let valueIndex = 0
-          let divisor = 1
-
-          for (let j = variantAttributes.length - 1; j >= 0; j--) {
-            if (variantAttributes[j].handle === attr.handle) {
-              valueIndex =
-                Math.floor(i / divisor) %
-                attr.selectedValues.length
-              break
-            }
-            divisor *= variantAttributes[j].selectedValues.length
-          }
-
-          variantOptions[attr.name] =
-            attr.selectedValues[valueIndex]?.value || ""
-        })
-
-        const autoTitle = variantAttributes
-          .map((attr) => variantOptions[attr.name])
-          .filter(Boolean)
-          .join(" / ")
-
-        const existingVariant = currentVariants.find((v) => {
-          if (!v.options) return false
-          return variantAttributes.every(
-            (attr) => v.options[attr.name] === variantOptions[attr.name]
-          )
-        })
-
-        newVariants.push({
-          title: autoTitle,
-          should_create: existingVariant?.should_create ?? true,
-          variant_rank: i,
-          options: variantOptions,
-          sku: existingVariant?.sku || "",
-          prices: existingVariant?.prices || {},
-          is_default: i === 0,
-          media: existingVariant?.media || [],
-        })
+      // Skip setValue when structure is unchanged — avoids DataGrid remount loop
+      // that blocks price/media editing with multiple variants.
+      if (haveSameVariantOptionStructure(currentVariants, newVariants)) {
+        return
       }
 
-      form.setValue("variants", newVariants)
-    } else {
-      const currentVariants = form.getValues("variants") || []
-
-      if (currentVariants.length === 0) {
-        const defaultVariant = decorateVariantsWithDefaultValues([
-          {
-            title: "Default variant",
-            should_create: true,
-            variant_rank: 0,
-            options: {},
-            sku: "",
-            prices: {},
-            is_default: true,
-            media: [],
-          },
-        ])
-
-        form.setValue("variants", defaultVariant)
-      } else {
-        const hasOnlyDefaultVariant =
-          currentVariants.length === 1 && currentVariants[0].is_default
-        if (!hasOnlyDefaultVariant) {
-          const defaultVariant = decorateVariantsWithDefaultValues([
-            {
-              title: "Default variant",
-              should_create: true,
-              variant_rank: 0,
-              options: {},
-              sku: "",
-              prices: {},
-              is_default: true,
-              media: [],
-            },
-          ])
-
-          form.setValue("variants", defaultVariant)
-        }
-      }
+      form.setValue("variants", newVariants as ProductCreateSchemaType["variants"])
+      return
     }
-  }, [
-	variantStructureKey,
-	form,
-	variantAttributes,
-	variantAttributes.length
-])
+
+    const currentVariants = form.getValues("variants") || []
+
+    if (currentVariants.length === 0) {
+      const defaultVariant = decorateVariantsWithDefaultValues([
+        {
+          title: "Default variant",
+          should_create: true,
+          variant_rank: 0,
+          options: {},
+          sku: "",
+          prices: {},
+          is_default: true,
+          media: [],
+        },
+      ])
+
+      form.setValue("variants", defaultVariant)
+      return
+    }
+
+    const hasOnlyDefaultVariant =
+      currentVariants.length === 1 && currentVariants[0].is_default
+    if (!hasOnlyDefaultVariant) {
+      const defaultVariant = decorateVariantsWithDefaultValues([
+        {
+          title: "Default variant",
+          should_create: true,
+          variant_rank: 0,
+          options: {},
+          sku: "",
+          prices: {},
+          is_default: true,
+          media: [],
+        },
+      ])
+
+      form.setValue("variants", defaultVariant)
+    }
+  }, [variantStructureKey, form])
 
   return (
     <div className="border-ui-border flex h-full flex-col justify-between divide-y">
@@ -365,6 +266,7 @@ const columnHelper = createDataGridHelper<
 
 const useColumns = ({
   variantAttributes = [],
+  variantStructureKey,
   store,
   regions: _regions = [],
   pricePreferences = [],
@@ -374,11 +276,8 @@ const useColumns = ({
   productMedia = [],
   hasProductMedia = false,
 }: {
-  variantAttributes?: Array<{
-    handle: string
-    name: string
-    selectedValues: Array<{ id: string; value: string }>
-  }>
+  variantAttributes?: VariantAttribute[]
+  variantStructureKey: string
   store?: HttpTypes.AdminStore
   regions?: HttpTypes.AdminRegion[]
   pricePreferences?: HttpTypes.AdminPricePreference[]
@@ -403,6 +302,12 @@ const useColumns = ({
 
   const variantsRef = useRef(variants)
   variantsRef.current = variants
+
+  const productMediaRef = useRef(productMedia)
+  productMediaRef.current = productMedia
+
+  const onOpenMediaModalRef = useRef(onOpenMediaModal)
+  onOpenMediaModalRef.current = onOpenMediaModal
 
   const allSelected =
     variants.length > 0 && variants.every((v) => v.should_create)
@@ -526,7 +431,7 @@ const useColumns = ({
               .original as VariantWithIndex
             return `variants.${rowData.originalIndex}.media`
           },
-          type: "media" as any,
+          type: "text",
           cell: (context) => {
             const rowData = context.row
               .original as VariantWithIndex
@@ -542,11 +447,11 @@ const useColumns = ({
                           variantsRef.current[
                             rowData.originalIndex
                           ]?.media
-                        onOpenMediaModal?.(
+                        onOpenMediaModalRef.current?.(
                           rowData.originalIndex,
                           rowData.title,
                           currentMedia,
-                          productMedia
+                          productMediaRef.current
                         )
                       }
                     : undefined
@@ -586,17 +491,17 @@ const useColumns = ({
           t,
         }),
       ] as ColumnDef<VariantWithIndex>[],
+    // Depend on structure key (stable string) instead of attribute array identity.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
     [
-      variantAttributes,
+      variantStructureKey,
       t,
       store,
       pricePreferences,
-      onOpenMediaModal,
       allSelected,
       someSelected,
       handleSelectAll,
       hasProductMedia,
-      productMedia,
     ]
   )
 }

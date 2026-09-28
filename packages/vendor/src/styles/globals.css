@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
+/* Pull in @medusajs/ui class names (e.g. Switch h-[18px] w-[32px]) that live
+   outside the app source tree so Tailwind v4 emits their utilities. */
+@source "../../node_modules/@medusajs/ui/dist/esm";
 @import "./design-tokens.css";
 @import "./theme.css";
 

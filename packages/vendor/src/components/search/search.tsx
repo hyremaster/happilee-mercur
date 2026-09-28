@@ -302,41 +302,55 @@ const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
   return (
     <RadixDialog.Root {...props}>
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="bg-ui-bg-overlay fixed inset-0" />
+        <RadixDialog.Overlay className="bg-ui-bg-overlay fixed inset-0 z-[100]" />
+        {/*
+          Center with a full-viewport flex host instead of left/top + translate.
+          Clicks on the transparent host (outside the panel) dismiss the dialog.
+        */}
         <RadixDialog.Content
-          className={clx(
-            "bg-ui-bg-base shadow-elevation-modal fixed left-[50%] top-[50%] flex max-h-[calc(100%-16px)] w-[calc(100%-16px)] min-w-0 max-w-2xl translate-x-[-50%] translate-y-[-50%] flex-col overflow-hidden rounded-xl p-0",
-            {
-              "h-[300px]": preserveHeight, // Prevents the dialog from collapsing when loading async results and before the no results message is displayed
-            },
-          )}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-2 outline-none"
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget) {
+              props.onOpenChange?.(false)
+            }
+          }}
         >
-          <RadixDialog.Title className="sr-only">
-            {t("app.search.title")}
-          </RadixDialog.Title>
-          <RadixDialog.Description className="sr-only">
-            {t("app.search.description")}
-          </RadixDialog.Description>
-          <CommandPalette className="[&_[cmdk-group-heading]]:text-muted-foreground flex h-full flex-col overflow-hidden [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0">
-            {children}
-          </CommandPalette>
-          <div className="bg-ui-bg-field text-ui-fg-subtle flex items-center justify-end border-t px-4 py-3">
-            <div className="flex items-center gap-x-3">
-              <div className="flex items-center gap-x-2">
-                <Text size="xsmall" leading="compact">
-                  {t("app.search.navigation")}
-                </Text>
-                <div className="flex items-center gap-x-1">
-                  <Kbd className="bg-ui-bg-field-component">↓</Kbd>
-                  <Kbd className="bg-ui-bg-field-component">↑</Kbd>
+          <div
+            className={clx(
+              "bg-ui-bg-base shadow-elevation-modal flex max-h-[calc(100%-16px)] w-[calc(100%-16px)] min-w-0 max-w-2xl flex-col overflow-hidden rounded-xl",
+              {
+                "h-[300px]": preserveHeight, // Prevents the dialog from collapsing when loading async results and before the no results message is displayed
+              },
+            )}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <RadixDialog.Title className="sr-only">
+              {t("app.search.title")}
+            </RadixDialog.Title>
+            <RadixDialog.Description className="sr-only">
+              {t("app.search.description")}
+            </RadixDialog.Description>
+            <CommandPalette className="[&_[cmdk-group-heading]]:text-muted-foreground flex h-full flex-col overflow-hidden [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0">
+              {children}
+            </CommandPalette>
+            <div className="bg-ui-bg-field text-ui-fg-subtle flex items-center justify-end border-t px-4 py-3">
+              <div className="flex items-center gap-x-3">
+                <div className="flex items-center gap-x-2">
+                  <Text size="xsmall" leading="compact">
+                    {t("app.search.navigation")}
+                  </Text>
+                  <div className="flex items-center gap-x-1">
+                    <Kbd className="bg-ui-bg-field-component">↓</Kbd>
+                    <Kbd className="bg-ui-bg-field-component">↑</Kbd>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-ui-border-strong h-3 w-px" />
-              <div className="flex items-center gap-x-2">
-                <Text size="xsmall" leading="compact">
-                  {t("app.search.openResult")}
-                </Text>
-                <Kbd className="bg-ui-bg-field-component">↵</Kbd>
+                <div className="bg-ui-border-strong h-3 w-px" />
+                <div className="flex items-center gap-x-2">
+                  <Text size="xsmall" leading="compact">
+                    {t("app.search.openResult")}
+                  </Text>
+                  <Kbd className="bg-ui-bg-field-component">↵</Kbd>
+                </div>
               </div>
             </div>
           </div>
