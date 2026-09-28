@@ -8,11 +8,13 @@ import {
   Plus,
   ReceiptPercent,
   ShoppingCart,
+  Spinner,
   Tag,
   Users,
 } from "@medusajs/icons";
 import { Avatar, Divider, DropdownMenu, Text, clx } from "@medusajs/ui";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
 
 import { Skeleton } from "../../common/skeleton";
 import { INavItem, NavItem } from "../../layout/nav-item";
@@ -23,6 +25,7 @@ import { useMe, useSelectSeller, useSellers } from "../../../hooks/api";
 import { useSearch } from "../../../providers/search-provider";
 import { UserMenu } from "../user-menu";
 import { useDocumentDirection } from "../../../hooks/use-document-direction";
+import { getStoreSwitchTargetPath } from "../../../utils/store-switch";
 import components from "virtual:mercur/components";
 import menuItemsModule from "virtual:mercur/menu-items";
 import { getMenuItemsByType, getNestedMenuItems } from "../../../utils/routes";
@@ -130,19 +133,27 @@ const StoreList = ({ currentSellerId }: { currentSellerId: string }) => {
   const location = useLocation();
   const { seller_member } = useMe();
   const { seller_members } = useSellers();
-  const { mutateAsync: selectSeller } = useSelectSeller();
+  const { mutateAsync: selectSeller, isPending } = useSelectSeller();
+  const [switchingToId, setSwitchingToId] = useState<string | null>(null);
 
   const handleSelect = async (sellerId: string) => {
-    if (sellerId === currentSellerId) return;
-    await selectSeller({ seller_id: sellerId });
+    if (sellerId === currentSellerId || switchingToId || isPending) return;
 
-    // Stay on the current section (e.g. /orders, /products) instead of
-    // hard-redirecting to the orders home page. Drop any nested detail
-    // segment (e.g. /orders/123) since that record belonged to the store
-    // being switched away from and won't resolve for the new one.
-    const [, section] = location.pathname.split("/");
-    navigate(section ? `/${section}` : "/", { replace: true });
+    setSwitchingToId(sellerId);
+    try {
+      await selectSeller({ seller_id: sellerId });
+
+      // Stay on the current section (e.g. /orders, /products) instead of
+      // hard-redirecting to the orders home page. Drop any nested detail
+      // segment (e.g. /orders/123) since that record belonged to the store
+      // being switched away from and won't resolve for the new one.
+      navigate(getStoreSwitchTargetPath(location.pathname), { replace: true });
+    } finally {
+      setSwitchingToId(null);
+    }
   };
+
+  const busy = !!switchingToId || isPending;
 
   return (
     <>
@@ -157,9 +168,10 @@ const StoreList = ({ currentSellerId }: { currentSellerId: string }) => {
               <DropdownMenu.RadioItem
                 key={seller.id}
                 value={seller.id}
+                disabled={busy}
                 onClick={(e) => {
                   e.preventDefault();
-                  handleSelect(seller.id);
+                  void handleSelect(seller.id);
                 }}
                 className="gap-x-2"
               >
@@ -176,6 +188,9 @@ const StoreList = ({ currentSellerId }: { currentSellerId: string }) => {
                 >
                   {seller.name}
                 </Text>
+                {switchingToId === seller.id && (
+                  <Spinner className="ml-auto animate-spin" />
+                )}
               </DropdownMenu.RadioItem>
             );
           })}
@@ -183,6 +198,7 @@ const StoreList = ({ currentSellerId }: { currentSellerId: string }) => {
       )}
       {!!seller_members?.length && <DropdownMenu.Separator />}
       <DropdownMenu.Item
+        disabled={busy}
         onClick={() =>
           navigate("/onboarding", {
             state: { email: seller_member?.member.email },

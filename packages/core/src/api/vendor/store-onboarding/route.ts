@@ -157,6 +157,7 @@ export const GET = async (
       const data = asObject(d.draft_data)
       const business = asObject(data.business)
       const commerce = asObject(data.commerce)
+      const storefront = asObject(data.storefront)
       draftRows.push({
         id: d.id,
         object: "store_draft",
@@ -167,6 +168,8 @@ export const GET = async (
         owner_handle: asString(business.owner_handle),
         industry: asString(business.industry),
         commerce_type: asString(commerce.commerce_type),
+        // Chosen on the storefront step; same precedence as submit.
+        handle: asString(storefront.handle) ?? asString(business.handle),
         draft_id: d.id,
         onboarding_step: d.onboarding_step,
         created_at: d.created_at,

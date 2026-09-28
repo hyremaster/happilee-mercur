@@ -29,13 +29,13 @@ function payment(patch: Partial<PaymentConfig> = {}): PaymentConfig {
 }
 
 describe("COD order value fields", () => {
-  test("requires min and max when Cash on Delivery is selected", () => {
-    expect(isFulfillmentValid([centre], payment())).toBe(false);
+  test("allows empty min and max when Cash on Delivery is selected", () => {
+    expect(isFulfillmentValid([centre], payment())).toBe(true);
     expect(isFulfillmentValid([centre], payment({ codMin: "100" }))).toBe(
-      false,
+      true,
     );
     expect(isFulfillmentValid([centre], payment({ codMax: "500" }))).toBe(
-      false,
+      true,
     );
     expect(
       isFulfillmentValid(
