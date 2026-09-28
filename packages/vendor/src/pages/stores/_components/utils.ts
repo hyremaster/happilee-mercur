@@ -20,7 +20,9 @@ const formatLabel = (value: string | null | undefined) => {
   return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, " ");
 };
 
-// Row subtitle: store handle (@slug). Drafts often have no handle yet — show a hyphen.
+// Row subtitle: the store's own handle (its storefront URL slug). Not
+// owner_handle, which belongs to the member and is the same for every store
+// they own.
 const getStoreSubtitle = (store: StoreOnboardingRow) => {
   const handle = store.handle?.trim();
 
