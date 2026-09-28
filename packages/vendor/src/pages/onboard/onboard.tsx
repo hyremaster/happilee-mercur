@@ -57,7 +57,12 @@ import {
   STORE_NAME_INVALID_MESSAGE,
   isValidStoreNameFormat,
 } from "./_components/store-name";
-import { TAX_NUMBER_INVALID_MESSAGE, isValidTaxNumberFormat } from "./_components/tax-number";
+import { resolveCountryIso2 } from "./_components/address-select-fields";
+import {
+  GSTIN_INVALID_MESSAGE,
+  TAX_NUMBER_INVALID_MESSAGE,
+  isValidTaxNumberFormat,
+} from "./_components/tax-number";
 import { PIN_CODE_INVALID_MESSAGE, isValidPinCodeFormat } from "./_components/pin-code";
 import type { FulfillmentCentre, WizardStep } from "./_components/types";
 import { useHandleAvailability } from "./_components/use-handle-availability";
@@ -387,8 +392,11 @@ export const OnboardPage = () => {
                 ? EMAIL_INVALID_MESSAGE
                 : pinCode.trim() && !isValidPinCodeFormat(pinCode, country)
                   ? PIN_CODE_INVALID_MESSAGE
-                  : taxNumber.trim() && !isValidTaxNumberFormat(taxNumber)
-                    ? TAX_NUMBER_INVALID_MESSAGE
+                  : taxNumber.trim() &&
+                      !isValidTaxNumberFormat(taxNumber, country)
+                    ? resolveCountryIso2(country) === "in"
+                      ? GSTIN_INVALID_MESSAGE
+                      : TAX_NUMBER_INVALID_MESSAGE
                     : "Please complete all required business details.",
           );
           return;
@@ -869,6 +877,7 @@ export const OnboardPage = () => {
             templates={storefrontTemplates}
             isLoadingTemplates={isLoadingStorefrontTemplates}
             isTemplatesError={isStorefrontTemplatesError}
+            isHandleLocked={isEditingActiveStore}
             onRetryTemplates={() => void refetchStorefrontTemplates()}
             onChange={(patch) =>
               updateState({ storefront: { ...state.storefront, ...patch } })

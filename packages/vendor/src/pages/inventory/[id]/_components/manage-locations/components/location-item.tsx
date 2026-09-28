@@ -33,11 +33,11 @@ export const LocationItem = ({
           checked={selected}
         />
       </div>
-      <div className="flex w-full flex-col">
-        <Text size="small" leading="compact" weight="plus">
+      <div className="flex w-full min-w-0 flex-col">
+        <Text size="small" leading="compact" weight="plus" className="break-words">
           {location.name}
         </Text>
-        <Text size="small" leading="compact" className="text-ui-fg-subtle">
+        <Text size="small" leading="compact" className="break-words text-ui-fg-subtle">
           {[
             location.address?.address_1,
             location.address?.city,
