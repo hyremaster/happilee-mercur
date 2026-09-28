@@ -46,6 +46,11 @@ import {
   CommerceTypeStep,
   isCommerceTypeValid,
 } from "./_components/steps/commerce-type-step";
+import { getApiErrorMessage } from "./_components/api-error";
+import {
+  getOrderStatusDisplayNameError,
+  ORDER_STATUS_DISPLAY_NAME_REQUIRED_MESSAGE,
+} from "./_components/commerce-type";
 import {
   FulfillmentDetailsStep,
   isFulfillmentValid,
@@ -454,7 +459,14 @@ export const OnboardPage = () => {
         const commerce = stateRef.current.commerce;
 
         if (!isCommerceTypeValid(commerce)) {
-          toast.error("Please complete all required commerce type details.");
+          const hasDisplayNameError = commerce.orderStatuses.some(
+            (status) => getOrderStatusDisplayNameError(status) !== undefined,
+          );
+          toast.error(
+            hasDisplayNameError
+              ? ORDER_STATUS_DISPLAY_NAME_REQUIRED_MESSAGE
+              : "Please complete all required commerce type details.",
+          );
           return;
         }
 
@@ -538,8 +550,13 @@ export const OnboardPage = () => {
           );
           await saveDraftStep(draftId!, { step: 3, data: stepData });
           nextStep();
-        } catch {
-          toast.error("Failed to save fulfillment details. Please try again.");
+        } catch (error) {
+          toast.error(
+            getApiErrorMessage(
+              error,
+              "Failed to save fulfillment details. Please try again.",
+            ),
+          );
         } finally {
           setIsSavingStep(false);
         }
