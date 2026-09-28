@@ -4,7 +4,7 @@ export type StoreTableRow = {
   id: string;
   isDraft: boolean;
   name: string;
-  handle: string;
+  subtitle: string;
   initials: string;
   status: string;
   statusColor: "success" | "warning" | "error";
@@ -20,8 +20,16 @@ const formatLabel = (value: string | null | undefined) => {
   return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, " ");
 };
 
-const getStoreHandle = (store: StoreOnboardingRow) => {
-  const handle = store.owner_handle ?? store.handle;
+// Row subtitle: the store's own contact email. owner_handle is a member-level
+// @handle shared by every store that member owns, so it cannot identify a row.
+const getStoreSubtitle = (store: StoreOnboardingRow) => {
+  const email = store.email?.trim();
+
+  if (email) {
+    return email;
+  }
+
+  const handle = store.handle?.trim();
 
   if (!handle) {
     return "—";
@@ -64,7 +72,7 @@ export const mapStoreToTableRow = (store: StoreOnboardingRow): StoreTableRow => 
     id: store.id,
     isDraft: store.is_draft,
     name: store.name?.trim() || "Untitled store",
-    handle: getStoreHandle(store),
+    subtitle: getStoreSubtitle(store),
     initials: getStoreInitials(store.name),
     status,
     statusColor,

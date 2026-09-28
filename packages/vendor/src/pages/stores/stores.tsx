@@ -258,9 +258,9 @@ export const StoresPage = () => {
                             </span>
                             <span
                               className="truncate text-xs leading-[18px] text-text-tertiary"
-                              title={store.handle}
+                              title={store.subtitle}
                             >
-                              {store.handle}
+                              {store.subtitle}
                             </span>
                           </div>
                         </div>
