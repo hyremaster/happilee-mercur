@@ -20,15 +20,8 @@ const formatLabel = (value: string | null | undefined) => {
   return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, " ");
 };
 
-// Row subtitle: the store's own contact email. owner_handle is a member-level
-// @handle shared by every store that member owns, so it cannot identify a row.
+// Row subtitle: store handle (@slug). Drafts often have no handle yet — show a hyphen.
 const getStoreSubtitle = (store: StoreOnboardingRow) => {
-  const email = store.email?.trim();
-
-  if (email) {
-    return email;
-  }
-
   const handle = store.handle?.trim();
 
   if (!handle) {
