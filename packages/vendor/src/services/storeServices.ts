@@ -6,6 +6,7 @@ export type StoreOnboardingRow = {
   is_draft: boolean;
   status: string;
   name: string | null;
+  email: string | null;
   owner_handle: string | null;
   industry: string | null;
   commerce_type: string | null;

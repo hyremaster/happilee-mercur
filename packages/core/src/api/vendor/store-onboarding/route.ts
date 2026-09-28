@@ -60,6 +60,9 @@ export const GET = async (
     is_draft: boolean
     status: string
     name: string | null
+    // Store contact email — per store, unlike owner_handle, which belongs to
+    // the member and is the same for every store they own.
+    email: string | null
     owner_handle: string | null
     industry: string | null
     commerce_type: string | null
@@ -131,6 +134,7 @@ export const GET = async (
         is_draft: false,
         status: seller.status,
         name: seller.name ?? null,
+        email: seller.email ?? null,
         owner_handle: ownerHandleBySeller.get(sm.seller_id) ?? null,
         industry: profile?.industry ?? null,
         commerce_type: profile?.commerce_type ?? null,
@@ -159,6 +163,7 @@ export const GET = async (
         is_draft: true,
         status: "draft",
         name: asString(business.name),
+        email: asString(business.email),
         owner_handle: asString(business.owner_handle),
         industry: asString(business.industry),
         commerce_type: asString(commerce.commerce_type),

@@ -501,7 +501,6 @@ export const mapDraftToStoreSetupState = (
 export type BusinessDetailsDraftData = {
   name: string;
   email: string;
-  owner_handle?: string;
   industry: string;
   phone?: string | null;
   address?: {
@@ -612,18 +611,6 @@ const parseAmount = (value: string): number | null => {
   return Number.isNaN(amount) ? null : amount;
 };
 
-const deriveOwnerHandle = (email: string): string | undefined => {
-  const localPart = email.trim().split("@")[0]?.trim();
-
-  if (!localPart) {
-    return undefined;
-  }
-
-  const handle = localPart.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase();
-
-  return handle || undefined;
-};
-
 export const isBusinessDetailsComplete = (data: BusinessDetails): boolean => {
   return (
     !!data.industry.trim() &&
@@ -670,12 +657,6 @@ export const mapBusinessDetailsToStep1Data = (
       phone: data.phone.trim() || null,
     },
   };
-
-  const ownerHandle = deriveOwnerHandle(data.email);
-
-  if (ownerHandle) {
-    payload.owner_handle = ownerHandle;
-  }
 
   const corporateName = data.businessLegalName.trim();
   const taxId = data.taxNumber.trim();
