@@ -319,6 +319,33 @@ export const LocationModal = ({
     else map.setCenter(next);
   };
 
+  // A new location (nothing saved yet) starts at the user's current position
+  // instead of the hardcoded default. Goes through the "map" source so the
+  // address fields are reverse-geocoded from it. Silently keeps the default
+  // if permission is denied or unavailable.
+  useEffect(() => {
+    if (!isOpen || (centre?.lat != null && centre.lng != null)) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+
+    let cancelled = false;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (cancelled) return;
+        const next = clampLatLng({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        lastUpdateSourceRef.current = "map";
+        setCenter(next);
+        syncMapView(next);
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
 
