@@ -59,6 +59,8 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       mercurDashboardPlugin({
         medusaConfigPath: '../api/medusa-config.ts',
+        name: 'Happilee',
+        logo: '/logo.svg',
         ...(backendUrl ? { backendUrl } : {}),
         // "Complete store profile" banner removed: no StoreSetup override is
         // registered, so shell.tsx / store-detail-page render nothing for it.

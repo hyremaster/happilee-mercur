@@ -4,7 +4,7 @@ import { IconAvatar } from "../icon-avatar";
 import config from "virtual:mercur/config";
 
 export default function AvatarBox({ checked }: { checked?: boolean }) {
-  const fallbackLetter = config.name?.charAt(0)?.toUpperCase() ?? "M";
+  const fallbackLetter = config.name?.charAt(0)?.toUpperCase() ?? "H";
 
   return (
     <IconAvatar

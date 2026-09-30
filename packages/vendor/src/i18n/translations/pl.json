@@ -3224,14 +3224,14 @@
         "accountNameRequired": "Wprowadź nazwę właściciela konta"
       },
       "preview": {
-        "title": "Witamy w Mercur",
+        "title": "Witamy w Happilee",
         "description": "Twój kompleksowy panel sprzedawcy do zarządzania sklepem, produktami, zamówieniami i wypłatami.",
         "placeholder": "Podgląd aplikacji"
       }
     }
   },
   "invite": {
-    "title": "Witamy w Mercur",
+    "title": "Witamy w Happilee",
     "hint": "Utwórz swoje konto poniżej",
     "backToLogin": "Powrót do logowania",
     "createAccount": "Utwórz konto",
