@@ -3391,7 +3391,7 @@
         "accountNameRequired": "Please enter an account name"
       },
       "preview": {
-        "title": "Welcome to Mercur",
+        "title": "Welcome to Happilee",
         "description": "Your all-in-one vendor portal for managing your store, products, orders, and payouts.",
         "placeholder": "App preview"
       }
@@ -3793,7 +3793,7 @@
   "auth": {
     "login": {
       "authenticationFailed": "Authentication failed",
-      "cloud": "Log in with Mercur"
+      "cloud": "Log in with Happilee"
     }
   }
 }
