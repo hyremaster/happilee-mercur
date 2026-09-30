@@ -3,6 +3,7 @@ declare const __BASE__: string
 interface ImportMetaEnv {
   readonly VITE_AREA_SENSE_APP_URL?: string
   readonly VITE_MERCUR_BACKEND_URL?: string
+  readonly VITE_GOOGLE_MAPS_API_KEY?: string
   readonly [key: string]: string | undefined
 }
 

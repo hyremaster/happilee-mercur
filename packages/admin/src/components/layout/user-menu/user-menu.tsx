@@ -1,10 +1,8 @@
 import {
-  BookOpen,
   CircleHalfSolid,
   EllipsisHorizontal,
   Keyboard,
   OpenRectArrowOut,
-  TimelineVertical,
   User as UserIcon,
   XMark,
 } from "@medusajs/icons"
@@ -58,19 +56,6 @@ export const UserMenu = () => {
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Separator data-testid="sidebar-user-menu-separator-2" />
-          <DropdownMenu.Item asChild data-testid="sidebar-user-menu-documentation">
-            <Link to="https://docs.mercurjs.com/welcome" target="_blank">
-              <BookOpen className="text-ui-fg-subtle me-2" />
-              {t("app.menus.user.documentation")}
-            </Link>
-          </DropdownMenu.Item>
-          <DropdownMenu.Item asChild data-testid="sidebar-user-menu-changelog">
-            <Link to="https://www.mercurjs.com/updates" target="_blank">
-              <TimelineVertical className="text-ui-fg-subtle me-2" />
-              {t("app.menus.user.changelog")}
-            </Link>
-          </DropdownMenu.Item>
-          <DropdownMenu.Separator data-testid="sidebar-user-menu-separator-3" />
           <DropdownMenu.Item onClick={toggleModal} data-testid="sidebar-user-menu-shortcuts">
             <Keyboard className="text-ui-fg-subtle me-2" />
             {t("app.menus.user.shortcuts")}
