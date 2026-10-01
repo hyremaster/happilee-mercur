@@ -71,3 +71,23 @@ input[type="search"]::-webkit-search-cancel-button {
 .recharts-surface path {
     outline: none;
 }
+
+/*
+ * @medusajs/ui Switch thumb: its translate-x utilities are emitted twice
+ * (as `transform` by the Tailwind v3 config/preset path and as the `translate`
+ * property by v4), so the thumb moves double the distance and escapes the
+ * track. Keep the `transform` version (it has the correct literal offsets)
+ * and drop the duplicate `translate`.
+ */
+button[role="switch"] > span[data-state] {
+  translate: none;
+}
+
+/*
+ * Radix popper wrappers (dropdowns, selects, popovers) are portaled to <body>
+ * and take their z-index from the content element, which Medusa's primitives
+ * don't set. The search modal sits at z-[100], so keep popovers above it.
+ */
+[data-radix-popper-content-wrapper] {
+  z-index: 200 !important;
+}

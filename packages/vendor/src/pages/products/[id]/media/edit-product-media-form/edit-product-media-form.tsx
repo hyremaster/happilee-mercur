@@ -221,7 +221,7 @@ export const EditProductMediaForm = ({ product }: ProductMediaViewProps) => {
           </div>
         </RouteFocusModal.Header>
         <RouteFocusModal.Body className="flex flex-col overflow-hidden">
-          <div className="flex size-full flex-col-reverse lg:grid lg:grid-cols-[1fr_560px]">
+          <div className="flex size-full flex-col-reverse lg:grid! lg:grid-cols-[1fr_560px]">
             <DndContext
               sensors={sensors}
               onDragEnd={handleDragEnd}
@@ -260,7 +260,7 @@ export const EditProductMediaForm = ({ product }: ProductMediaViewProps) => {
                 </div>
               </div>
             </DndContext>
-            <div className="bg-ui-bg-base overflow-auto border-b px-6 py-4 lg:border-b-0 lg:border-l">
+            <div className="bg-ui-bg-base overflow-auto border-b px-6 py-4 lg:border-b-0! lg:border-l">
               <UploadMediaFormItem form={form} append={append} />
             </div>
           </div>
