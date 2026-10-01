@@ -62,10 +62,12 @@ export const UserMenu = () => {
             <Keyboard className="text-ui-fg-subtle me-2" />
             {t("app.menus.user.shortcuts")}
           </DropdownMenu.Item>
-          <ThemeToggle />
+          {/* Theme toggle hidden: dark theme is not ready, light is the only theme for now */}
+          {/* <ThemeToggle /> */}
           <LanguageToggle />
-          <DropdownMenu.Separator />
-          <Logout />
+          {/* Logout hidden temporarily */}
+          {/* <DropdownMenu.Separator /> */}
+          {/* <Logout /> */}
         </DropdownMenu.Content>
       </DropdownMenu>
       <GlobalKeybindsModal open={openModal} onOpenChange={setOpenModal} />
@@ -190,11 +192,11 @@ export const LanguageToggle = () => {
   const { t, i18n } = useTranslation();
 
   const sortedLanguages = languages.sort((a, b) =>
-    a.display_name.localeCompare(b.display_name)
+    a.display_name.localeCompare(b.display_name),
   );
 
   const currentLanguage = sortedLanguages.find(
-    (lang) => lang.code === i18n.language
+    (lang) => lang.code === i18n.language,
   );
 
   return (
@@ -228,7 +230,7 @@ export const LanguageToggle = () => {
   );
 };
 
-const Logout = () => {
+export const Logout = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -276,58 +278,70 @@ const GlobalKeybindsModal = (props: {
   return (
     <RadixDialog.Root {...props}>
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="bg-ui-bg-overlay fixed inset-0" />
-        <RadixDialog.Content className="bg-ui-bg-subtle shadow-elevation-modal fixed left-[50%] top-[50%] flex h-full max-h-[612px] w-full max-w-[560px] translate-x-[-50%] translate-y-[-50%] flex-col divide-y overflow-hidden rounded-lg">
-          <div className="flex flex-col gap-y-3 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <RadixDialog.Title asChild>
-                  <Heading>{t("app.menus.user.shortcuts")}</Heading>
-                </RadixDialog.Title>
-                <RadixDialog.Description className="sr-only"></RadixDialog.Description>
-              </div>
-              <div className="flex items-center gap-x-2">
-                <Kbd>esc</Kbd>
-                <RadixDialog.Close asChild>
-                  <IconButton variant="transparent" size="small">
-                    <XMark />
-                  </IconButton>
-                </RadixDialog.Close>
-              </div>
-            </div>
-            <div>
-              <Input
-                type="search"
-                value={searchValue}
-                onChange={(e) => onSearchValueChange(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex flex-col divide-y overflow-y-auto">
-            {searchResults.map((shortcut, index) => {
-              return (
-                <div
-                  key={index}
-                  className="text-ui-fg-subtle flex items-center justify-between px-6 py-3"
-                >
-                  <Text size="small">{shortcut.label}</Text>
-                  <div className="flex items-center gap-x-1">
-                    {shortcut.keys.Mac?.map((key, index) => {
-                      return (
-                        <div className="flex items-center gap-x-1" key={index}>
-                          <Kbd>{key}</Kbd>
-                          {index < (shortcut.keys.Mac?.length || 0) - 1 && (
-                            <span className="txt-compact-xsmall text-ui-fg-subtle">
-                              {t("app.keyboardShortcuts.then")}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+        <RadixDialog.Overlay className="bg-ui-bg-overlay fixed inset-0 z-[100]" />
+        <RadixDialog.Content
+          className="fixed inset-0 z-[100] flex items-center justify-center p-2 outline-none"
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget) {
+              props.onOpenChange(false);
+            }
+          }}
+        >
+          <div className="bg-ui-bg-subtle shadow-elevation-modal flex max-h-[612px] min-h-0 w-full max-w-[560px] flex-col divide-y overflow-hidden rounded-lg">
+            <div className="flex flex-col gap-y-3 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <RadixDialog.Title asChild>
+                    <Heading>{t("app.menus.user.shortcuts")}</Heading>
+                  </RadixDialog.Title>
+                  <RadixDialog.Description className="sr-only"></RadixDialog.Description>
                 </div>
-              );
-            })}
+                <div className="flex items-center gap-x-2">
+                  <Kbd>esc</Kbd>
+                  <RadixDialog.Close asChild>
+                    <IconButton variant="transparent" size="small">
+                      <XMark />
+                    </IconButton>
+                  </RadixDialog.Close>
+                </div>
+              </div>
+              <div>
+                <Input
+                  type="search"
+                  value={searchValue}
+                  onChange={(e) => onSearchValueChange(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col divide-y overflow-y-auto">
+              {searchResults.map((shortcut, index) => {
+                return (
+                  <div
+                    key={index}
+                    className="text-ui-fg-subtle flex items-center justify-between px-6 py-3"
+                  >
+                    <Text size="small">{shortcut.label}</Text>
+                    <div className="flex items-center gap-x-1">
+                      {shortcut.keys.Mac?.map((key, index) => {
+                        return (
+                          <div
+                            className="flex items-center gap-x-1"
+                            key={index}
+                          >
+                            <Kbd>{key}</Kbd>
+                            {index < (shortcut.keys.Mac?.length || 0) - 1 && (
+                              <span className="txt-compact-xsmall text-ui-fg-subtle">
+                                {t("app.keyboardShortcuts.then")}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </RadixDialog.Content>
       </RadixDialog.Portal>

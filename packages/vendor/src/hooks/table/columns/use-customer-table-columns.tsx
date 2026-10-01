@@ -18,15 +18,44 @@ import {
   FirstSeenHeader,
 } from "../../../components/table/table-cells/customer/first-seen-cell"
 import { HttpTypes } from "@medusajs/types"
+import { useTranslation } from "react-i18next"
+import { PlaceholderCell } from "../../../components/table/table-cells/common/placeholder-cell"
 
 const columnHelper = createColumnHelper<HttpTypes.AdminCustomer>()
 
 export const useCustomerTableColumns = () => {
+  const { t } = useTranslation()
+
   return useMemo(
     () => [
-      columnHelper.accessor("email", {
+      columnHelper.display({
+        id: "email",
         header: () => <EmailHeader />,
-        cell: ({ getValue }) => <EmailCell email={getValue()} />,
+        cell: ({ row: { original } }) => {
+          const contactEmail = original.metadata?.contact_email
+          return (
+            <EmailCell
+              email={typeof contactEmail === "string" ? contactEmail : null}
+            />
+          )
+        },
+      }),
+      columnHelper.accessor("phone", {
+        header: () => (
+          <div className="flex h-full w-full items-center">
+            <span className="truncate">{t("fields.phone")}</span>
+          </div>
+        ),
+        cell: ({ getValue }) => {
+          const phone = getValue()
+          return phone ? (
+            <div className="flex h-full w-full items-center overflow-hidden">
+              <span className="truncate">{phone}</span>
+            </div>
+          ) : (
+            <PlaceholderCell />
+          )
+        },
       }),
       columnHelper.display({
         id: "name",
@@ -46,6 +75,6 @@ export const useCustomerTableColumns = () => {
         cell: ({ getValue }) => <FirstSeenCell createdAt={getValue()} />,
       }),
     ],
-    []
+    [t]
   )
 }

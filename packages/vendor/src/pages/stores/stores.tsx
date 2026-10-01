@@ -111,13 +111,13 @@ export const StoresPage = () => {
     >
       <div className="flex shrink-0 flex-col">
         <div className="flex items-center gap-md px-3xl py-xl">
-          <UtilityButton
+          {/* <UtilityButton
             icon={<ArrowLeft />}
             aria-label="Go back"
             variant="tertiary"
             size="md"
             onPress={() => navigate("/onboard")}
-          />
+          /> */}
 
           <div className="flex min-w-0 flex-1 flex-col gap-xxs">
             <span className="text-xl font-semibold text-text-primary">
@@ -241,8 +241,8 @@ export const StoresPage = () => {
                       isDisabled={isSelecting}
                       className={
                         isSelecting
-                          ? "cursor-wait opacity-60"
-                          : "cursor-pointer"
+                          ? "group cursor-wait opacity-60"
+                          : "group cursor-pointer"
                       }
                       onAction={() => void handleSelectStore(store)}
                     >
@@ -273,7 +273,7 @@ export const StoresPage = () => {
                       <Cell>{store.industry}</Cell>
                       <Cell>{store.commerceType}</Cell>
                       <Cell className="text-right">
-                        <div className="inline-flex items-center justify-end">
+                        <div className="inline-flex items-center justify-end opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100">
                           <UtilityButton
                             icon={<Edit01 />}
                             aria-label={`Edit ${store.name}`}
