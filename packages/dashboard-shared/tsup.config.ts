@@ -1,8 +1,10 @@
 import { defineConfig } from "tsup";
 import path from "path";
 
-export default defineConfig({
-  clean: true,
+export default defineConfig((options) => ({
+  // Clean only one-off builds. `tsup --watch` (turbo dev) starts while other
+  // tasks read dist/; wiping it then breaks them (ENOENT / unresolved entry).
+  clean: !options.watch,
   dts: true,
   entry: ["src/index.ts"],
   format: ["esm"],
@@ -16,4 +18,4 @@ export default defineConfig({
     };
   },
   external: ["react", "react-dom", "virtual:mercur/config", "virtual:mercur/routes"],
-});
+}));
