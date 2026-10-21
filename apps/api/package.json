@@ -37,6 +37,7 @@
     "@mercurjs/core": "*",
     "@mercurjs/types": "*",
     "@mercurjs/payment-razorpay": "*",
+    "@mercurjs/integration-gofrugal": "*",
     "http-proxy-middleware": "^3.0.3",
     "@mercurjs/cli": "*"
   },

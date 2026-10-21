@@ -3548,6 +3548,56 @@
       "value": "Value"
     }
   },
+  "integrations": {
+    "domain": "Integrations",
+    "subtitle": "Connect your store to the systems you already use, such as your POS or ERP.",
+    "empty": "No integrations are available yet.",
+    "category": {
+      "pos_erp": "POS / ERP",
+      "logistics": "Logistics",
+      "messaging": "Messaging",
+      "marketing": "Marketing",
+      "other": "Other"
+    },
+    "status": {
+      "connected": "Connected",
+      "error": "Connection error",
+      "untested": "Not tested",
+      "notConnected": "Not connected",
+      "disabled": "Disabled"
+    },
+    "actions": {
+      "connect": "Connect",
+      "manage": "Manage",
+      "testConnection": "Test connection",
+      "disconnect": "Disconnect"
+    },
+    "lastChecked": "Last checked {{date}}",
+    "docs": "Setup guide",
+    "form": {
+      "connectHeader": "Connect {{title}}",
+      "manageHeader": "Manage {{title}}",
+      "credentials": "Credentials",
+      "settings": "Settings",
+      "enabled": "Enabled",
+      "enabledHint": "Turn off to pause this integration without removing its credentials.",
+      "secretKeep": "Leave blank to keep the saved value ({{masked}}).",
+      "lastError": "Last connection test failed",
+      "required": "{{label}} is required."
+    },
+    "test": {
+      "success": "Connection successful",
+      "failure": "Connection failed"
+    },
+    "toasts": {
+      "saved": "{{title}} settings saved.",
+      "savedButFailed": "{{title}} settings saved, but the connection test failed: {{message}}",
+      "disconnected": "{{title}} disconnected."
+    },
+    "disconnect": {
+      "confirmation": "Disconnect {{title}}? The saved credentials will be deleted and syncing will stop."
+    }
+  },
   "notifications": {
     "domain": "Notifications",
     "emptyState": {

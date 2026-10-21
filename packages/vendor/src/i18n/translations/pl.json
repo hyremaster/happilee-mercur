@@ -3381,6 +3381,56 @@
       "value": "Wartość"
     }
   },
+  "integrations": {
+    "domain": "Integracje",
+    "subtitle": "Połącz sklep z systemami, z których już korzystasz, np. POS lub ERP.",
+    "empty": "Brak dostępnych integracji.",
+    "category": {
+      "pos_erp": "POS / ERP",
+      "logistics": "Logistyka",
+      "messaging": "Komunikacja",
+      "marketing": "Marketing",
+      "other": "Inne"
+    },
+    "status": {
+      "connected": "Połączono",
+      "error": "Błąd połączenia",
+      "untested": "Nie przetestowano",
+      "notConnected": "Nie połączono",
+      "disabled": "Wyłączono"
+    },
+    "actions": {
+      "connect": "Połącz",
+      "manage": "Zarządzaj",
+      "testConnection": "Testuj połączenie",
+      "disconnect": "Odłącz"
+    },
+    "lastChecked": "Ostatnio sprawdzono {{date}}",
+    "docs": "Instrukcja konfiguracji",
+    "form": {
+      "connectHeader": "Połącz {{title}}",
+      "manageHeader": "Zarządzaj {{title}}",
+      "credentials": "Dane uwierzytelniające",
+      "settings": "Ustawienia",
+      "enabled": "Włączona",
+      "enabledHint": "Wyłącz, aby wstrzymać integrację bez usuwania danych uwierzytelniających.",
+      "secretKeep": "Pozostaw puste, aby zachować zapisaną wartość ({{masked}}).",
+      "lastError": "Ostatni test połączenia nie powiódł się",
+      "required": "Pole {{label}} jest wymagane."
+    },
+    "test": {
+      "success": "Połączenie udane",
+      "failure": "Połączenie nieudane"
+    },
+    "toasts": {
+      "saved": "Zapisano ustawienia {{title}}.",
+      "savedButFailed": "Zapisano ustawienia {{title}}, ale test połączenia nie powiódł się: {{message}}",
+      "disconnected": "Odłączono {{title}}."
+    },
+    "disconnect": {
+      "confirmation": "Odłączyć {{title}}? Zapisane dane uwierzytelniające zostaną usunięte, a synchronizacja zatrzymana."
+    }
+  },
   "notifications": {
     "domain": "Powiadomienia",
     "emptyState": {

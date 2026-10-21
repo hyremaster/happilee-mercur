@@ -8,6 +8,7 @@ import {
 const resourceOperations: [string, string[]][] = [
   ["seller", ["read", "create", "update", "delete"]],
   ["seller_member", ["read", "create", "update", "delete"]],
+  ["integration", ["read", "update", "delete"]],
 ]
 
 const policies: PolicyDefinition[] = []

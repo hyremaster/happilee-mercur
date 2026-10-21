@@ -7,6 +7,7 @@
       "dependencies": {
         "@happilee-app/ui": "0.4.0",
         "@mercurjs/core": "workspace:*",
+        "@mercurjs/integration-gofrugal": "workspace:*",
         "@mercurjs/payment-razorpay": "workspace:*",
       },
       "devDependencies": {
@@ -76,6 +77,7 @@
         "@medusajs/medusa": "^2.13.4",
         "@mercurjs/cli": "*",
         "@mercurjs/core": "*",
+        "@mercurjs/integration-gofrugal": "*",
         "@mercurjs/payment-razorpay": "*",
         "@mercurjs/types": "*",
         "http-proxy-middleware": "^3.0.3",
@@ -417,6 +419,18 @@
         "@types/react-dom": "^18.2.22",
         "tsup": "^8.0.2",
         "typescript": "5.9.3",
+      },
+    },
+    "packages/providers/integration-gofrugal": {
+      "name": "@mercurjs/integration-gofrugal",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@medusajs/framework": "2.13.4",
+        "@mercurjs/types": "workspace:*",
+        "tsup": "^8.5.0",
+      },
+      "peerDependencies": {
+        "@medusajs/framework": "2.13.4",
       },
     },
     "packages/providers/payment-razorpay": {
@@ -1194,6 +1208,8 @@
     "@mercurjs/dashboard-sdk": ["@mercurjs/dashboard-sdk@workspace:packages/dashboard-sdk"],
 
     "@mercurjs/dashboard-shared": ["@mercurjs/dashboard-shared@workspace:packages/dashboard-shared"],
+
+    "@mercurjs/integration-gofrugal": ["@mercurjs/integration-gofrugal@workspace:packages/providers/integration-gofrugal"],
 
     "@mercurjs/integration-tests": ["@mercurjs/integration-tests@workspace:integration-tests"],
 

@@ -29,6 +29,7 @@ export * from "./stock-location"
 export * from "./payout"
 export * from "./commission"
 export * from "./subscription"
+export * from "./integration"
 
 // `export type`: StoreCompleteCartResponse is type-only. Vite (dev, via the
 // apps/vendor alias to this source) keeps value-style re-exports and the

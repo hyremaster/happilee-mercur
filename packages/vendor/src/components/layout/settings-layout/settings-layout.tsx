@@ -63,6 +63,10 @@ const useSettingRoutes = (): INavItem[] => {
         label: t("stockLocations.domain"),
         to: "/settings/locations",
       },
+      {
+        label: t("integrations.domain"),
+        to: "/settings/integrations",
+      },
       ...extensionNavItems,
     ],
     [t],

@@ -778,6 +778,11 @@ export type Routes = {
                 options: typeof import("../../src/api/vendor/fulfillment-providers/[id]/options/route");
             };
         };
+        integrations: typeof import("../../src/api/vendor/integrations/route") & {
+            $providerId: typeof import("../../src/api/vendor/integrations/[provider_id]/route") & {
+                test: typeof import("../../src/api/vendor/integrations/[provider_id]/test/route");
+            };
+        };
         members: {
             invites: {
                 accept: typeof import("../../src/api/vendor/members/invites/accept/route");

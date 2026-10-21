@@ -1401,6 +1401,27 @@ export function getRouteMap({
                   },
                 ],
               },
+
+              // INTEGRATIONS (provider-based, see @mercurjs/core integration module)
+              {
+                path: "integrations",
+                errorElement: <ErrorBoundary />,
+                element: <Outlet />,
+                handle: { breadcrumb: () => t("integrations.domain") },
+                children: [
+                  {
+                    path: "",
+                    lazy: () => import("./pages/settings/integrations"),
+                    children: [
+                      {
+                        path: ":provider_id",
+                        lazy: () =>
+                          import("./pages/settings/integrations/[provider_id]"),
+                      },
+                    ],
+                  },
+                ],
+              },
             ],
             customSettingsRoutes?.[0]?.children || [],
           ),

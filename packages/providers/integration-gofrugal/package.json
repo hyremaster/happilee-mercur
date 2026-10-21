@@ -1,0 +1,29 @@
+{
+  "name": "@mercurjs/integration-gofrugal",
+  "version": "1.0.0",
+  "description": "GoFrugal POS/ERP integration provider for Mercur store integrations",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "peerDependencies": {
+    "@medusajs/framework": "2.13.4"
+  },
+  "devDependencies": {
+    "@medusajs/framework": "2.13.4",
+    "@mercurjs/types": "workspace:*",
+    "tsup": "^8.5.0"
+  },
+  "keywords": [
+    "medusa-plugin",
+    "mercur-integration",
+    "gofrugal"
+  ]
+}

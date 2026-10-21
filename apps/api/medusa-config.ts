@@ -103,6 +103,20 @@ module.exports = withMercur({
         ],
       },
     },
+    // Store integrations (Settings → Integrations in the vendor panel). Each
+    // external system is a provider; add new ones here. The provider `id` is
+    // persisted on store_integration rows: keep it stable.
+    {
+      resolve: '@mercurjs/core/modules/integration',
+      options: {
+        providers: [
+          {
+            resolve: '@mercurjs/integration-gofrugal',
+            id: 'gofrugal',
+          },
+        ],
+      },
+    },
     {
       resolve: '@mercurjs/core/modules/admin-ui',
       options: {

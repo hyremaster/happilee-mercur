@@ -10,6 +10,7 @@
   "dependencies": {
     "@happilee-app/ui": "0.4.0",
     "@mercurjs/core": "workspace:*",
+    "@mercurjs/integration-gofrugal": "workspace:*",
     "@mercurjs/payment-razorpay": "workspace:*"
   },
   "devDependencies": {

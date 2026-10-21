@@ -24,6 +24,9 @@ export * from "./payout"
 // Attribute types
 export * from "./attribute"
 
+// Store integration types (provider-based, per-store connections)
+export * from "./integration"
+
 // Modules
 export * from "./modules"
 

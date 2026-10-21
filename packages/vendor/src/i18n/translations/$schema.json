@@ -11666,6 +11666,213 @@
       "required": ["domain", "create", "edit", "delete", "fields"],
       "additionalProperties": false
     },
+    "integrations": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "empty": {
+          "type": "string"
+        },
+        "category": {
+          "type": "object",
+          "properties": {
+            "pos_erp": {
+              "type": "string"
+            },
+            "logistics": {
+              "type": "string"
+            },
+            "messaging": {
+              "type": "string"
+            },
+            "marketing": {
+              "type": "string"
+            },
+            "other": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "pos_erp",
+            "logistics",
+            "messaging",
+            "marketing",
+            "other"
+          ],
+          "additionalProperties": false
+        },
+        "status": {
+          "type": "object",
+          "properties": {
+            "connected": {
+              "type": "string"
+            },
+            "error": {
+              "type": "string"
+            },
+            "untested": {
+              "type": "string"
+            },
+            "notConnected": {
+              "type": "string"
+            },
+            "disabled": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "connected",
+            "error",
+            "untested",
+            "notConnected",
+            "disabled"
+          ],
+          "additionalProperties": false
+        },
+        "actions": {
+          "type": "object",
+          "properties": {
+            "connect": {
+              "type": "string"
+            },
+            "manage": {
+              "type": "string"
+            },
+            "testConnection": {
+              "type": "string"
+            },
+            "disconnect": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "connect",
+            "manage",
+            "testConnection",
+            "disconnect"
+          ],
+          "additionalProperties": false
+        },
+        "lastChecked": {
+          "type": "string"
+        },
+        "docs": {
+          "type": "string"
+        },
+        "form": {
+          "type": "object",
+          "properties": {
+            "connectHeader": {
+              "type": "string"
+            },
+            "manageHeader": {
+              "type": "string"
+            },
+            "credentials": {
+              "type": "string"
+            },
+            "settings": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "string"
+            },
+            "enabledHint": {
+              "type": "string"
+            },
+            "secretKeep": {
+              "type": "string"
+            },
+            "lastError": {
+              "type": "string"
+            },
+            "required": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "connectHeader",
+            "manageHeader",
+            "credentials",
+            "settings",
+            "enabled",
+            "enabledHint",
+            "secretKeep",
+            "lastError",
+            "required"
+          ],
+          "additionalProperties": false
+        },
+        "test": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "string"
+            },
+            "failure": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "success",
+            "failure"
+          ],
+          "additionalProperties": false
+        },
+        "toasts": {
+          "type": "object",
+          "properties": {
+            "saved": {
+              "type": "string"
+            },
+            "savedButFailed": {
+              "type": "string"
+            },
+            "disconnected": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "saved",
+            "savedButFailed",
+            "disconnected"
+          ],
+          "additionalProperties": false
+        },
+        "disconnect": {
+          "type": "object",
+          "properties": {
+            "confirmation": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "confirmation"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "domain",
+        "subtitle",
+        "empty",
+        "category",
+        "status",
+        "actions",
+        "lastChecked",
+        "docs",
+        "form",
+        "test",
+        "toasts",
+        "disconnect"
+      ],
+      "additionalProperties": false
+    },
     "notifications": {
       "type": "object",
       "properties": {
@@ -12672,6 +12879,7 @@
     "shippingOptionTypes",
     "productTypes",
     "productTags",
+    "integrations",
     "notifications",
     "errors",
     "statuses",
