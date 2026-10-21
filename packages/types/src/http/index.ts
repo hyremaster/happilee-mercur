@@ -30,4 +30,7 @@ export * from "./payout"
 export * from "./commission"
 export * from "./subscription"
 
-export { StoreCompleteCartResponse } from "./order-group"
+// `export type`: StoreCompleteCartResponse is type-only. Vite (dev, via the
+// apps/vendor alias to this source) keeps value-style re-exports and the
+// browser then fails with "does not provide an export named …".
+export type { StoreCompleteCartResponse } from "./order-group"
