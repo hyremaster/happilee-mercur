@@ -2,6 +2,8 @@ import {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import { IEventBusModuleService } from "@medusajs/framework/types"
+import { Modules } from "@medusajs/framework/utils"
 import { HttpTypes, IntegrationTestResult, MercurModules } from "@mercurjs/types"
 
 import type IntegrationModuleService from "../../../../modules/integration/service"
@@ -10,6 +12,7 @@ import {
   testStoreIntegrationWorkflow,
   upsertStoreIntegrationWorkflow,
 } from "../../../../workflows/integration"
+import { IntegrationWorkflowEvents } from "../../../../workflows/events"
 import { VendorSaveIntegrationType } from "../validators"
 
 // GET /vendor/integrations/:provider_id — one provider + this store's
@@ -77,6 +80,15 @@ export const POST = async (
       input: { id: saved.id },
     })
     testResult = result
+  }
+
+  // New working credentials: let subscribers (e.g. the locations sync) react
+  // off the request.
+  if (testResult?.ok && prepared.credentials_changed) {
+    await req.scope.resolve<IEventBusModuleService>(Modules.EVENT_BUS).emit({
+      name: IntegrationWorkflowEvents.CONNECTED,
+      data: { seller_id: sellerId, provider_id: providerId },
+    })
   }
 
   const integration = await service.retrieveSellerIntegrationItem(

@@ -780,6 +780,13 @@ export type Routes = {
         };
         integrations: typeof import("../../src/api/vendor/integrations/route") & {
             $providerId: typeof import("../../src/api/vendor/integrations/[provider_id]/route") & {
+                locations: typeof import("../../src/api/vendor/integrations/[provider_id]/locations/route") & {
+                    $locationId: typeof import("../../src/api/vendor/integrations/[provider_id]/locations/[location_id]/route") & {
+                        createBranch: typeof import("../../src/api/vendor/integrations/[provider_id]/locations/[location_id]/create-branch/route");
+                    };
+                };
+                syncRuns: typeof import("../../src/api/vendor/integrations/[provider_id]/sync-runs/route");
+                sync: typeof import("../../src/api/vendor/integrations/[provider_id]/sync/route");
                 test: typeof import("../../src/api/vendor/integrations/[provider_id]/test/route");
             };
         };

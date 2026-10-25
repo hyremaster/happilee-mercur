@@ -64,9 +64,16 @@ export type IntegrationValue = string | number | boolean | null
 
 export type IntegrationValues = Record<string, IntegrationValue>
 
+/** Optional abilities a provider implements beyond connecting. */
+export enum IntegrationCapability {
+  /** `listLocations`: outlets/warehouses that map to our stock locations. */
+  LOCATIONS = "locations",
+}
+
 export interface IntegrationProviderDTO extends IntegrationProviderDefinition {
   /** The provider id from medusa-config (`providers: [{ resolve, id }]`). */
   id: string
+  capabilities: IntegrationCapability[]
 }
 
 export interface StoreIntegrationDTO {
@@ -108,4 +115,71 @@ export interface UpsertStoreIntegrationDTO {
   credentials?: IntegrationValues
   settings?: IntegrationValues
   actor_id?: string | null
+}
+
+/** A place in the external system (outlet, warehouse, hub) as a provider reports it. */
+export interface ExternalLocation {
+  /** Stable id in the external system, e.g. GoFrugal outletId. */
+  external_id: string
+  name: string
+  code?: string | null
+  address?: string | null
+  city?: string | null
+  /** Whether the external system reports it as active. */
+  is_active: boolean
+  raw?: Record<string, unknown> | null
+}
+
+export enum IntegrationLocationStatus {
+  ACTIVE = "active",
+  /** Reported inactive by the provider, or missing from its latest list. */
+  INACTIVE = "inactive",
+}
+
+export interface IntegrationLocationDTO {
+  id: string
+  seller_id: string
+  provider_id: string
+  external_id: string
+  name: string
+  code: string | null
+  address: string | null
+  city: string | null
+  status: IntegrationLocationStatus
+  /** Mapped branch (stock location); null = not mapped. */
+  stock_location_id: string | null
+  stock_location: { id: string; name: string } | null
+  last_seen_at: Date | null
+  created_at: Date
+  updated_at: Date
+}
+
+export enum IntegrationSyncStream {
+  LOCATIONS = "locations",
+}
+
+export enum IntegrationSyncTrigger {
+  MANUAL = "manual",
+  SCHEDULE = "schedule",
+  CONNECT = "connect",
+}
+
+export enum IntegrationSyncRunStatus {
+  RUNNING = "running",
+  SUCCESS = "success",
+  FAILED = "failed",
+}
+
+export interface IntegrationSyncRunDTO {
+  id: string
+  seller_id: string
+  provider_id: string
+  stream: IntegrationSyncStream
+  trigger: IntegrationSyncTrigger
+  status: IntegrationSyncRunStatus
+  /** Stream-specific counts, e.g. { found, created, updated, deactivated }. */
+  counts: Record<string, number> | null
+  error: string | null
+  started_at: Date
+  finished_at: Date | null
 }

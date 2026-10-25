@@ -6,8 +6,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { MercurModules } from "@mercurjs/types"
 
 import type MarketplaceProfileModuleService from "../../../../../modules/marketplace-profile/service"
-import { syncStoreFulfillmentOptionsWorkflow } from "../../../../../workflows/marketplace-profile/workflows/sync-store-fulfillment-options"
-import { createSellerStockLocationsWorkflow } from "../../../../../workflows/stock-location"
+import { createStoreBranch } from "../../../../../workflows/marketplace-profile/utils/create-store-branch"
 import { refetchStockLocation } from "../../../stock-locations/helpers"
 import { assertStoreOwnership } from "../../helpers"
 import { vendorStoreLocationFields } from "../../query-config"
@@ -80,54 +79,16 @@ export const POST = async (
 
   const { name, address, is_active, latitude, longitude } = req.validatedBody
 
-  // Reuse Mercur's seller-scoped StockLocation workflow (creates the location +
-  // seller link).
-  const { result } = await createSellerStockLocationsWorkflow(req.scope).run({
-    input: {
-      locations: [{ name, address }],
-      seller_id: sellerId,
-    },
+  // Same branch setup as "create branch from external location".
+  const branch = await createStoreBranch(req.scope, {
+    seller_id: sellerId,
+    name,
+    address,
+    is_active,
+    latitude,
+    longitude,
   })
-  const locationId = result[0].id
-
-  const service = req.scope.resolve<MarketplaceProfileModuleService>(
-    MercurModules.MARKETPLACE_PROFILE
-  )
-  const detail = await service.createStoreLocationDetails({
-    stock_location_id: locationId,
-    is_active: is_active ?? true,
-    latitude: latitude ?? null,
-    longitude: longitude ?? null,
-  })
-
-  // A new fulfillment centre needs the same shipping setup onboarding gives
-  // the first ones, or checkout never offers it.
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const [profile] = await service.listStoreProfiles({ seller_id: sellerId })
-  const {
-    data: [seller],
-  } = await query.graph({
-    entity: "seller",
-    fields: ["id", "currency_code", "address.country_code"],
-    filters: { id: sellerId },
-  })
-  const sellerRow = seller as
-    | {
-        currency_code?: string | null
-        address?: { country_code?: string | null } | null
-      }
-    | undefined
-  await syncStoreFulfillmentOptionsWorkflow(req.scope).run({
-    input: {
-      seller_id: sellerId,
-      currency_code: sellerRow?.currency_code ?? "inr",
-      country_code:
-        address?.country_code ?? sellerRow?.address?.country_code ?? null,
-      fulfillment_methods:
-        (profile?.fulfillment_methods as string[] | null | undefined) ?? null,
-      location_ids: [locationId],
-    },
-  })
+  const locationId = branch.location_id
 
   const stockLocation = await refetchStockLocation(
     req.scope,
@@ -138,9 +99,9 @@ export const POST = async (
   res.status(201).json({
     location: {
       ...stockLocation,
-      is_active: detail.is_active,
-      latitude: detail.latitude,
-      longitude: detail.longitude,
+      is_active: branch.is_active,
+      latitude: branch.latitude,
+      longitude: branch.longitude,
     },
   })
 }

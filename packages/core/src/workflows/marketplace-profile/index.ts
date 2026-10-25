@@ -1,6 +1,7 @@
 export * from "./steps"
 export * from "./utils/order-status-transitions"
 export * from "./utils/resolve-order-store-status"
+export * from "./utils/create-store-branch"
 export * from "./workflows/create-store"
 export * from "./workflows/submit-store-draft"
 export * from "./workflows/update-order-store-status"

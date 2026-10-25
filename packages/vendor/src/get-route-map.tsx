@@ -1412,11 +1412,28 @@ export function getRouteMap({
                   {
                     path: "",
                     lazy: () => import("./pages/settings/integrations"),
+                  },
+                  {
+                    path: ":provider_id",
+                    lazy: async () => {
+                      const { Component } =
+                        await import("./pages/settings/integrations/[provider_id]");
+                      const { Breadcrumb } =
+                        await import("./pages/settings/integrations/[provider_id]/breadcrumb");
+                      return {
+                        Component,
+                        handle: {
+                          breadcrumb: (match: UIMatch) => (
+                            <Breadcrumb {...match} />
+                          ),
+                        },
+                      };
+                    },
                     children: [
                       {
-                        path: ":provider_id",
+                        path: "manage",
                         lazy: () =>
-                          import("./pages/settings/integrations/[provider_id]"),
+                          import("./pages/settings/integrations/[provider_id]/manage"),
                       },
                     ],
                   },

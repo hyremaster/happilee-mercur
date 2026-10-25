@@ -3596,6 +3596,51 @@
     },
     "disconnect": {
       "confirmation": "Disconnect {{title}}? The saved credentials will be deleted and syncing will stop."
+    },
+    "detail": {
+      "connection": "Connection",
+      "notConnectedHint": "Connect {{title}} to sync data with your store.",
+      "locations": "Locations",
+      "locationsHint": "Match each {{title}} location to one of your branches. Unmatched locations are ignored by syncs.",
+      "syncLocations": "Sync locations",
+      "lastSync": "Last sync {{date}}",
+      "noLocations": "No locations yet. Sync to load them from {{title}}.",
+      "waitingFirstSync": "Loading locations from {{title}}…",
+      "columns": {
+        "location": "Location",
+        "city": "City",
+        "status": "Status",
+        "branch": "Branch"
+      },
+      "locationStatus": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "notMapped": "Not mapped",
+      "createBranch": "Create branch",
+      "viewBranch": "View branch",
+      "activity": "Sync activity",
+      "noActivity": "No syncs yet.",
+      "trigger": {
+        "manual": "Manual",
+        "schedule": "Scheduled",
+        "connect": "On connect"
+      },
+      "runStatus": {
+        "running": "Running",
+        "success": "Success",
+        "failed": "Failed"
+      },
+      "stream": {
+        "locations": "Locations"
+      },
+      "counts": "{{found}} found, {{created}} new, {{updated}} updated, {{deactivated}} deactivated",
+      "toasts": {
+        "synced": "Locations synced: {{found}} found.",
+        "syncFailed": "Sync failed: {{message}}",
+        "mappingSaved": "Branch mapping saved.",
+        "branchCreated": "Branch {{name}} created and mapped. Set its map pin under Locations."
+      }
     }
   },
   "notifications": {

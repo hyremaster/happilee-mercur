@@ -1,11 +1,14 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import type {
+  ExternalLocation,
   IIntegrationProvider,
   IntegrationCategory,
   IntegrationConnectionInput,
   IntegrationProviderDefinition,
   IntegrationTestResult,
 } from "@mercurjs/types"
+
+import { GoFrugalApiError, GoFrugalClient } from "../client/gofrugal-client"
 
 export type GoFrugalProviderOptions = {
   /** Connection-test timeout in ms (default 20000). */
@@ -14,9 +17,25 @@ export type GoFrugalProviderOptions = {
 
 type GoFrugalEdition = "hq" | "rpos" | "de"
 
-type GoFrugalOutlet = { id: number; name?: string; status?: string }
+type GoFrugalOutlet = {
+  id: number
+  name?: string
+  shortName?: string
+  location?: string
+  address?: string
+  status?: string
+  erpCode?: string | null
+}
 
-type GoFrugalErrorBody = { error?: { code?: number | string; message?: string } }
+type GoFrugalPage = {
+  eCommerceStores?: GoFrugalOutlet[]
+  total_pages?: number
+}
+
+const MAX_OUTLET_PAGES = 20
+
+const EMPTY_RESPONSE_MESSAGE =
+  "GoFrugal returned an empty response. This API may not be enabled for your edition; check the selected edition."
 
 const POS_ERP = "pos_erp" as IntegrationCategory
 
@@ -110,121 +129,109 @@ export class GoFrugalIntegrationProvider implements IIntegrationProvider {
     }
   }
 
-  async testConnection({
-    credentials,
-    settings,
-  }: IntegrationConnectionInput): Promise<IntegrationTestResult> {
-    const edition = (asString(settings.edition) || "hq") as GoFrugalEdition
-    const baseUrl = asString(credentials.base_url).replace(/\/+$/, "")
-    const apiKey = asString(credentials.api_key)
+  async testConnection(
+    input: IntegrationConnectionInput
+  ): Promise<IntegrationTestResult> {
+    const edition = this.edition(input)
+    const client = this.client(input)
 
-    // HQ lists its outlets; other editions don't support eCommerceStores on
-    // every version, so a one-row item read is used instead.
-    const path =
-      edition === "hq" ? "/api/v1/eCommerceStores" : "/api/v1/items?limit=1"
-    const url = new URL(`${baseUrl}${path}`)
-    if (edition === "de") {
-      url.searchParams.set(
-        "companyDataContext",
-        asString(settings.company_data_context)
-      )
-    }
-
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), this.options_.timeout_ms)
-
-    let response: Response
     try {
-      response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-Auth-Token": apiKey,
-        },
-        signal: controller.signal,
+      if (edition === "hq") {
+        const outlets = await this.fetchOutlets(client, input)
+        return {
+          ok: true,
+          message: `Connected to GoFrugal HQ. ${outlets.length} outlet(s) found.`,
+          details: {
+            outlet_count: outlets.length,
+            outlets: outlets.slice(0, 50).map((outlet) => ({
+              id: outlet.id,
+              name: outlet.name ?? null,
+              status: outlet.status ?? null,
+            })),
+          },
+        }
+      }
+
+      // Not every RPOS / DE version lists outlets; one item read proves access.
+      const response = await client.get("/api/v1/items", {
+        limit: 1,
+        ...this.companyContext(input),
       })
-    } catch (e) {
-      const aborted = e instanceof Error && e.name === "AbortError"
-      return {
-        ok: false,
-        message: aborted
-          ? `GoFrugal did not respond within ${Math.round(this.options_.timeout_ms / 1000)}s.`
-          : `Could not reach GoFrugal at ${url.host}. Check the API base URL.`,
+      if (response.kind === "empty_body") {
+        return { ok: false, message: EMPTY_RESPONSE_MESSAGE }
       }
-    } finally {
-      clearTimeout(timer)
-    }
-
-    if (response.status === 401 || response.status === 403) {
-      return {
-        ok: false,
-        message: `GoFrugal rejected the API key (HTTP ${response.status}).`,
-      }
-    }
-    if (response.status === 404) {
-      return {
-        ok: false,
-        message:
-          "GoFrugal API not found at this URL (HTTP 404). Check the product path, e.g. /RayMedi_HQ or /WebReporter.",
-      }
-    }
-    if (!response.ok) {
-      return {
-        ok: false,
-        message: `GoFrugal returned an error (HTTP ${response.status}).`,
-      }
-    }
-
-    const text = (await response.text()).trim()
-    if (!text) {
-      return {
-        ok: false,
-        message:
-          "GoFrugal returned an empty response. This API may not be enabled for your edition; check the selected edition.",
-      }
-    }
-
-    let body: unknown
-    try {
-      body = JSON.parse(text)
-    } catch {
-      return {
-        ok: false,
-        message:
-          "GoFrugal returned a non-JSON response. Check the API base URL and that the eCommerce API licence is active.",
-      }
-    }
-
-    const apiError = (body as GoFrugalErrorBody).error
-    if (apiError) {
-      // 4410 = "No record available": authenticated, just nothing to list.
-      if (String(apiError.code) === "4410") {
-        return { ok: true, message: "Connected to GoFrugal (no records yet)." }
-      }
-      return {
-        ok: false,
-        message: `GoFrugal error ${apiError.code ?? ""}: ${apiError.message ?? "unknown error"}`.trim(),
-      }
-    }
-
-    if (edition === "hq") {
-      const outlets =
-        (body as { eCommerceStores?: GoFrugalOutlet[] }).eCommerceStores ?? []
       return {
         ok: true,
-        message: `Connected to GoFrugal HQ. ${outlets.length} outlet(s) found.`,
-        details: {
-          outlet_count: outlets.length,
-          outlets: outlets.slice(0, 50).map((outlet) => ({
-            id: outlet.id,
-            name: outlet.name ?? null,
-            status: outlet.status ?? null,
-          })),
-        },
+        message:
+          response.kind === "no_records"
+            ? "Connected to GoFrugal (no records yet)."
+            : "Connected to GoFrugal.",
+      }
+    } catch (e) {
+      return {
+        ok: false,
+        message: e instanceof Error ? e.message : "Connection test failed.",
       }
     }
+  }
 
-    return { ok: true, message: "Connected to GoFrugal." }
+  /**
+   * GoFrugal outlets (`eCommerceStores`, all pages) as external locations.
+   * Read-only. Throws GoFrugalApiError on failure.
+   */
+  async listLocations(input: IntegrationConnectionInput): Promise<ExternalLocation[]> {
+    const outlets = await this.fetchOutlets(this.client(input), input)
+    return outlets.map((outlet) => ({
+      external_id: String(outlet.id),
+      name: outlet.name?.trim() || `Outlet ${outlet.id}`,
+      code: outlet.shortName?.trim() || null,
+      address: outlet.address?.trim() || null,
+      city: outlet.location?.trim() || null,
+      is_active: (outlet.status ?? "active").toLowerCase() === "active",
+      raw: outlet as Record<string, unknown>,
+    }))
+  }
+
+  protected edition(input: IntegrationConnectionInput): GoFrugalEdition {
+    return (asString(input.settings.edition) || "hq") as GoFrugalEdition
+  }
+
+  protected companyContext(input: IntegrationConnectionInput) {
+    return this.edition(input) === "de"
+      ? { companyDataContext: asString(input.settings.company_data_context) }
+      : {}
+  }
+
+  protected client(input: IntegrationConnectionInput): GoFrugalClient {
+    return new GoFrugalClient({
+      base_url: asString(input.credentials.base_url),
+      api_key: asString(input.credentials.api_key),
+      timeout_ms: this.options_.timeout_ms,
+    })
+  }
+
+  protected async fetchOutlets(
+    client: GoFrugalClient,
+    input: IntegrationConnectionInput
+  ): Promise<GoFrugalOutlet[]> {
+    const outlets: GoFrugalOutlet[] = []
+    for (let page = 1; page <= MAX_OUTLET_PAGES; page++) {
+      const response = await client.get<GoFrugalPage>("/api/v1/eCommerceStores", {
+        page,
+        ...this.companyContext(input),
+      })
+      if (response.kind === "empty_body") {
+        throw new GoFrugalApiError(EMPTY_RESPONSE_MESSAGE, "invalid_response")
+      }
+      if (response.kind === "no_records") {
+        break
+      }
+      outlets.push(...(response.body.eCommerceStores ?? []))
+      const totalPages = Number(response.body.total_pages ?? 1)
+      if (!Number.isFinite(totalPages) || page >= totalPages) {
+        break
+      }
+    }
+    return outlets
   }
 }

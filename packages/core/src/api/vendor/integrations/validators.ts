@@ -1,3 +1,4 @@
+import { IntegrationSyncStream } from "@mercurjs/types"
 import { z } from "zod"
 
 const integrationValues = z.record(
@@ -21,5 +22,29 @@ export const VendorTestIntegration = z
   .object({
     credentials: integrationValues.optional(),
     settings: integrationValues.optional(),
+  })
+  .strict()
+
+export type VendorUpdateIntegrationLocationType = z.infer<
+  typeof VendorUpdateIntegrationLocation
+>
+export const VendorUpdateIntegrationLocation = z
+  .object({
+    stock_location_id: z.string().min(1).nullable(),
+  })
+  .strict()
+
+export type VendorListIntegrationSyncRunsType = z.infer<
+  typeof VendorListIntegrationSyncRuns
+>
+export const VendorListIntegrationSyncRuns = z.object({
+  stream: z.string().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+})
+
+export type VendorRunIntegrationSyncType = z.infer<typeof VendorRunIntegrationSync>
+export const VendorRunIntegrationSync = z
+  .object({
+    stream: z.nativeEnum(IntegrationSyncStream),
   })
   .strict()

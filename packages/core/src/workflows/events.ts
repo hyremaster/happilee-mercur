@@ -53,3 +53,18 @@ export const MemberInviteWorkflowEvents = {
   CREATED: "member_invite.created",
   ACCEPTED: "member_invite.accepted",
 }
+export const IntegrationWorkflowEvents = {
+  /**
+   * Emitted when a store saves new credentials for an integration provider and
+   * the connection test succeeds.
+   *
+   * @eventPayload
+   * ```ts
+   * {
+   *   seller_id, // The store (seller) ID
+   *   provider_id, // The integration provider ID, e.g. "gofrugal"
+   * }
+   * ```
+   */
+  CONNECTED: "integration.connected",
+}

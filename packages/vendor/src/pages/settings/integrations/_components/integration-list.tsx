@@ -65,7 +65,10 @@ export const IntegrationList = () => {
           <div className="flex shrink-0 items-center gap-x-3">
             <IntegrationStatusBadge connection={connection} />
             <Button size="small" variant="secondary" asChild>
-              <Link to={provider.id} data-testid={`integration-open-${provider.id}`}>
+              <Link
+                to={connection ? provider.id : `${provider.id}/manage`}
+                data-testid={`integration-open-${provider.id}`}
+              >
                 {connection
                   ? t("integrations.actions.manage")
                   : t("integrations.actions.connect")}

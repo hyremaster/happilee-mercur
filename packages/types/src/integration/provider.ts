@@ -1,4 +1,5 @@
 import {
+  ExternalLocation,
   IntegrationProviderDefinition,
   IntegrationTestResult,
   IntegrationValues,
@@ -32,4 +33,11 @@ export interface IIntegrationProvider {
   testConnection(
     input: IntegrationConnectionInput
   ): Promise<IntegrationTestResult>
+
+  /**
+   * Optional (capability `locations`): every outlet / warehouse in the
+   * external system, active or not. Read-only. Throw on failure; the sync
+   * records the error and changes nothing.
+   */
+  listLocations?(input: IntegrationConnectionInput): Promise<ExternalLocation[]>
 }

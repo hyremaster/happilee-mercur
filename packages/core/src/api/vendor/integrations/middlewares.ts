@@ -2,7 +2,12 @@ import { validateAndTransformBody } from "@medusajs/framework"
 import { PolicyOperation } from "@medusajs/framework/utils"
 import { MiddlewareRoute } from "@medusajs/medusa"
 
-import { VendorSaveIntegration, VendorTestIntegration } from "./validators"
+import {
+  VendorSaveIntegration,
+  VendorTestIntegration,
+  VendorRunIntegrationSync,
+  VendorUpdateIntegrationLocation,
+} from "./validators"
 
 const resource = "integration"
 
@@ -40,5 +45,35 @@ export const vendorIntegrationsMiddlewares: MiddlewareRoute[] = [
     matcher: "/vendor/integrations/:provider_id/test",
     middlewares: [validateAndTransformBody(VendorTestIntegration)],
     policies: [{ resource, operation: PolicyOperation.update }],
+  },
+  {
+    method: ["GET"],
+    matcher: "/vendor/integrations/:provider_id/locations",
+    middlewares: [],
+    policies: [{ resource, operation: PolicyOperation.read }],
+  },
+  {
+    method: ["POST"],
+    matcher: "/vendor/integrations/:provider_id/sync",
+    middlewares: [validateAndTransformBody(VendorRunIntegrationSync)],
+    policies: [{ resource, operation: PolicyOperation.update }],
+  },
+  {
+    method: ["POST"],
+    matcher: "/vendor/integrations/:provider_id/locations/:location_id",
+    middlewares: [validateAndTransformBody(VendorUpdateIntegrationLocation)],
+    policies: [{ resource, operation: PolicyOperation.update }],
+  },
+  {
+    method: ["POST"],
+    matcher: "/vendor/integrations/:provider_id/locations/:location_id/create-branch",
+    middlewares: [],
+    policies: [{ resource, operation: PolicyOperation.update }],
+  },
+  {
+    method: ["GET"],
+    matcher: "/vendor/integrations/:provider_id/sync-runs",
+    middlewares: [],
+    policies: [{ resource, operation: PolicyOperation.read }],
   },
 ]

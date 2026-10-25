@@ -11855,6 +11855,192 @@
             "confirmation"
           ],
           "additionalProperties": false
+        },
+        "detail": {
+          "type": "object",
+          "properties": {
+            "connection": {
+              "type": "string"
+            },
+            "notConnectedHint": {
+              "type": "string"
+            },
+            "locations": {
+              "type": "string"
+            },
+            "locationsHint": {
+              "type": "string"
+            },
+            "syncLocations": {
+              "type": "string"
+            },
+            "lastSync": {
+              "type": "string"
+            },
+            "noLocations": {
+              "type": "string"
+            },
+            "waitingFirstSync": {
+              "type": "string"
+            },
+            "columns": {
+              "type": "object",
+              "properties": {
+                "location": {
+                  "type": "string"
+                },
+                "city": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "branch": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "location",
+                "city",
+                "status",
+                "branch"
+              ],
+              "additionalProperties": false
+            },
+            "locationStatus": {
+              "type": "object",
+              "properties": {
+                "active": {
+                  "type": "string"
+                },
+                "inactive": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "active",
+                "inactive"
+              ],
+              "additionalProperties": false
+            },
+            "notMapped": {
+              "type": "string"
+            },
+            "createBranch": {
+              "type": "string"
+            },
+            "viewBranch": {
+              "type": "string"
+            },
+            "activity": {
+              "type": "string"
+            },
+            "noActivity": {
+              "type": "string"
+            },
+            "trigger": {
+              "type": "object",
+              "properties": {
+                "manual": {
+                  "type": "string"
+                },
+                "schedule": {
+                  "type": "string"
+                },
+                "connect": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "manual",
+                "schedule",
+                "connect"
+              ],
+              "additionalProperties": false
+            },
+            "runStatus": {
+              "type": "object",
+              "properties": {
+                "running": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "string"
+                },
+                "failed": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "running",
+                "success",
+                "failed"
+              ],
+              "additionalProperties": false
+            },
+            "stream": {
+              "type": "object",
+              "properties": {
+                "locations": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "locations"
+              ],
+              "additionalProperties": false
+            },
+            "counts": {
+              "type": "string"
+            },
+            "toasts": {
+              "type": "object",
+              "properties": {
+                "synced": {
+                  "type": "string"
+                },
+                "syncFailed": {
+                  "type": "string"
+                },
+                "mappingSaved": {
+                  "type": "string"
+                },
+                "branchCreated": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "synced",
+                "syncFailed",
+                "mappingSaved",
+                "branchCreated"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "connection",
+            "notConnectedHint",
+            "locations",
+            "locationsHint",
+            "syncLocations",
+            "lastSync",
+            "noLocations",
+            "waitingFirstSync",
+            "columns",
+            "locationStatus",
+            "notMapped",
+            "createBranch",
+            "viewBranch",
+            "activity",
+            "noActivity",
+            "trigger",
+            "runStatus",
+            "stream",
+            "counts",
+            "toasts"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -11869,7 +12055,8 @@
         "form",
         "test",
         "toasts",
-        "disconnect"
+        "disconnect",
+        "detail"
       ],
       "additionalProperties": false
     },

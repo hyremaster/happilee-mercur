@@ -1,5 +1,9 @@
 import { MedusaError } from "@medusajs/framework/utils"
-import { IIntegrationProvider, IntegrationProviderDTO } from "@mercurjs/types"
+import {
+  IIntegrationProvider,
+  IntegrationCapability,
+  IntegrationProviderDTO,
+} from "@mercurjs/types"
 
 export const IntegrationProviderRegistrationPrefix = "integration_provider_"
 
@@ -25,9 +29,23 @@ export default class IntegrationProviderService {
   }
 
   list(): IntegrationProviderDTO[] {
-    return Array.from(this.providers_.entries())
-      .map(([id, provider]) => ({ id, ...provider.getDefinition() }))
+    return Array.from(this.providers_.keys())
+      .map((id) => this.describe(id))
       .sort((a, b) => a.title.localeCompare(b.title))
+  }
+
+  /** Capabilities are derived from the optional methods a provider implements. */
+  capabilities(provider: IIntegrationProvider): IntegrationCapability[] {
+    const capabilities: IntegrationCapability[] = []
+    if (typeof provider.listLocations === "function") {
+      capabilities.push(IntegrationCapability.LOCATIONS)
+    }
+    return capabilities
+  }
+
+  supports(id: string, capability: IntegrationCapability): boolean {
+    const provider = this.providers_.get(id)
+    return !!provider && this.capabilities(provider).includes(capability)
   }
 
   has(id: string): boolean {
@@ -46,6 +64,11 @@ export default class IntegrationProviderService {
   }
 
   describe(id: string): IntegrationProviderDTO {
-    return { id, ...this.retrieve(id).getDefinition() }
+    const provider = this.retrieve(id)
+    return {
+      id,
+      ...provider.getDefinition(),
+      capabilities: this.capabilities(provider),
+    }
   }
 }

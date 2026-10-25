@@ -4,7 +4,7 @@ import { IntegrationList } from "./_components/integration-list"
 
 const IntegrationsPage = () => {
   return (
-    <SingleColumnPage showMetadata={false} showJSON={false} hasOutlet>
+    <SingleColumnPage showMetadata={false} showJSON={false}>
       <IntegrationList />
     </SingleColumnPage>
   )

@@ -3429,6 +3429,51 @@
     },
     "disconnect": {
       "confirmation": "Odłączyć {{title}}? Zapisane dane uwierzytelniające zostaną usunięte, a synchronizacja zatrzymana."
+    },
+    "detail": {
+      "connection": "Połączenie",
+      "notConnectedHint": "Połącz {{title}}, aby synchronizować dane ze sklepem.",
+      "locations": "Lokalizacje",
+      "locationsHint": "Przypisz każdą lokalizację {{title}} do jednego z oddziałów. Nieprzypisane lokalizacje są pomijane przy synchronizacji.",
+      "syncLocations": "Synchronizuj lokalizacje",
+      "lastSync": "Ostatnia synchronizacja {{date}}",
+      "noLocations": "Brak lokalizacji. Zsynchronizuj, aby pobrać je z {{title}}.",
+      "waitingFirstSync": "Pobieranie lokalizacji z {{title}}…",
+      "columns": {
+        "location": "Lokalizacja",
+        "city": "Miasto",
+        "status": "Status",
+        "branch": "Oddział"
+      },
+      "locationStatus": {
+        "active": "Aktywna",
+        "inactive": "Nieaktywna"
+      },
+      "notMapped": "Nieprzypisana",
+      "createBranch": "Utwórz oddział",
+      "viewBranch": "Zobacz oddział",
+      "activity": "Historia synchronizacji",
+      "noActivity": "Brak synchronizacji.",
+      "trigger": {
+        "manual": "Ręczna",
+        "schedule": "Zaplanowana",
+        "connect": "Po połączeniu"
+      },
+      "runStatus": {
+        "running": "W toku",
+        "success": "Sukces",
+        "failed": "Błąd"
+      },
+      "stream": {
+        "locations": "Lokalizacje"
+      },
+      "counts": "znaleziono {{found}}, nowe {{created}}, zaktualizowane {{updated}}, dezaktywowane {{deactivated}}",
+      "toasts": {
+        "synced": "Zsynchronizowano lokalizacje: {{found}}.",
+        "syncFailed": "Synchronizacja nie powiodła się: {{message}}",
+        "mappingSaved": "Zapisano przypisanie oddziału.",
+        "branchCreated": "Utworzono i przypisano oddział {{name}}. Ustaw jego pinezkę na mapie w Lokalizacjach."
+      }
     }
   },
   "notifications": {

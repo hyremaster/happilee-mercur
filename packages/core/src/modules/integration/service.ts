@@ -1,8 +1,16 @@
 import { InferTypeOf } from "@medusajs/framework/types"
 import { MedusaError, MedusaService } from "@medusajs/framework/utils"
 import {
+  ExternalLocation,
+  IntegrationCapability,
   IntegrationConnectionInput,
+  IntegrationLocationDTO,
+  IntegrationLocationStatus,
   IntegrationProviderDTO,
+  IntegrationSyncRunDTO,
+  IntegrationSyncRunStatus,
+  IntegrationSyncStream,
+  IntegrationSyncTrigger,
   IntegrationTestResult,
   IntegrationValues,
   StoreIntegrationDTO,
@@ -12,7 +20,7 @@ import {
 } from "@mercurjs/types"
 
 import { decryptJson, encryptJson } from "../../utils/secrets"
-import { StoreIntegration } from "./models"
+import { IntegrationLocation, IntegrationSyncRun, StoreIntegration } from "./models"
 import IntegrationProviderService from "./services/integration-provider-service"
 import {
   maskCredentialValues,
@@ -21,6 +29,8 @@ import {
 } from "./utils/fields"
 
 export type StoreIntegrationRow = InferTypeOf<typeof StoreIntegration>
+export type IntegrationLocationRow = InferTypeOf<typeof IntegrationLocation>
+export type IntegrationSyncRunRow = InferTypeOf<typeof IntegrationSyncRun>
 
 export const UNREADABLE_CREDENTIALS_MESSAGE =
   "The encryption key changed or the data is corrupted. Re-enter them and save."
@@ -39,6 +49,8 @@ export type PreparedStoreIntegration = {
 
 class IntegrationModuleService extends MedusaService({
   StoreIntegration,
+  IntegrationLocation,
+  IntegrationSyncRun,
 }) {
   protected readonly providerService_: IntegrationProviderService
 
@@ -215,6 +227,92 @@ class IntegrationModuleService extends MedusaService({
         ok: false,
         message: e instanceof Error ? e.message : "Connection test failed.",
       }
+    }
+  }
+
+  supportsCapability(providerId: string, capability: IntegrationCapability): boolean {
+    return this.providerService_.supports(providerId, capability)
+  }
+
+  /**
+   * Decrypted connection input for server-side syncs. Throws a clear error
+   * when the store hasn't connected the provider, the connection is disabled,
+   * or its credentials can't be read.
+   */
+  async requireConnectionInput(
+    sellerId: string,
+    providerId: string
+  ): Promise<IntegrationConnectionInput> {
+    const row = await this.retrieveSellerIntegration(sellerId, providerId)
+    if (!row) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        `This store hasn't connected "${providerId}".`
+      )
+    }
+    if (!row.is_enabled) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        `The "${providerId}" integration is disabled for this store.`
+      )
+    }
+    return {
+      credentials: this.decryptStoredCredentials(row),
+      settings: (row.settings as IntegrationValues | null) ?? {},
+    }
+  }
+
+  /** Ask the provider for its locations (read-only external call). */
+  async fetchExternalLocations(
+    providerId: string,
+    input: IntegrationConnectionInput
+  ): Promise<ExternalLocation[]> {
+    const provider = this.providerService_.retrieve(providerId)
+    if (typeof provider.listLocations !== "function") {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        `Integration provider "${providerId}" doesn't support locations.`
+      )
+    }
+    return provider.listLocations(input)
+  }
+
+  toIntegrationLocationDTO(
+    row: IntegrationLocationRow,
+    stockLocations: Map<string, { id: string; name: string }> = new Map()
+  ): IntegrationLocationDTO {
+    return {
+      id: row.id,
+      seller_id: row.seller_id,
+      provider_id: row.provider_id,
+      external_id: row.external_id,
+      name: row.name,
+      code: row.code ?? null,
+      address: row.address ?? null,
+      city: row.city ?? null,
+      status: row.status as IntegrationLocationStatus,
+      stock_location_id: row.stock_location_id ?? null,
+      stock_location: row.stock_location_id
+        ? stockLocations.get(row.stock_location_id) ?? null
+        : null,
+      last_seen_at: row.last_seen_at ?? null,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    }
+  }
+
+  toSyncRunDTO(row: IntegrationSyncRunRow): IntegrationSyncRunDTO {
+    return {
+      id: row.id,
+      seller_id: row.seller_id,
+      provider_id: row.provider_id,
+      stream: row.stream as IntegrationSyncStream,
+      trigger: row.trigger as IntegrationSyncTrigger,
+      status: row.status as IntegrationSyncRunStatus,
+      counts: (row.counts as Record<string, number> | null) ?? null,
+      error: row.error ?? null,
+      started_at: row.started_at,
+      finished_at: row.finished_at ?? null,
     }
   }
 

@@ -1,4 +1,6 @@
 import {
+  IntegrationLocationDTO,
+  IntegrationSyncRunDTO,
   IntegrationTestResult,
   IntegrationValues,
   StoreIntegrationListItem,
@@ -40,4 +42,28 @@ export type VendorSaveIntegrationBody = {
 export type VendorTestIntegrationBody = {
   credentials?: IntegrationValues
   settings?: IntegrationValues
+}
+
+export type VendorIntegrationLocationListResponse = {
+  locations: IntegrationLocationDTO[]
+  /** Latest locations sync run, if any. */
+  last_run: IntegrationSyncRunDTO | null
+}
+
+export type VendorIntegrationLocationSyncResponse = {
+  run: IntegrationSyncRunDTO
+  locations: IntegrationLocationDTO[]
+}
+
+export type VendorIntegrationLocationResponse = {
+  location: IntegrationLocationDTO
+}
+
+export type VendorUpdateIntegrationLocationBody = {
+  /** Branch (stock location) to map to; null unmaps. */
+  stock_location_id: string | null
+}
+
+export type VendorIntegrationSyncRunListResponse = {
+  sync_runs: IntegrationSyncRunDTO[]
 }
