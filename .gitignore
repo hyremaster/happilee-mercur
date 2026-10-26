@@ -48,4 +48,9 @@ apps/backend/.medusa
 packages/modules/*
 
 docs/dev-tracking
+docs/internal/*
+docs/features/*
+docs/features
 scripts/*
+integration-tests/*
+demo/

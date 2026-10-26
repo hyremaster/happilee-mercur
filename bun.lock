@@ -153,6 +153,7 @@
         "@medusajs/framework": "^2.13.4",
         "@medusajs/medusa": "^2.13.4",
         "@mercurjs/core": "*",
+        "@mercurjs/integration-gofrugal": "*",
         "jsonwebtoken": "^9.0.2",
         "meilisearch": "^0.47.0",
         "scrypt-kdf": "^2.0.1",

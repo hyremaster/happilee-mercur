@@ -1,3 +1,4 @@
+import path from 'path'
 import { loadEnv, defineConfig } from '@medusajs/framework/utils'
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
@@ -20,6 +21,24 @@ module.exports = defineConfig({
   modules: [
     {
       resolve: "@medusajs/medusa/rbac",
+    },
+    // Store integrations: a test provider plus the real GoFrugal provider
+    // (its tests point it at a local mock server, never at GoFrugal).
+    {
+      resolve: '@mercurjs/core/modules/integration',
+      options: {
+        providers: [
+          {
+            resolve: path.join(__dirname, 'providers', 'test-integration'),
+            id: 'test-integration',
+          },
+          {
+            resolve: '@mercurjs/integration-gofrugal',
+            id: 'gofrugal',
+            options: { timeout_ms: 3000 },
+          },
+        ],
+      },
     },
     {
       resolve: '@mercurjs/core/modules/admin-ui',
