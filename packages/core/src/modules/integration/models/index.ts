@@ -1,3 +1,7 @@
 export { default as StoreIntegration } from "./store-integration"
 export { default as IntegrationLocation } from "./integration-location"
 export { default as IntegrationSyncRun } from "./integration-sync-run"
+export { default as IntegrationExternalItem } from "./integration-external-item"
+export { default as IntegrationExternalItemLocation } from "./integration-external-item-location"
+export { default as IntegrationExternalStock } from "./integration-external-stock"
+export { default as IntegrationSyncCursor } from "./integration-sync-cursor"

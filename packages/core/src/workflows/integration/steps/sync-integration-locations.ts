@@ -13,6 +13,7 @@ import {
 
 import type IntegrationModuleService from "../../../modules/integration/service"
 import type { IntegrationLocationRow } from "../../../modules/integration/service"
+import { syncLockKey } from "../utils/sync-lock"
 
 export type SyncIntegrationLocationsStepInput = {
   seller_id: string
@@ -30,7 +31,7 @@ export type SyncIntegrationLocationsStepOutput = {
 const LOCK_EXPIRE_SECONDS = 300
 
 export const syncLocationsLockKey = (sellerId: string, providerId: string) =>
-  `integration-sync:${sellerId}:${providerId}:${IntegrationSyncStream.LOCATIONS}`
+  syncLockKey(sellerId, providerId, IntegrationSyncStream.LOCATIONS)
 
 const sameText = (a: string | null | undefined, b: string | null | undefined) =>
   (a ?? null) === (b ?? null)

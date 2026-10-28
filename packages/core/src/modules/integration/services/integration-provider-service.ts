@@ -40,6 +40,15 @@ export default class IntegrationProviderService {
     if (typeof provider.listLocations === "function") {
       capabilities.push(IntegrationCapability.LOCATIONS)
     }
+    if (typeof provider.listItems === "function") {
+      capabilities.push(IntegrationCapability.CATALOG)
+    }
+    if (typeof provider.listPrices === "function") {
+      capabilities.push(IntegrationCapability.PRICES)
+    }
+    if (typeof provider.listStock === "function") {
+      capabilities.push(IntegrationCapability.STOCK)
+    }
     return capabilities
   }
 

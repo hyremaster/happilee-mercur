@@ -3632,14 +3632,43 @@
         "failed": "Failed"
       },
       "stream": {
-        "locations": "Locations"
+        "locations": "Locations",
+        "items": "Items",
+        "prices": "Prices",
+        "stock": "Stock"
       },
       "counts": "{{found}} found, {{created}} new, {{updated}} updated, {{deactivated}} deactivated",
+      "countsItems": "{{found}} items, {{created}} new, {{updated}} updated, {{pages}} pages",
+      "countsPrices": "{{found}} prices, {{matched}} matched, {{unmatched}} unmatched, {{changed}} changed",
+      "countsStock": "{{found}} stock lots, {{created}} new, {{changed}} changed, {{zeroed}} set to 0",
+      "catalog": {
+        "title": "Catalogue (staged)",
+        "hint": "Items, prices and stock pulled from {{title}}. Nothing is published to your store yet; use these numbers to agree the catalogue rules.",
+        "sync": "Sync catalogue",
+        "empty": "No catalogue data yet. Sync to pull items, prices and stock from {{title}}.",
+        "offPeakHint": "The first full pull reads the whole catalogue. Run it outside trading hours.",
+        "stats": {
+          "items": "Items",
+          "activeItems": "{{count}} active",
+          "itemLocations": "Item × outlet rows",
+          "stockLots": "In-stock lots",
+          "multiLot": "Items with several MRPs in stock",
+          "aboveMrp": "Sale price above lowest in-stock MRP",
+          "spread": "Total MRP spread"
+        },
+        "byStatus": "Status codes",
+        "byAttribute": "{{key}} values",
+        "pairs": "{{first}} × {{second}}",
+        "noValue": "(empty)",
+        "lastRun": "{{stream}}: {{status}} · {{date}}",
+        "neverRun": "{{stream}}: never synced"
+      },
       "toasts": {
         "synced": "Locations synced: {{found}} found.",
         "syncFailed": "Sync failed: {{message}}",
         "mappingSaved": "Branch mapping saved.",
-        "branchCreated": "Branch {{name}} created and mapped. Set its map pin under Locations."
+        "branchCreated": "Branch {{name}} created and mapped. Set its map pin under Locations.",
+        "catalogSyncStarted": "Catalogue sync started. Items, prices and stock run in the background."
       }
     }
   },

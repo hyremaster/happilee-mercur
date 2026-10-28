@@ -20,6 +20,19 @@ import {
 
 const MINUTE = 60_000
 
+/** True when a "running" run started longer ago than the stream allows (crashed). */
+export function isRunStale(
+  definition: Pick<IntegrationSyncStreamDefinition, "stale_after_minutes">,
+  run: Pick<IntegrationSyncRunRow, "status" | "started_at">,
+  now: Date = new Date()
+): boolean {
+  return (
+    run.status === IntegrationSyncRunStatus.RUNNING &&
+    now.getTime() - new Date(run.started_at).getTime() >=
+      definition.stale_after_minutes * MINUTE
+  )
+}
+
 /** True when the stream should run now, given its latest run. */
 export function isStreamDue(
   definition: IntegrationSyncStreamDefinition,
@@ -30,7 +43,7 @@ export function isStreamDue(
     return true
   }
   if (latest.status === IntegrationSyncRunStatus.RUNNING) {
-    return false
+    return isRunStale(definition, latest, now)
   }
   const waitMinutes =
     latest.status === IntegrationSyncRunStatus.FAILED
@@ -76,6 +89,22 @@ export async function runDueIntegrationSyncs(
       if (!isStreamDue(definition, latest ?? null, now)) {
         skipped++
         continue
+      }
+
+      if (definition.scheduled_after_success_of) {
+        const [succeeded] = (await service.listIntegrationSyncRuns(
+          {
+            seller_id: connection.seller_id,
+            provider_id: connection.provider_id,
+            stream: definition.scheduled_after_success_of,
+            status: IntegrationSyncRunStatus.SUCCESS,
+          },
+          { take: 1 }
+        )) as IntegrationSyncRunRow[]
+        if (!succeeded) {
+          skipped++
+          continue
+        }
       }
 
       try {

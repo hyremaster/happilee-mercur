@@ -72,6 +72,12 @@ export const vendorIntegrationsMiddlewares: MiddlewareRoute[] = [
   },
   {
     method: ["GET"],
+    matcher: "/vendor/integrations/:provider_id/catalog/summary",
+    middlewares: [],
+    policies: [{ resource, operation: PolicyOperation.read }],
+  },
+  {
+    method: ["GET"],
     matcher: "/vendor/integrations/:provider_id/sync-runs",
     middlewares: [],
     policies: [{ resource, operation: PolicyOperation.read }],

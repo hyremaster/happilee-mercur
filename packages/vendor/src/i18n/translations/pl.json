@@ -3465,14 +3465,43 @@
         "failed": "Błąd"
       },
       "stream": {
-        "locations": "Lokalizacje"
+        "locations": "Lokalizacje",
+        "items": "Produkty",
+        "prices": "Ceny",
+        "stock": "Stany"
       },
       "counts": "znaleziono {{found}}, nowe {{created}}, zaktualizowane {{updated}}, dezaktywowane {{deactivated}}",
+      "countsItems": "produkty {{found}}, nowe {{created}}, zaktualizowane {{updated}}, strony {{pages}}",
+      "countsPrices": "ceny {{found}}, dopasowane {{matched}}, niedopasowane {{unmatched}}, zmienione {{changed}}",
+      "countsStock": "partie {{found}}, nowe {{created}}, zmienione {{changed}}, wyzerowane {{zeroed}}",
+      "catalog": {
+        "title": "Katalog (poczekalnia)",
+        "hint": "Produkty, ceny i stany pobrane z {{title}}. Nic nie jest jeszcze publikowane w sklepie; użyj tych liczb, aby uzgodnić reguły katalogu.",
+        "sync": "Synchronizuj katalog",
+        "empty": "Brak danych katalogu. Zsynchronizuj, aby pobrać produkty, ceny i stany z {{title}}.",
+        "offPeakHint": "Pierwsze pełne pobranie czyta cały katalog. Uruchom je poza godzinami pracy.",
+        "stats": {
+          "items": "Produkty",
+          "activeItems": "aktywne: {{count}}",
+          "itemLocations": "Wiersze produkt × punkt",
+          "stockLots": "Partie na stanie",
+          "multiLot": "Produkty z kilkoma cenami MRP na stanie",
+          "aboveMrp": "Cena sprzedaży powyżej najniższej MRP na stanie",
+          "spread": "Łączna rozpiętość MRP"
+        },
+        "byStatus": "Kody statusu",
+        "byAttribute": "Wartości {{key}}",
+        "pairs": "{{first}} × {{second}}",
+        "noValue": "(puste)",
+        "lastRun": "{{stream}}: {{status}} · {{date}}",
+        "neverRun": "{{stream}}: nigdy nie synchronizowano"
+      },
       "toasts": {
         "synced": "Zsynchronizowano lokalizacje: {{found}}.",
         "syncFailed": "Synchronizacja nie powiodła się: {{message}}",
         "mappingSaved": "Zapisano przypisanie oddziału.",
-        "branchCreated": "Utworzono i przypisano oddział {{name}}. Ustaw jego pinezkę na mapie w Lokalizacjach."
+        "branchCreated": "Utworzono i przypisano oddział {{name}}. Ustaw jego pinezkę na mapie w Lokalizacjach.",
+        "catalogSyncStarted": "Rozpoczęto synchronizację katalogu. Produkty, ceny i stany są pobierane w tle."
       }
     }
   },

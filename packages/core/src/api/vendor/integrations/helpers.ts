@@ -31,6 +31,22 @@ export function assertLocationsCapability(
   }
 }
 
+/** 404 for unknown providers, 400 when the provider lacks the stream's capability. */
+export function assertCapability(
+  service: IntegrationModuleService,
+  providerId: string,
+  capability: IntegrationCapability,
+  label: string
+) {
+  service.retrieveIntegrationProvider(providerId)
+  if (!service.supportsCapability(providerId, capability)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Integration provider "${providerId}" doesn't support ${label}.`
+    )
+  }
+}
+
 /** The store's external locations for a provider, with mapped branch names. */
 export async function listLocationDTOs(
   scope: MedusaContainer,

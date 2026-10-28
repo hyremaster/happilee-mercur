@@ -11983,15 +11983,125 @@
               "properties": {
                 "locations": {
                   "type": "string"
+                },
+                "items": {
+                  "type": "string"
+                },
+                "prices": {
+                  "type": "string"
+                },
+                "stock": {
+                  "type": "string"
                 }
               },
               "required": [
-                "locations"
+                "locations",
+                "items",
+                "prices",
+                "stock"
               ],
               "additionalProperties": false
             },
             "counts": {
               "type": "string"
+            },
+            "countsItems": {
+              "type": "string"
+            },
+            "countsPrices": {
+              "type": "string"
+            },
+            "countsStock": {
+              "type": "string"
+            },
+            "catalog": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "hint": {
+                  "type": "string"
+                },
+                "sync": {
+                  "type": "string"
+                },
+                "empty": {
+                  "type": "string"
+                },
+                "offPeakHint": {
+                  "type": "string"
+                },
+                "stats": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "activeItems": {
+                      "type": "string"
+                    },
+                    "itemLocations": {
+                      "type": "string"
+                    },
+                    "stockLots": {
+                      "type": "string"
+                    },
+                    "multiLot": {
+                      "type": "string"
+                    },
+                    "aboveMrp": {
+                      "type": "string"
+                    },
+                    "spread": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "activeItems",
+                    "itemLocations",
+                    "stockLots",
+                    "multiLot",
+                    "aboveMrp",
+                    "spread"
+                  ],
+                  "additionalProperties": false
+                },
+                "byStatus": {
+                  "type": "string"
+                },
+                "byAttribute": {
+                  "type": "string"
+                },
+                "pairs": {
+                  "type": "string"
+                },
+                "noValue": {
+                  "type": "string"
+                },
+                "lastRun": {
+                  "type": "string"
+                },
+                "neverRun": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "hint",
+                "sync",
+                "empty",
+                "offPeakHint",
+                "stats",
+                "byStatus",
+                "byAttribute",
+                "pairs",
+                "noValue",
+                "lastRun",
+                "neverRun"
+              ],
+              "additionalProperties": false
             },
             "toasts": {
               "type": "object",
@@ -12007,13 +12117,17 @@
                 },
                 "branchCreated": {
                   "type": "string"
+                },
+                "catalogSyncStarted": {
+                  "type": "string"
                 }
               },
               "required": [
                 "synced",
                 "syncFailed",
                 "mappingSaved",
-                "branchCreated"
+                "branchCreated",
+                "catalogSyncStarted"
               ],
               "additionalProperties": false
             }
@@ -12038,6 +12152,10 @@
             "runStatus",
             "stream",
             "counts",
+            "countsItems",
+            "countsPrices",
+            "countsStock",
+            "catalog",
             "toasts"
           ],
           "additionalProperties": false

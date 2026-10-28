@@ -1,5 +1,10 @@
 import {
+  ExternalItem,
+  ExternalItemPrice,
   ExternalLocation,
+  ExternalStockLevel,
+  IntegrationPage,
+  IntegrationPageRequest,
   IntegrationProviderDefinition,
   IntegrationTestResult,
   IntegrationValues,
@@ -40,4 +45,34 @@ export interface IIntegrationProvider {
    * records the error and changes nothing.
    */
   listLocations?(input: IntegrationConnectionInput): Promise<ExternalLocation[]>
+
+  /**
+   * Optional (capability `catalog`): one page of items changed since
+   * `cursor` (all items when null), with their per-location data. Read-only.
+   */
+  listItems?(
+    input: IntegrationConnectionInput,
+    request: IntegrationPageRequest
+  ): Promise<IntegrationPage<ExternalItem>>
+
+  /** Optional (capability `prices`): one page of per-location prices changed since `cursor`. */
+  listPrices?(
+    input: IntegrationConnectionInput,
+    request: IntegrationPageRequest
+  ): Promise<IntegrationPage<ExternalItemPrice>>
+
+  /**
+   * Optional (capability `stock`): one page of a full stock snapshot. The
+   * cursor is ignored; lots missing from a complete snapshot are set to 0.
+   */
+  listStock?(
+    input: IntegrationConnectionInput,
+    request: IntegrationPageRequest
+  ): Promise<IntegrationPage<ExternalStockLevel>>
+
+  /**
+   * Optional: attribute keys worth profiling in the catalogue summary
+   * (e.g. ["Cat6", "Cat4", "itemTaxType"]); the first two are also crossed.
+   */
+  getCatalogProfileKeys?(): string[]
 }

@@ -30,6 +30,7 @@ export type GoFrugalResponse<T> =
 
 export type GoFrugalErrorReason =
   | "unauthorized"
+  | "forbidden"
   | "not_found"
   | "http_error"
   | "timeout"
@@ -59,12 +60,15 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 export class GoFrugalClient {
   protected readonly baseUrl: string
   protected readonly host: string
+  /** Product path of the base URL, e.g. "/RayMedi_HQ", stripped from error messages. */
+  protected readonly basePath: string
   protected readonly options: Required<GoFrugalClientOptions>
 
   constructor(options: GoFrugalClientOptions) {
     this.options = { max_retries: 2, max_rps: 4, ...options }
     this.baseUrl = options.base_url.trim().replace(/\/+$/, "")
     this.host = new URL(this.baseUrl).host
+    this.basePath = new URL(this.baseUrl).pathname.replace(/\/+$/, "")
   }
 
   async get<T>(
@@ -141,11 +145,22 @@ export class GoFrugalClient {
       clearTimeout(timer)
     }
 
-    if (response.status === 401 || response.status === 403) {
+    // HQ checks permissions per API: the same key can read outlets and still
+    // be refused for items or prices. Name the API so the GoFrugal admin
+    // knows which permission to grant.
+    const api = url.pathname.replace(this.basePath, "") || url.pathname
+    if (response.status === 403) {
       throw new GoFrugalApiError(
-        `GoFrugal rejected the API key (HTTP ${response.status}).`,
+        `GoFrugal denied ${api} (HTTP 403): this API key is not allowed to use that API. Ask your GoFrugal admin to enable it for the API user's role.`,
+        "forbidden",
+        403
+      )
+    }
+    if (response.status === 401) {
+      throw new GoFrugalApiError(
+        `GoFrugal rejected the API key for ${api} (HTTP 401). If other GoFrugal APIs work with this key, it is not allowed to use this one; ask your GoFrugal admin to enable it.`,
         "unauthorized",
-        response.status
+        401
       )
     }
     if (response.status === 404) {

@@ -1,4 +1,5 @@
 import {
+  IntegrationCatalogSummaryDTO,
   IntegrationLocationDTO,
   IntegrationSyncRunDTO,
   IntegrationTestResult,
@@ -53,6 +54,20 @@ export type VendorIntegrationLocationListResponse = {
 export type VendorIntegrationLocationSyncResponse = {
   run: IntegrationSyncRunDTO
   locations: IntegrationLocationDTO[]
+}
+
+/**
+ * POST /vendor/integrations/:provider_id/sync. `locations` runs inline (200,
+ * with the refreshed locations); catalogue streams run in the background
+ * (202, run status `running`).
+ */
+export type VendorIntegrationSyncResponse = {
+  run: IntegrationSyncRunDTO
+  locations?: IntegrationLocationDTO[]
+}
+
+export type VendorIntegrationCatalogSummaryResponse = {
+  summary: IntegrationCatalogSummaryDTO
 }
 
 export type VendorIntegrationLocationResponse = {

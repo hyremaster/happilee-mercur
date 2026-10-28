@@ -4,6 +4,10 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 
 import {
+  syncIntegrationCatalogStreamStep,
+  SyncIntegrationCatalogStreamStepInput,
+} from "../steps/sync-integration-catalog-stream"
+import {
   syncIntegrationLocationsStep,
   SyncIntegrationLocationsStepInput,
 } from "../steps/sync-integration-locations"
@@ -80,5 +84,19 @@ export const updateIntegrationLocationMappingWorkflow = createWorkflow(
   function (input: UpdateIntegrationLocationMappingStepInput) {
     const location = updateIntegrationLocationMappingStep(input)
     return new WorkflowResponse(location)
+  }
+)
+
+export const syncIntegrationCatalogStreamWorkflowId = "sync-integration-catalog-stream"
+
+/**
+ * Pull one catalogue stream (items, prices, stock) into the staging tables.
+ * Never throws for provider/API failures: the returned run carries the error.
+ */
+export const syncIntegrationCatalogStreamWorkflow = createWorkflow(
+  syncIntegrationCatalogStreamWorkflowId,
+  function (input: SyncIntegrationCatalogStreamStepInput) {
+    const result = syncIntegrationCatalogStreamStep(input)
+    return new WorkflowResponse(result)
   }
 )

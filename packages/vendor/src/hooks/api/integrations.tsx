@@ -141,6 +141,9 @@ const invalidateLocations = (providerId: string) => {
   queryClient.invalidateQueries({
     queryKey: integrationsQueryKeys.detail(providerId, { scope: "sync-runs" }),
   });
+  queryClient.invalidateQueries({
+    queryKey: integrationsQueryKeys.detail(providerId, { scope: "catalog" }),
+  });
 };
 
 export const useIntegrationLocations = (
@@ -181,9 +184,32 @@ export const useIntegrationSyncRuns = (
     queryFn: () =>
       sdk.vendor.integrations.$providerId.syncRuns.query({
         $providerId: providerId,
-        limit: 5,
+        limit: 10,
       }),
     queryKey: integrationsQueryKeys.detail(providerId, { scope: "sync-runs" }),
+    ...options,
+  });
+
+  return { ...data, ...rest };
+};
+
+export const useIntegrationCatalogSummary = (
+  providerId: string,
+  options?: Omit<
+    UseQueryOptions<
+      unknown,
+      ClientError,
+      InferClientOutput<typeof sdk.vendor.integrations.$providerId.catalog.summary.query>
+    >,
+    "queryFn" | "queryKey"
+  >
+) => {
+  const { data, ...rest } = useQuery({
+    queryFn: () =>
+      sdk.vendor.integrations.$providerId.catalog.summary.query({
+        $providerId: providerId,
+      }),
+    queryKey: integrationsQueryKeys.detail(providerId, { scope: "catalog" }),
     ...options,
   });
 

@@ -1,11 +1,22 @@
-import { InferTypeOf } from "@medusajs/framework/types"
-import { MedusaError, MedusaService } from "@medusajs/framework/utils"
+import { Context, InferTypeOf } from "@medusajs/framework/types"
 import {
+  InjectManager,
+  InjectTransactionManager,
+  MedusaContext,
+  MedusaError,
+  MedusaService,
+} from "@medusajs/framework/utils"
+import {
+  ExternalItem,
+  ExternalItemPrice,
   ExternalLocation,
+  ExternalStockLevel,
   IntegrationCapability,
   IntegrationConnectionInput,
   IntegrationLocationDTO,
   IntegrationLocationStatus,
+  IntegrationPage,
+  IntegrationPageRequest,
   IntegrationProviderDTO,
   IntegrationSyncRunDTO,
   IntegrationSyncRunStatus,
@@ -20,8 +31,29 @@ import {
 } from "@mercurjs/types"
 
 import { decryptJson, encryptJson } from "../../utils/secrets"
-import { IntegrationLocation, IntegrationSyncRun, StoreIntegration } from "./models"
+import {
+  IntegrationExternalItem,
+  IntegrationExternalItemLocation,
+  IntegrationExternalStock,
+  IntegrationLocation,
+  IntegrationSyncCursor,
+  IntegrationSyncRun,
+  StoreIntegration,
+} from "./models"
 import IntegrationProviderService from "./services/integration-provider-service"
+import {
+  catalogSummary,
+  CatalogSummaryCounts,
+  deactivateUnseenItems,
+  ItemsPageResult,
+  PricesPageResult,
+  SqlExecutor,
+  StockPageResult,
+  upsertItemsPage,
+  upsertPricesPage,
+  upsertStockPage,
+  zeroUnseenStock,
+} from "./utils/catalog-staging"
 import {
   maskCredentialValues,
   mergeFieldValues,
@@ -31,6 +63,20 @@ import {
 export type StoreIntegrationRow = InferTypeOf<typeof StoreIntegration>
 export type IntegrationLocationRow = InferTypeOf<typeof IntegrationLocation>
 export type IntegrationSyncRunRow = InferTypeOf<typeof IntegrationSyncRun>
+export type IntegrationSyncCursorRow = InferTypeOf<typeof IntegrationSyncCursor>
+
+type CatalogScope = { seller_id: string; provider_id: string }
+
+/** Staging SQL runs on the module's MikroORM entity manager. */
+const sqlOf = (manager: unknown): SqlExecutor => {
+  if (!manager || typeof (manager as SqlExecutor).execute !== "function") {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Integration module has no SQL entity manager."
+    )
+  }
+  return manager as SqlExecutor
+}
 
 export const UNREADABLE_CREDENTIALS_MESSAGE =
   "The encryption key changed or the data is corrupted. Re-enter them and save."
@@ -51,6 +97,10 @@ class IntegrationModuleService extends MedusaService({
   StoreIntegration,
   IntegrationLocation,
   IntegrationSyncRun,
+  IntegrationExternalItem,
+  IntegrationExternalItemLocation,
+  IntegrationExternalStock,
+  IntegrationSyncCursor,
 }) {
   protected readonly providerService_: IntegrationProviderService
 
@@ -275,6 +325,152 @@ class IntegrationModuleService extends MedusaService({
       )
     }
     return provider.listLocations(input)
+  }
+
+  /** One page of the provider's items (read-only external call). */
+  async fetchExternalItemsPage(
+    providerId: string,
+    input: IntegrationConnectionInput,
+    request: IntegrationPageRequest
+  ): Promise<IntegrationPage<ExternalItem>> {
+    const provider = this.providerService_.retrieve(providerId)
+    if (typeof provider.listItems !== "function") {
+      throw this.unsupported(providerId, "a catalogue")
+    }
+    return provider.listItems(input, request)
+  }
+
+  /** One page of the provider's per-location prices (read-only external call). */
+  async fetchExternalPricesPage(
+    providerId: string,
+    input: IntegrationConnectionInput,
+    request: IntegrationPageRequest
+  ): Promise<IntegrationPage<ExternalItemPrice>> {
+    const provider = this.providerService_.retrieve(providerId)
+    if (typeof provider.listPrices !== "function") {
+      throw this.unsupported(providerId, "prices")
+    }
+    return provider.listPrices(input, request)
+  }
+
+  /** One page of the provider's stock snapshot (read-only external call). */
+  async fetchExternalStockPage(
+    providerId: string,
+    input: IntegrationConnectionInput,
+    request: IntegrationPageRequest
+  ): Promise<IntegrationPage<ExternalStockLevel>> {
+    const provider = this.providerService_.retrieve(providerId)
+    if (typeof provider.listStock !== "function") {
+      throw this.unsupported(providerId, "stock")
+    }
+    return provider.listStock(input, request)
+  }
+
+  /** Attribute keys the provider wants profiled in the catalogue summary. */
+  catalogProfileKeys(providerId: string): string[] {
+    const provider = this.providerService_.retrieve(providerId)
+    return provider.getCatalogProfileKeys?.() ?? []
+  }
+
+  @InjectTransactionManager()
+  async stageExternalItemsPage(
+    scope: CatalogScope,
+    items: ExternalItem[],
+    now: Date,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<ItemsPageResult> {
+    return upsertItemsPage(sqlOf(sharedContext.transactionManager), scope, items, now)
+  }
+
+  @InjectTransactionManager()
+  async stageExternalPricesPage(
+    scope: CatalogScope,
+    prices: ExternalItemPrice[],
+    now: Date,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<PricesPageResult> {
+    return upsertPricesPage(sqlOf(sharedContext.transactionManager), scope, prices, now)
+  }
+
+  @InjectTransactionManager()
+  async stageExternalStockPage(
+    scope: CatalogScope,
+    levels: ExternalStockLevel[],
+    now: Date,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<StockPageResult> {
+    return upsertStockPage(sqlOf(sharedContext.transactionManager), scope, levels, now)
+  }
+
+  /** After a complete full items pull. Returns the number deactivated. */
+  @InjectTransactionManager()
+  async deactivateUnseenExternalItems(
+    scope: CatalogScope,
+    before: Date,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<number> {
+    return deactivateUnseenItems(sqlOf(sharedContext.transactionManager), scope, before)
+  }
+
+  /** After a complete stock snapshot. Returns the number of lots set to 0. */
+  @InjectTransactionManager()
+  async zeroUnseenExternalStock(
+    scope: CatalogScope,
+    before: Date,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<number> {
+    return zeroUnseenStock(sqlOf(sharedContext.transactionManager), scope, before)
+  }
+
+  @InjectManager()
+  async summarizeExternalCatalog(
+    scope: CatalogScope,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<CatalogSummaryCounts> {
+    return catalogSummary(
+      sqlOf(sharedContext.manager),
+      scope,
+      this.providerService_.has(scope.provider_id)
+        ? this.catalogProfileKeys(scope.provider_id)
+        : []
+    )
+  }
+
+  async retrieveSyncCursor(
+    scope: CatalogScope,
+    stream: IntegrationSyncStream
+  ): Promise<IntegrationSyncCursorRow | null> {
+    const [row] = (await this.listIntegrationSyncCursors({
+      ...scope,
+      stream,
+    })) as IntegrationSyncCursorRow[]
+    return row ?? null
+  }
+
+  /** Record a successful run: new cursor, and the full-pull time when it was one. */
+  async saveSyncCursor(
+    scope: CatalogScope,
+    stream: IntegrationSyncStream,
+    data: { cursor: string | null; full: boolean; at: Date }
+  ): Promise<void> {
+    const existing = await this.retrieveSyncCursor(scope, stream)
+    const values = {
+      cursor: data.cursor,
+      last_success_at: data.at,
+      ...(data.full ? { last_full_at: data.at } : {}),
+    }
+    if (existing) {
+      await this.updateIntegrationSyncCursors({ id: existing.id, ...values })
+    } else {
+      await this.createIntegrationSyncCursors({ ...scope, stream, ...values })
+    }
+  }
+
+  protected unsupported(providerId: string, what: string): MedusaError {
+    return new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      `Integration provider "${providerId}" doesn't support ${what}.`
+    )
   }
 
   toIntegrationLocationDTO(

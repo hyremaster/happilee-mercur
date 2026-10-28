@@ -1,5 +1,10 @@
 import { Container, Heading, StatusBadge, Text } from "@medusajs/ui"
-import { IntegrationSyncRunDTO, IntegrationSyncRunStatus } from "@mercurjs/types"
+import {
+  HttpTypes,
+  IntegrationSyncRunDTO,
+  IntegrationSyncRunStatus,
+  IntegrationSyncStream,
+} from "@mercurjs/types"
 import { useTranslation } from "react-i18next"
 
 import { useIntegrationSyncRuns } from "@hooks/api/integrations"
@@ -21,23 +26,59 @@ export const IntegrationActivitySection = ({
 }: IntegrationActivitySectionProps) => {
   const { t } = useTranslation()
   const { getFullDate } = useDate()
-  const { sync_runs, isPending, isError, error } = useIntegrationSyncRuns(providerId)
+  const { sync_runs, isPending, isError, error } = useIntegrationSyncRuns(providerId, {
+    // Background (catalogue) runs: refresh until none is running.
+    refetchInterval: (query) => {
+      const data = query.state.data as HttpTypes.VendorIntegrationSyncRunListResponse | undefined
+      return data?.sync_runs.some((run) => run.status === IntegrationSyncRunStatus.RUNNING)
+        ? 3000
+        : false
+    },
+  })
 
   if (isError) {
     throw error
   }
 
-  const summary = (run: IntegrationSyncRunDTO) =>
-    run.status === IntegrationSyncRunStatus.FAILED
-      ? run.error ?? ""
-      : run.counts
-        ? t("integrations.detail.counts", {
-            found: run.counts.found ?? 0,
-            created: run.counts.created ?? 0,
-            updated: run.counts.updated ?? 0,
-            deactivated: run.counts.deactivated ?? 0,
-          })
-        : ""
+  const summary = (run: IntegrationSyncRunDTO) => {
+    if (run.status === IntegrationSyncRunStatus.FAILED) {
+      return run.error ?? ""
+    }
+    if (!run.counts) {
+      return ""
+    }
+    const c = (key: string) => run.counts?.[key] ?? 0
+    switch (run.stream) {
+      case IntegrationSyncStream.ITEMS:
+        return t("integrations.detail.countsItems", {
+          found: c("found"),
+          created: c("created"),
+          updated: c("updated"),
+          pages: c("pages"),
+        })
+      case IntegrationSyncStream.PRICES:
+        return t("integrations.detail.countsPrices", {
+          found: c("found"),
+          matched: c("matched"),
+          unmatched: c("unmatched"),
+          changed: c("changed"),
+        })
+      case IntegrationSyncStream.STOCK:
+        return t("integrations.detail.countsStock", {
+          found: c("found"),
+          created: c("created"),
+          changed: c("changed"),
+          zeroed: c("zeroed"),
+        })
+      default:
+        return t("integrations.detail.counts", {
+          found: c("found"),
+          created: c("created"),
+          updated: c("updated"),
+          deactivated: c("deactivated"),
+        })
+    }
+  }
 
   return (
     <Container className="divide-y p-0">

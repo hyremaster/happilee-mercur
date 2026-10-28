@@ -780,6 +780,9 @@ export type Routes = {
         };
         integrations: typeof import("../../src/api/vendor/integrations/route") & {
             $providerId: typeof import("../../src/api/vendor/integrations/[provider_id]/route") & {
+                catalog: {
+                    summary: typeof import("../../src/api/vendor/integrations/[provider_id]/catalog/summary/route");
+                };
                 locations: typeof import("../../src/api/vendor/integrations/[provider_id]/locations/route") & {
                     $locationId: typeof import("../../src/api/vendor/integrations/[provider_id]/locations/[location_id]/route") & {
                         createBranch: typeof import("../../src/api/vendor/integrations/[provider_id]/locations/[location_id]/create-branch/route");

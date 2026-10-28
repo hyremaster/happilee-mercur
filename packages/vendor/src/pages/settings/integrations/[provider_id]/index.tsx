@@ -5,13 +5,14 @@ import { SingleColumnPage } from "@components/layout/pages"
 import { useIntegration } from "@hooks/api/integrations"
 
 import { IntegrationActivitySection } from "./_components/integration-activity-section"
+import { IntegrationCatalogSection } from "./_components/integration-catalog-section"
 import { IntegrationConnectionSection } from "./_components/integration-connection-section"
 import { IntegrationLocationsSection } from "./_components/integration-locations-section"
 
 /**
  * Settings → Integrations → provider: connection status (Manage opens the
- * credentials drawer at `manage`), plus capability-driven sections such as
- * Locations, and the sync activity log.
+ * credentials drawer at `manage`), plus capability-driven sections (Locations,
+ * Catalogue) and the sync activity log.
  */
 const IntegrationDetailPage = () => {
   const { provider_id } = useParams()
@@ -27,6 +28,7 @@ const IntegrationDetailPage = () => {
 
   const { provider, connection } = integration
   const supportsLocations = provider.capabilities.includes(IntegrationCapability.LOCATIONS)
+  const supportsCatalog = provider.capabilities.includes(IntegrationCapability.CATALOG)
 
   return (
     <SingleColumnPage showMetadata={false} showJSON={false} hasOutlet>
@@ -34,6 +36,7 @@ const IntegrationDetailPage = () => {
       {connection && supportsLocations && (
         <IntegrationLocationsSection provider={provider} />
       )}
+      {connection && supportsCatalog && <IntegrationCatalogSection provider={provider} />}
       {connection && <IntegrationActivitySection providerId={provider.id} />}
     </SingleColumnPage>
   )

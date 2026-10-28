@@ -67,4 +67,20 @@ export const IntegrationWorkflowEvents = {
    * ```
    */
   CONNECTED: "integration.connected",
+  /**
+   * Emitted when a sync stream that runs in the background (catalogue streams)
+   * is requested from the API. The run row already exists with status
+   * `running`; the subscriber executes it.
+   *
+   * @eventPayload
+   * ```ts
+   * {
+   *   seller_id, // The store (seller) ID
+   *   provider_id, // The integration provider ID
+   *   stream, // e.g. "items"
+   *   run_id, // The integration_sync_run to execute
+   * }
+   * ```
+   */
+  SYNC_REQUESTED: "integration.sync_requested",
 }
