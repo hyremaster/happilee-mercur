@@ -38,8 +38,10 @@ import {
 } from "@medusajs/medusa/core-flows"
 import { CreateOrderGroupDTO, MercurModules, SellerDTO } from "@mercurjs/types"
 import { createOrderGroupStep } from "../../order-group"
+import { createOrderExtensionsStep } from "../../marketplace-profile/steps"
 import { OrderGroupWorkflowEvents } from "../../events"
 import {
+    validateOrderFulfilmentStockStep,
     validateSellerCartItemsStep,
     validateSellerCartShippingStep,
 } from "../steps"
@@ -50,6 +52,7 @@ import {
     prepareLineItemData,
     prepareTaxLinesData,
     prepareConfirmInventoryInput,
+    resolveOrderFulfilmentLocations,
 } from "../utils"
 import { registerUsageStep } from "../../promotion"
 import { refreshOrderCommissionLinesWorkflow } from "../../commission/workflows/refresh-order-commission-lines"
@@ -117,7 +120,12 @@ export const completeCartWithSplitOrdersWorkflow = createWorkflow(
             })
             const shippingOptionsData = useQueryGraphStep({
                 entity: "shipping_option",
-                fields: ['id', "shipping_profile_id", 'seller.id'],
+                fields: [
+                    'id',
+                    "shipping_profile_id",
+                    'seller.id',
+                    "service_zone.fulfillment_set.location.id",
+                ],
                 filters: { id: cartOptionIds },
                 options: {
                     cache: {
@@ -304,6 +312,39 @@ export const completeCartWithSplitOrdersWorkflow = createWorkflow(
                 name: "existing-seller-customer-links-query",
             })
 
+            // Same routing as the reservation below, keyed by planned item: order
+            // line item ids don't exist yet.
+            const fulfilmentStockCheck = transform(
+                {
+                    shippingOptions: shippingOptionsData.data,
+                    ordersToCreate,
+                    sales_channel_id,
+                    variants,
+                },
+                ({ shippingOptions, ordersToCreate, sales_channel_id, variants }) => {
+                    const plannedOrders = ordersToCreate.map((order) => ({
+                        id: order.id,
+                        items: (order.items ?? []).map((item, index) => ({
+                            id: `${order.id}:${index}`,
+                            variant_id: item.variant_id,
+                            quantity: item.quantity,
+                        })),
+                    }))
+                    return {
+                        sales_channel_id,
+                        variants,
+                        items: plannedOrders.flatMap((order) => order.items),
+                        routed_locations: resolveOrderFulfilmentLocations({
+                            shippingOptions,
+                            ordersToCreate,
+                            createdOrders: plannedOrders,
+                        }).by_item,
+                    }
+                }
+            )
+
+            validateOrderFulfilmentStockStep(fulfilmentStockCheck)
+
             const [createdOrderGroup, createdOrders] = parallelize(
                 createOrderGroupStep(orderGroupData),
                 createOrdersStep(ordersToCreate)
@@ -319,15 +360,40 @@ export const completeCartWithSplitOrdersWorkflow = createWorkflow(
                     }))
             )
 
-            const formatedInventoryItems = transform(
+            // Each order's stock is reserved where its chosen shipping option
+            // fulfils from, not at any location of the sales channel.
+            const fulfilmentLocations = transform(
                 {
-                    input: {
-                        sales_channel_id,
-                        variants,
-                        items: reservationItemsData,
-                    },
+                    shippingOptions: shippingOptionsData.data,
+                    ordersToCreate,
+                    createdOrders,
                 },
-                prepareConfirmInventoryInput
+                resolveOrderFulfilmentLocations
+            )
+
+            const formatedInventoryItems = transform(
+                { reservationItemsData, sales_channel_id, variants, fulfilmentLocations },
+                ({ reservationItemsData, sales_channel_id, variants, fulfilmentLocations }) =>
+                    prepareConfirmInventoryInput({
+                        input: {
+                            sales_channel_id,
+                            variants,
+                            items: reservationItemsData,
+                            routed_locations: fulfilmentLocations.by_item,
+                        },
+                    })
+            )
+
+            const orderExtensionsData = transform(
+                { sellerOrdersMap, fulfilmentLocations },
+                ({ sellerOrdersMap, fulfilmentLocations }) =>
+                    Object.entries(sellerOrdersMap as Record<string, string>).map(
+                        ([seller_id, order_id]) => ({
+                            order_id,
+                            seller_id,
+                            fulfilment_location_id: fulfilmentLocations.by_order[order_id] ?? null,
+                        })
+                    )
             )
 
             const updateCompletedAt = transform(
@@ -446,6 +512,7 @@ export const completeCartWithSplitOrdersWorkflow = createWorkflow(
             parallelize(
                 updateCartsStep([updateCompletedAt]),
                 reserveInventoryStep(formatedInventoryItems),
+                createOrderExtensionsStep(orderExtensionsData),
                 registerUsageStep(promotionUsage),
                 emitEventStep({
                     eventName: OrderWorkflowEvents.PLACED,

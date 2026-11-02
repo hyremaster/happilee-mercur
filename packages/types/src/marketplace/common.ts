@@ -200,6 +200,7 @@ export interface OrderExtensionDTO {
   order_id: string
   seller_id: string
   current_status: string
+  fulfilment_location_id: string | null
   metadata: Record<string, unknown> | null
   created_at: Date
   updated_at: Date
@@ -210,6 +211,7 @@ export interface CreateOrderExtensionDTO {
   order_id: string
   seller_id: string
   current_status: StoreOrderStatusType
+  fulfilment_location_id?: string | null
   metadata?: Record<string, unknown> | null
 }
 

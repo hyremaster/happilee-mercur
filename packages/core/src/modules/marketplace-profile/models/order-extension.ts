@@ -18,6 +18,12 @@ const OrderExtension = model
     order_id: model.text(),
     seller_id: model.text(),
     current_status: model.enum(StoreOrderStatusType),
+    /**
+     * Stock location (branch) fulfilling this order: where its inventory is
+     * reserved, taken from the chosen shipping option at cart completion. Null
+     * for orders placed before this column existed.
+     */
+    fulfilment_location_id: model.text().nullable(),
     metadata: model.json().nullable(),
   })
   .indexes([

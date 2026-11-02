@@ -64,6 +64,7 @@ interface ConfirmInventoryPreparationInput {
     }[]
     location_ids: string[]
     stockAvailability: Map<string, Map<string, BigNumberInput>>
+    routed_locations?: Record<string, string>
 }
 
 interface ConfirmInventoryItem {
@@ -82,12 +83,15 @@ interface ConfirmInventoryItem {
  *
  * @throws {MedusaError} INVALID_DATA if any cart item is for a variant that has no inventory items.
  * @throws {MedusaError} INVALID_DATA if any cart item is for a variant with no stock locations in the input.sales_channel_id. An exception is made for variants with allow_backorder set to true.
+ * @throws {MedusaError} NOT_ALLOWED if an item routed to a location (`routed_locations`, keyed by item id) lacks availability there. An exception is made for variants with allow_backorder set to true.
  *
  * @returns {ConfirmInventoryPreparationInput}
  * A list of inventory items to confirm. Only inventory items for variants with managed inventory are included.
  */
 export const prepareConfirmInventoryInput = (data: {
-    input: ConfirmVariantInventoryWorkflowInputDTO
+    input: ConfirmVariantInventoryWorkflowInputDTO & {
+        routed_locations?: Record<string, string>
+    }
 }) => {
     const productVariantInventoryItems = new Map<string, any>()
     const stockLocationIds = new Set<string>()
@@ -208,6 +212,7 @@ export const prepareConfirmInventoryInput = (data: {
         stockAvailability: mapLocationAvailability,
         items: data.input.items,
         variants: Array.from(allVariants.values()),
+        routed_locations: data.input.routed_locations,
     })
 
     return { items }
@@ -219,6 +224,7 @@ const formatInventoryInput = ({
     items,
     stockAvailability,
     variants,
+    routed_locations,
 }: ConfirmInventoryPreparationInput) => {
     if (!product_variant_inventory_items.length) {
         return []
@@ -230,6 +236,7 @@ const formatInventoryInput = ({
     >(variants.map((v) => [v.id, v]))
 
     const itemsToConfirm: ConfirmInventoryItem[] = []
+    const unavailableVariantIds = new Set<string>()
 
     items.forEach((item) => {
         const variant = variantsMap.get(item.variant_id!)
@@ -249,7 +256,38 @@ const formatInventoryInput = ({
             )
         }
 
+        const routedLocationId = item.id ? routed_locations?.[item.id] : undefined
+
         variantInventoryItems.forEach((variantInventoryItem) => {
+            if (routedLocationId) {
+                const levels = stockAvailability.get(routedLocationId)
+                const available = levels?.get(variantInventoryItem.inventory_item_id)
+                const enough =
+                    available !== undefined &&
+                    MathBN.gte(
+                        available,
+                        MathBN.mult(variantInventoryItem.required_quantity, item.quantity)
+                    )
+
+                // Backorders may oversell, but only where the item is stocked at all.
+                if (enough || (variant.allow_backorder && available !== undefined)) {
+                    itemsToConfirm.push({
+                        id: item.id,
+                        inventory_item_id: variantInventoryItem.inventory_item_id,
+                        required_quantity: variantInventoryItem.required_quantity,
+                        allow_backorder: !!variant.allow_backorder,
+                        quantity: item.quantity,
+                        location_ids: [routedLocationId],
+                    })
+                    return
+                }
+
+                if (!variant.allow_backorder) {
+                    unavailableVariantIds.add(variant.id)
+                    return
+                }
+            }
+
             const locationsWithAvailability = location_ids.filter((locId) =>
                 MathBN.gte(
                     stockAvailability
@@ -271,6 +309,13 @@ const formatInventoryInput = ({
             })
         })
     })
+
+    if (unavailableVariantIds.size) {
+        throw new MedusaError(
+            MedusaError.Types.NOT_ALLOWED,
+            `Not enough stock at the selected location for variants: ${Array.from(unavailableVariantIds).join(", ")}.`
+        )
+    }
 
     return itemsToConfirm
 }

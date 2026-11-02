@@ -416,6 +416,42 @@ export const upsertOrderExtensionStep = createStep(
 )
 
 /**
+ * Create the 1:1 extension rows for newly placed orders, recording which branch
+ * fulfils each one. Status starts at order_placed; `upsertOrderExtensionStep`
+ * then only moves `current_status`.
+ */
+export const createOrderExtensionsStep = createStep(
+  "create-order-extensions",
+  async (
+    input: {
+      order_id: string
+      seller_id: string
+      fulfilment_location_id: string | null
+    }[],
+    { container }
+  ) => {
+    const service = container.resolve<MarketplaceProfileModuleService>(
+      MercurModules.MARKETPLACE_PROFILE
+    )
+    const created = await service.createOrderExtensions(
+      input.map((row) => ({
+        ...row,
+        current_status: StoreOrderStatusType.ORDER_PLACED,
+      }))
+    )
+    return new StepResponse(null, created.map((row) => row.id))
+  },
+  async (ids, { container }) => {
+    if (!ids?.length) {
+      return
+    }
+    await container
+      .resolve<MarketplaceProfileModuleService>(MercurModules.MARKETPLACE_PROFILE)
+      .deleteOrderExtensions(ids)
+  }
+)
+
+/**
  * Sync key marketplace transitions into Medusa's native order state:
  *   - `cancelled` → cancel the Medusa order.
  *   - `delivered` → mark every not-yet-delivered fulfillment as delivered.
