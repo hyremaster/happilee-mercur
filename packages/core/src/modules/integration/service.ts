@@ -32,6 +32,10 @@ import {
 
 import { decryptJson, encryptJson } from "../../utils/secrets"
 import {
+  IntegrationSyncError,
+  toVisibleIntegrationError,
+} from "./utils/integration-error"
+import {
   IntegrationExternalItem,
   IntegrationExternalItemLocation,
   IntegrationExternalStock,
@@ -184,7 +188,7 @@ class IntegrationModuleService extends MedusaService({
   ): IntegrationValues {
     const { values, readable } = this.readStoredCredentials(row)
     if (!readable) {
-      throw new MedusaError(
+      throw new IntegrationSyncError(
         MedusaError.Types.INVALID_DATA,
         `Stored "${row.provider_id}" credentials for store ${row.seller_id} can't be read. ${UNREADABLE_CREDENTIALS_MESSAGE}`
       )
@@ -275,7 +279,7 @@ class IntegrationModuleService extends MedusaService({
     } catch (e) {
       return {
         ok: false,
-        message: e instanceof Error ? e.message : "Connection test failed.",
+        message: e instanceof Error ? toVisibleIntegrationError(e.message) : "Connection test failed.",
       }
     }
   }
@@ -295,13 +299,13 @@ class IntegrationModuleService extends MedusaService({
   ): Promise<IntegrationConnectionInput> {
     const row = await this.retrieveSellerIntegration(sellerId, providerId)
     if (!row) {
-      throw new MedusaError(
+      throw new IntegrationSyncError(
         MedusaError.Types.NOT_ALLOWED,
         `This store hasn't connected "${providerId}".`
       )
     }
     if (!row.is_enabled) {
-      throw new MedusaError(
+      throw new IntegrationSyncError(
         MedusaError.Types.NOT_ALLOWED,
         `The "${providerId}" integration is disabled for this store.`
       )
@@ -312,6 +316,18 @@ class IntegrationModuleService extends MedusaService({
     }
   }
 
+  /** Provider failures are about the external system, so store users may see them. */
+  private async callProvider<T>(call: () => Promise<T>): Promise<T> {
+    try {
+      return await call()
+    } catch (e) {
+      throw new IntegrationSyncError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        e instanceof Error ? e.message : "The provider request failed."
+      )
+    }
+  }
+
   /** Ask the provider for its locations (read-only external call). */
   async fetchExternalLocations(
     providerId: string,
@@ -319,12 +335,12 @@ class IntegrationModuleService extends MedusaService({
   ): Promise<ExternalLocation[]> {
     const provider = this.providerService_.retrieve(providerId)
     if (typeof provider.listLocations !== "function") {
-      throw new MedusaError(
+      throw new IntegrationSyncError(
         MedusaError.Types.NOT_ALLOWED,
         `Integration provider "${providerId}" doesn't support locations.`
       )
     }
-    return provider.listLocations(input)
+    return this.callProvider(() => provider.listLocations!(input))
   }
 
   /** One page of the provider's items (read-only external call). */
@@ -337,7 +353,7 @@ class IntegrationModuleService extends MedusaService({
     if (typeof provider.listItems !== "function") {
       throw this.unsupported(providerId, "a catalogue")
     }
-    return provider.listItems(input, request)
+    return this.callProvider(() => provider.listItems!(input, request))
   }
 
   /** One page of the provider's per-location prices (read-only external call). */
@@ -350,7 +366,7 @@ class IntegrationModuleService extends MedusaService({
     if (typeof provider.listPrices !== "function") {
       throw this.unsupported(providerId, "prices")
     }
-    return provider.listPrices(input, request)
+    return this.callProvider(() => provider.listPrices!(input, request))
   }
 
   /** One page of the provider's stock snapshot (read-only external call). */
@@ -363,7 +379,7 @@ class IntegrationModuleService extends MedusaService({
     if (typeof provider.listStock !== "function") {
       throw this.unsupported(providerId, "stock")
     }
-    return provider.listStock(input, request)
+    return this.callProvider(() => provider.listStock!(input, request))
   }
 
   /** Attribute keys the provider wants profiled in the catalogue summary. */
@@ -467,7 +483,7 @@ class IntegrationModuleService extends MedusaService({
   }
 
   protected unsupported(providerId: string, what: string): MedusaError {
-    return new MedusaError(
+    return new IntegrationSyncError(
       MedusaError.Types.NOT_ALLOWED,
       `Integration provider "${providerId}" doesn't support ${what}.`
     )
@@ -506,7 +522,8 @@ class IntegrationModuleService extends MedusaService({
       trigger: row.trigger as IntegrationSyncTrigger,
       status: row.status as IntegrationSyncRunStatus,
       counts: (row.counts as Record<string, number> | null) ?? null,
-      error: row.error ?? null,
+      // Runs stored before errors were restricted can still hold the full SQL.
+      error: row.error ? toVisibleIntegrationError(row.error) : null,
       started_at: row.started_at,
       finished_at: row.finished_at ?? null,
     }

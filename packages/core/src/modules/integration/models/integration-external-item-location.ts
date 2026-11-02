@@ -38,6 +38,12 @@ const IntegrationExternalItemLocation = model
       unique: true,
       where: "deleted_at IS NULL",
     },
+    {
+      // Price rows carry only a sku: every row of a page resolves its item here.
+      name: "IDX_integration_external_item_location_sku",
+      on: ["seller_id", "provider_id", "sku", "location_external_id"],
+      where: "deleted_at IS NULL AND sku IS NOT NULL",
+    },
   ])
 
 export default IntegrationExternalItemLocation

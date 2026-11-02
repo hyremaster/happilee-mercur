@@ -33,6 +33,35 @@ export function isRunStale(
   )
 }
 
+/**
+ * Mark runs the server abandoned (restart or crash) as failed. Nothing else
+ * closes them, and the panel keeps polling while a run says it is running.
+ */
+async function closeStaleRuns(
+  service: IntegrationModuleService,
+  connection: StoreIntegrationRow,
+  definition: IntegrationSyncStreamDefinition,
+  now: Date
+): Promise<void> {
+  const running = (await service.listIntegrationSyncRuns({
+    seller_id: connection.seller_id,
+    provider_id: connection.provider_id,
+    stream: definition.stream,
+    status: IntegrationSyncRunStatus.RUNNING,
+  })) as IntegrationSyncRunRow[]
+
+  for (const run of running) {
+    if (isRunStale(definition, run, now)) {
+      await service.updateIntegrationSyncRuns({
+        id: run.id,
+        status: IntegrationSyncRunStatus.FAILED,
+        error: "The sync stopped before finishing (server restart or crash).",
+        finished_at: now,
+      })
+    }
+  }
+}
+
 /** True when the stream should run now, given its latest run. */
 export function isStreamDue(
   definition: IntegrationSyncStreamDefinition,
@@ -76,6 +105,8 @@ export async function runDueIntegrationSyncs(
       if (!service.supportsCapability(connection.provider_id, definition.capability)) {
         continue
       }
+
+      await closeStaleRuns(service, connection, definition, now)
 
       const [latest] = (await service.listIntegrationSyncRuns(
         {

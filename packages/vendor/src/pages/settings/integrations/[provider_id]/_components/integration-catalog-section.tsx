@@ -23,6 +23,8 @@ const STREAMS = [
 /** Attribute breakdowns shown; the provider decides which keys exist. */
 const MAX_ATTRIBUTE_LISTS = 3
 const MAX_VALUES = 8
+/** The summary aggregates the whole staged catalogue, so it refreshes slowly. */
+const SUMMARY_REFRESH_MS = 30_000
 
 type Summary = HttpTypes.VendorIntegrationCatalogSummaryResponse["summary"]
 
@@ -55,7 +57,7 @@ export const IntegrationCatalogSection = ({ provider }: IntegrationCatalogSectio
     // Catalogue streams run in the background; refresh until they finish.
     refetchInterval: (query) => {
       const data = query.state.data as HttpTypes.VendorIntegrationCatalogSummaryResponse | undefined
-      return isRunning(data?.summary) ? 3000 : false
+      return isRunning(data?.summary) ? SUMMARY_REFRESH_MS : false
     },
   })
   const sync = useRunIntegrationSync(provider.id)

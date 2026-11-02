@@ -1,5 +1,5 @@
 import { ILockingModule } from "@medusajs/framework/types"
-import { Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
   IntegrationConnectionInput,
@@ -13,6 +13,10 @@ import {
 
 import type IntegrationModuleService from "../../../modules/integration/service"
 import type { IntegrationSyncRunRow } from "../../../modules/integration/service"
+import {
+  toSyncRunError,
+  toSyncRunLogMessage,
+} from "../../../modules/integration/utils/integration-error"
 import { syncLockKey } from "../utils/sync-lock"
 
 export type CatalogSyncStream =
@@ -229,7 +233,12 @@ export const syncIntegrationCatalogStreamStep = createStep(
           at: startedAt,
         })
       } catch (e) {
-        error = e instanceof Error ? e.message : "Catalogue sync failed."
+        error = toSyncRunError(e)
+        container
+          .resolve(ContainerRegistrationKeys.LOGGER)
+          .error(
+            `Integration sync "${input.stream}" failed for store ${input.seller_id} / ${input.provider_id}: ${toSyncRunLogMessage(e)}`
+          )
       }
 
       const finished = await service.updateIntegrationSyncRuns({
