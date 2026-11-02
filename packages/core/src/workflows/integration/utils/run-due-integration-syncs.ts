@@ -34,24 +34,35 @@ export function isRunStale(
 }
 
 /**
+ * Scheduled syncs call live external systems, so they run only where that is
+ * intended: INTEGRATION_SYNC_SCHEDULE_ENABLED=true, or production when it is
+ * unset. Any other value means off, so a typo can't start them.
+ */
+export function isIntegrationSyncScheduleEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  const value = env.INTEGRATION_SYNC_SCHEDULE_ENABLED?.trim().toLowerCase()
+  return value ? value === "true" : env.NODE_ENV === "production"
+}
+
+/**
  * Mark runs the server abandoned (restart or crash) as failed. Nothing else
  * closes them, and the panel keeps polling while a run says it is running.
  */
-async function closeStaleRuns(
-  service: IntegrationModuleService,
-  connection: StoreIntegrationRow,
-  definition: IntegrationSyncStreamDefinition,
-  now: Date
+export async function closeAbandonedIntegrationSyncRuns(
+  container: MedusaContainer,
+  now: Date = new Date()
 ): Promise<void> {
-  const running = (await service.listIntegrationSyncRuns({
-    seller_id: connection.seller_id,
-    provider_id: connection.provider_id,
-    stream: definition.stream,
-    status: IntegrationSyncRunStatus.RUNNING,
-  })) as IntegrationSyncRunRow[]
+  const service = container.resolve<IntegrationModuleService>(MercurModules.INTEGRATION)
+
+  const running = (await service.listIntegrationSyncRuns(
+    { status: IntegrationSyncRunStatus.RUNNING },
+    { take: null }
+  )) as IntegrationSyncRunRow[]
 
   for (const run of running) {
-    if (isRunStale(definition, run, now)) {
+    const definition = INTEGRATION_SYNC_STREAMS.find((d) => d.stream === run.stream)
+    if (definition && isRunStale(definition, run, now)) {
       await service.updateIntegrationSyncRuns({
         id: run.id,
         status: IntegrationSyncRunStatus.FAILED,
@@ -59,6 +70,24 @@ async function closeStaleRuns(
         finished_at: now,
       })
     }
+  }
+}
+
+/**
+ * One tick of the sync dispatcher job. Abandoned runs are closed either way,
+ * because that touches only our own tables; due syncs start only when the
+ * schedule is enabled.
+ */
+export async function runScheduledIntegrationSyncs(
+  container: MedusaContainer,
+  options: { now?: Date; env?: Record<string, string | undefined> } = {}
+): Promise<void> {
+  const now = options.now ?? new Date()
+
+  await closeAbandonedIntegrationSyncRuns(container, now)
+
+  if (isIntegrationSyncScheduleEnabled(options.env)) {
+    await runDueIntegrationSyncs(container, now)
   }
 }
 
@@ -93,6 +122,8 @@ export async function runDueIntegrationSyncs(
   const service = container.resolve<IntegrationModuleService>(MercurModules.INTEGRATION)
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
 
+  await closeAbandonedIntegrationSyncRuns(container, now)
+
   const connections = (await service.listStoreIntegrations({
     is_enabled: true,
   })) as StoreIntegrationRow[]
@@ -105,8 +136,6 @@ export async function runDueIntegrationSyncs(
       if (!service.supportsCapability(connection.provider_id, definition.capability)) {
         continue
       }
-
-      await closeStaleRuns(service, connection, definition, now)
 
       const [latest] = (await service.listIntegrationSyncRuns(
         {
