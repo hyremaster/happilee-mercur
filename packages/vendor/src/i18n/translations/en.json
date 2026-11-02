@@ -3635,18 +3635,22 @@
         "locations": "Locations",
         "items": "Items",
         "prices": "Prices",
-        "stock": "Stock"
+        "stock": "Stock",
+        "products": "Products"
       },
       "counts": "{{found}} found, {{created}} new, {{updated}} updated, {{deactivated}} deactivated",
       "countsItems": "{{found}} items, {{created}} new, {{updated}} updated, {{pages}} pages",
       "countsPrices": "{{found}} prices, {{matched}} matched, {{unmatched}} unmatched, {{changed}} changed",
       "countsStock": "{{found}} stock lots, {{created}} new, {{changed}} changed, {{zeroed}} set to 0",
+      "countsProducts": "{{created}} draft products created, {{updated}} updated, {{unpublished}} moved to draft, {{failed}} failed",
       "catalog": {
         "title": "Catalogue (staged)",
         "hint": "Items, prices and stock pulled from {{title}}. Nothing is published to your store yet; use these numbers to agree the catalogue rules.",
         "sync": "Sync catalogue",
         "empty": "No catalogue data yet. Sync to pull items, prices and stock from {{title}}.",
         "offPeakHint": "The first full pull reads the whole catalogue. Run it outside trading hours.",
+        "createProducts": "Create draft products",
+        "createProductsHint": "Creates draft products from sellable items. Nothing is published until you publish it.",
         "stats": {
           "items": "Items",
           "activeItems": "{{count}} active",
@@ -3656,7 +3660,9 @@
           "aboveMrp": "Sale price above lowest in-stock MRP",
           "spread": "Total MRP spread",
           "eligible": "Sellable under the rule",
-          "eligibleHint": "{{blocked}} blocked · {{notEvaluated}} not checked yet"
+          "eligibleHint": "{{blocked}} blocked · {{notEvaluated}} not checked yet",
+          "products": "Draft products created",
+          "productsHint": "{{pending}} waiting · {{failed}} failed"
         },
         "byStatus": "Status codes",
         "byAttribute": "{{key}} values",
@@ -3678,7 +3684,8 @@
         "syncFailed": "Sync failed: {{message}}",
         "mappingSaved": "Branch mapping saved.",
         "branchCreated": "Branch {{name}} created and mapped. Set its map pin under Locations.",
-        "catalogSyncStarted": "Catalogue sync started. Items, prices and stock run in the background."
+        "catalogSyncStarted": "Catalogue sync started. Items, prices and stock run in the background.",
+        "productSyncStarted": "Product sync started. Sellable items become draft products in the background."
       }
     }
   },

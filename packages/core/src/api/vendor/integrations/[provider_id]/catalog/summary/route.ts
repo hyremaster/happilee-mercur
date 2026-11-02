@@ -15,6 +15,7 @@ const STREAMS = [
   IntegrationSyncStream.ITEMS,
   IntegrationSyncStream.PRICES,
   IntegrationSyncStream.STOCK,
+  IntegrationSyncStream.PRODUCTS,
 ]
 
 // GET /vendor/integrations/:provider_id/catalog/summary — counts over this

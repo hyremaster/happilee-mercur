@@ -34,6 +34,13 @@ import {
 import { decryptJson, encryptJson } from "../../utils/secrets"
 import { parseEligibilityRule, refreshItemEligibility } from "./utils/eligibility"
 import {
+  clearBlockedItemsWithoutProduct,
+  listProjectionPage,
+  ProjectionItem,
+  recordFailedProjection,
+  recordProjectedItems,
+} from "./utils/projection-staging"
+import {
   IntegrationSyncError,
   toVisibleIntegrationError,
 } from "./utils/integration-error"
@@ -382,6 +389,43 @@ class IntegrationModuleService extends MedusaService({
       throw this.unsupported(providerId, "stock")
     }
     return this.callProvider(() => provider.listStock!(input, request))
+  }
+
+  @InjectManager()
+  async listProjectionPage(
+    scope: CatalogScope,
+    afterExternalId: string,
+    limit: number,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<ProjectionItem[]> {
+    return listProjectionPage(sqlOf(sharedContext.manager), scope, afterExternalId, limit)
+  }
+
+  @InjectTransactionManager()
+  async clearBlockedItemsWithoutProduct(
+    scope: CatalogScope,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<number> {
+    return clearBlockedItemsWithoutProduct(sqlOf(sharedContext.transactionManager), scope)
+  }
+
+  @InjectTransactionManager()
+  async recordProjectedItems(
+    scope: CatalogScope,
+    rows: Parameters<typeof recordProjectedItems>[2],
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<void> {
+    await recordProjectedItems(sqlOf(sharedContext.transactionManager), scope, rows)
+  }
+
+  @InjectTransactionManager()
+  async recordFailedProjection(
+    scope: CatalogScope,
+    externalId: string,
+    error: string,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<void> {
+    await recordFailedProjection(sqlOf(sharedContext.transactionManager), scope, externalId, error)
   }
 
   /** The store's rule, else the provider default. A damaged store rule blocks everything. */

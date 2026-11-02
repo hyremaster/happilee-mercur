@@ -29,6 +29,11 @@ const IntegrationExternalItem = model
     is_eligible: model.boolean().default(false),
     /** Why the item is blocked. Null with is_eligible=false means not evaluated yet. */
     eligibility_reason: model.text().nullable(),
+    /** The Medusa product and variant this item became. */
+    product_id: model.text().nullable(),
+    variant_id: model.text().nullable(),
+    /** Why the last product sync failed; for operators, never sent to the panel. */
+    projection_error: model.text().nullable(),
     last_seen_at: model.dateTime(),
   })
   .indexes([

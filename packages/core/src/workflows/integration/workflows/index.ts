@@ -4,6 +4,10 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 
 import {
+  projectIntegrationProductsStep,
+  ProjectIntegrationProductsStepInput,
+} from "../steps/project-integration-products"
+import {
   syncIntegrationCatalogStreamStep,
   SyncIntegrationCatalogStreamStepInput,
 } from "../steps/sync-integration-catalog-stream"
@@ -97,6 +101,20 @@ export const syncIntegrationCatalogStreamWorkflow = createWorkflow(
   syncIntegrationCatalogStreamWorkflowId,
   function (input: SyncIntegrationCatalogStreamStepInput) {
     const result = syncIntegrationCatalogStreamStep(input)
+    return new WorkflowResponse(result)
+  }
+)
+
+export const projectIntegrationProductsWorkflowId = "project-integration-products"
+
+/**
+ * Turn staged items into draft products. Uses staged data only. Never throws
+ * for item failures: the returned run carries the counts.
+ */
+export const projectIntegrationProductsWorkflow = createWorkflow(
+  projectIntegrationProductsWorkflowId,
+  function (input: ProjectIntegrationProductsStepInput) {
+    const result = projectIntegrationProductsStep(input)
     return new WorkflowResponse(result)
   }
 )

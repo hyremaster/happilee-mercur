@@ -8,6 +8,7 @@ import {
   IntegrationCatalogAttributePairs,
   IntegrationCatalogCount,
   IntegrationCatalogEligibility,
+  IntegrationCatalogProjection,
 } from "@mercurjs/types"
 
 /**
@@ -645,6 +646,7 @@ export type CatalogSummaryCounts = {
   by_attribute: Record<string, IntegrationCatalogCount[]>
   attribute_pairs: IntegrationCatalogAttributePairs | null
   eligibility: IntegrationCatalogEligibility
+  projection: IntegrationCatalogProjection
 }
 
 const ATTRIBUTE_VALUE_LIMIT = 50
@@ -773,6 +775,17 @@ export async function catalogSummary(
     )
   )
 
+  const [projection] = rowsOf(
+    await db.execute(
+      `SELECT
+        count(*) FILTER (WHERE product_id IS NOT NULL) AS products,
+        count(*) FILTER (WHERE projection_pending AND (is_eligible OR product_id IS NOT NULL)) AS pending,
+        count(*) FILTER (WHERE projection_pending AND projection_error IS NOT NULL) AS failed
+        FROM integration_external_item WHERE ${scoped}`,
+      params
+    )
+  )
+
   return {
     items: num(totals?.items),
     active_items: num(totals?.active_items),
@@ -792,6 +805,11 @@ export async function catalogSummary(
         value: row.value === null ? null : String(row.value),
         count: num(row.count),
       })),
+    },
+    projection: {
+      products: num(projection?.products),
+      pending: num(projection?.pending),
+      failed: num(projection?.failed),
     },
   }
 }

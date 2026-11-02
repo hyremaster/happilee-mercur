@@ -29,8 +29,9 @@ const ALREADY_RUNNING = (stream: string) =>
 // the refreshed locations. Catalogue streams (items, prices, stock) can take
 // minutes, so the run is created here and executed in the background: 202
 // with the run in status `running`; poll /sync-runs for the result. A manual
-// items sync also runs prices and stock afterwards. Provider/API failures are
-// reported on the run, not as HTTP errors.
+// items sync also runs prices and stock afterwards. `products` runs the same
+// way but only uses staged data; it is not chained, so a person starts it.
+// Provider/API failures are reported on the run, not as HTTP errors.
 export const POST = async (
   req: AuthenticatedMedusaRequest<VendorRunIntegrationSyncType>,
   res: MedusaResponse<HttpTypes.VendorIntegrationSyncResponse>

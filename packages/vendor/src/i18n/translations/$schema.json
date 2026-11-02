@@ -11990,6 +11990,9 @@
                 "prices": {
                   "type": "string"
                 },
+                "products": {
+                  "type": "string"
+                },
                 "stock": {
                   "type": "string"
                 }
@@ -11998,7 +12001,8 @@
                 "locations",
                 "items",
                 "prices",
-                "stock"
+                "stock",
+                "products"
               ],
               "additionalProperties": false
             },
@@ -12009,6 +12013,9 @@
               "type": "string"
             },
             "countsPrices": {
+              "type": "string"
+            },
+            "countsProducts": {
               "type": "string"
             },
             "countsStock": {
@@ -12027,6 +12034,12 @@
                   "type": "string"
                 },
                 "empty": {
+                  "type": "string"
+                },
+                "createProducts": {
+                  "type": "string"
+                },
+                "createProductsHint": {
                   "type": "string"
                 },
                 "offPeakHint": {
@@ -12053,7 +12066,13 @@
                     "aboveMrp": {
                       "type": "string"
                     },
+                    "products": {
+                      "type": "string"
+                    },
                     "eligible": {
+                      "type": "string"
+                    },
+                    "productsHint": {
                       "type": "string"
                     },
                     "eligibleHint": {
@@ -12072,6 +12091,8 @@
                     "aboveMrp",
                     "eligible",
                     "eligibleHint",
+                    "productsHint",
+                    "products",
                     "spread"
                   ],
                   "additionalProperties": false
@@ -12132,6 +12153,8 @@
                 "sync",
                 "empty",
                 "offPeakHint",
+                "createProductsHint",
+                "createProducts",
                 "stats",
                 "byStatus",
                 "byAttribute",
@@ -12159,6 +12182,9 @@
                 "branchCreated": {
                   "type": "string"
                 },
+                "productSyncStarted": {
+                  "type": "string"
+                },
                 "catalogSyncStarted": {
                   "type": "string"
                 }
@@ -12168,7 +12194,8 @@
                 "syncFailed",
                 "mappingSaved",
                 "branchCreated",
-                "catalogSyncStarted"
+                "catalogSyncStarted",
+                "productSyncStarted"
               ],
               "additionalProperties": false
             }
@@ -12196,6 +12223,7 @@
             "countsItems",
             "countsPrices",
             "countsStock",
+            "countsProducts",
             "catalog",
             "toasts"
           ],

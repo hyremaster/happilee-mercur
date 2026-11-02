@@ -3468,18 +3468,22 @@
         "locations": "Lokalizacje",
         "items": "Produkty",
         "prices": "Ceny",
-        "stock": "Stany"
+        "stock": "Stany",
+        "products": "Produkty"
       },
       "counts": "znaleziono {{found}}, nowe {{created}}, zaktualizowane {{updated}}, dezaktywowane {{deactivated}}",
       "countsItems": "produkty {{found}}, nowe {{created}}, zaktualizowane {{updated}}, strony {{pages}}",
       "countsPrices": "ceny {{found}}, dopasowane {{matched}}, niedopasowane {{unmatched}}, zmienione {{changed}}",
       "countsStock": "partie {{found}}, nowe {{created}}, zmienione {{changed}}, wyzerowane {{zeroed}}",
+      "countsProducts": "utworzone szkice: {{created}}, zaktualizowane: {{updated}}, przeniesione do szkiców: {{unpublished}}, błędy: {{failed}}",
       "catalog": {
         "title": "Katalog (poczekalnia)",
         "hint": "Produkty, ceny i stany pobrane z {{title}}. Nic nie jest jeszcze publikowane w sklepie; użyj tych liczb, aby uzgodnić reguły katalogu.",
         "sync": "Synchronizuj katalog",
         "empty": "Brak danych katalogu. Zsynchronizuj, aby pobrać produkty, ceny i stany z {{title}}.",
         "offPeakHint": "Pierwsze pełne pobranie czyta cały katalog. Uruchom je poza godzinami pracy.",
+        "createProducts": "Utwórz szkice produktów",
+        "createProductsHint": "Tworzy szkice produktów z dopuszczonych pozycji. Nic nie zostanie opublikowane bez Twojej decyzji.",
         "stats": {
           "items": "Produkty",
           "activeItems": "aktywne: {{count}}",
@@ -3489,7 +3493,9 @@
           "aboveMrp": "Cena sprzedaży powyżej najniższej MRP na stanie",
           "spread": "Łączna rozpiętość MRP",
           "eligible": "Dopuszczone do sprzedaży",
-          "eligibleHint": "zablokowane: {{blocked}} · niesprawdzone: {{notEvaluated}}"
+          "eligibleHint": "zablokowane: {{blocked}} · niesprawdzone: {{notEvaluated}}",
+          "products": "Utworzone szkice produktów",
+          "productsHint": "oczekujące: {{pending}} · błędy: {{failed}}"
         },
         "byStatus": "Kody statusu",
         "byAttribute": "Wartości {{key}}",
@@ -3511,7 +3517,8 @@
         "syncFailed": "Synchronizacja nie powiodła się: {{message}}",
         "mappingSaved": "Zapisano przypisanie oddziału.",
         "branchCreated": "Utworzono i przypisano oddział {{name}}. Ustaw jego pinezkę na mapie w Lokalizacjach.",
-        "catalogSyncStarted": "Rozpoczęto synchronizację katalogu. Produkty, ceny i stany są pobierane w tle."
+        "catalogSyncStarted": "Rozpoczęto synchronizację katalogu. Produkty, ceny i stany są pobierane w tle.",
+        "productSyncStarted": "Rozpoczęto synchronizację produktów. Dopuszczone pozycje staną się szkicami w tle."
       }
     }
   },

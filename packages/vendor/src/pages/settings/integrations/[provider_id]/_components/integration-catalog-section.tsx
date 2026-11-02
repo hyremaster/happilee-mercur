@@ -18,6 +18,7 @@ const STREAMS = [
   IntegrationSyncStream.ITEMS,
   IntegrationSyncStream.PRICES,
   IntegrationSyncStream.STOCK,
+  IntegrationSyncStream.PRODUCTS,
 ]
 
 /** Attribute breakdowns shown; the provider decides which keys exist. */
@@ -66,6 +67,16 @@ export const IntegrationCatalogSection = ({ provider }: IntegrationCatalogSectio
     throw error
   }
 
+  const handleCreateProducts = async () => {
+    await sync.mutateAsync(
+      { stream: IntegrationSyncStream.PRODUCTS },
+      {
+        onSuccess: () => toast.success(t("integrations.detail.toasts.productSyncStarted")),
+        onError: (e) => toast.error(e.message),
+      }
+    )
+  }
+
   const handleSync = async () => {
     await sync.mutateAsync(
       { stream: IntegrationSyncStream.ITEMS },
@@ -92,6 +103,14 @@ export const IntegrationCatalogSection = ({ provider }: IntegrationCatalogSectio
           hint: t("integrations.detail.catalog.stats.eligibleHint", {
             blocked: summary.eligibility.ineligible,
             notEvaluated: summary.eligibility.not_evaluated,
+          }),
+        },
+        {
+          label: t("integrations.detail.catalog.stats.products"),
+          value: summary.projection.products,
+          hint: t("integrations.detail.catalog.stats.productsHint", {
+            pending: summary.projection.pending,
+            failed: summary.projection.failed,
           }),
         },
         { label: t("integrations.detail.catalog.stats.itemLocations"), value: summary.item_locations },
@@ -142,16 +161,28 @@ export const IntegrationCatalogSection = ({ provider }: IntegrationCatalogSectio
             </Text>
           )}
         </div>
-        <Button
-          size="small"
-          variant="secondary"
-          onClick={handleSync}
-          isLoading={sync.isPending || running}
-          disabled={running}
-          data-testid="integration-sync-catalog"
-        >
-          {t("integrations.detail.catalog.sync")}
-        </Button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button
+            size="small"
+            variant="secondary"
+            onClick={handleCreateProducts}
+            disabled={running || sync.isPending || !summary?.eligibility.eligible}
+            title={t("integrations.detail.catalog.createProductsHint")}
+            data-testid="integration-create-products"
+          >
+            {t("integrations.detail.catalog.createProducts")}
+          </Button>
+          <Button
+            size="small"
+            variant="secondary"
+            onClick={handleSync}
+            isLoading={sync.isPending || running}
+            disabled={running}
+            data-testid="integration-sync-catalog"
+          >
+            {t("integrations.detail.catalog.sync")}
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-y-1 px-6 py-3">

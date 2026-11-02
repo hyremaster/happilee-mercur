@@ -165,6 +165,8 @@ export enum IntegrationSyncStream {
   ITEMS = "items",
   PRICES = "prices",
   STOCK = "stock",
+  /** Staged items into products. Uses staged data only; never calls the provider. */
+  PRODUCTS = "products",
 }
 
 export enum IntegrationSyncTrigger {
@@ -299,6 +301,15 @@ export interface IntegrationCatalogEligibility {
   by_reason: IntegrationCatalogCount[]
 }
 
+export interface IntegrationCatalogProjection {
+  /** Items that have a product. */
+  products: number
+  /** Items waiting for the next product sync. */
+  pending: number
+  /** Pending items whose last attempt failed. */
+  failed: number
+}
+
 /** Counts over staged catalogue data, used to decide sync rules on real data. */
 export interface IntegrationCatalogSummaryDTO {
   items: number
@@ -317,5 +328,6 @@ export interface IntegrationCatalogSummaryDTO {
   /** Counts per combination of two attributes, e.g. Cat6 × Cat4. */
   attribute_pairs: IntegrationCatalogAttributePairs | null
   eligibility: IntegrationCatalogEligibility
+  projection: IntegrationCatalogProjection
   last_runs: Partial<Record<IntegrationSyncStream, IntegrationSyncRunDTO | null>>
 }

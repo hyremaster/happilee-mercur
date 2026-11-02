@@ -84,13 +84,15 @@ createProductsWorkflow.hooks.productsCreated(
       products.length === 1 && typeof additional_data.store_handle === "string"
         ? additional_data.store_handle
         : null
+    // Bulk creators (integration product sync) pass one store handle per product.
+    const bulkStoreHandles = (additional_data.store_handles ?? {}) as Record<string, string>
     const storeHandles = await container
       .resolve<MarketplaceProfileModuleService>(MercurModules.MARKETPLACE_PROFILE)
       .createStoreProductHandles(
         products.map((product) => ({
           product_id: product.id,
           seller_id: additional_data.seller_id as string,
-          handle: requestedStoreHandle ?? product.handle,
+          handle: requestedStoreHandle ?? bulkStoreHandles[product.handle] ?? product.handle,
         }))
       )
 

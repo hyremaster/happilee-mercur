@@ -70,6 +70,13 @@ export const IntegrationActivitySection = ({
           changed: c("changed"),
           zeroed: c("zeroed"),
         })
+      case IntegrationSyncStream.PRODUCTS:
+        return t("integrations.detail.countsProducts", {
+          created: c("created"),
+          updated: c("updated"),
+          unpublished: c("unpublished"),
+          failed: c("failed"),
+        })
       default:
         return t("integrations.detail.counts", {
           found: c("found"),
