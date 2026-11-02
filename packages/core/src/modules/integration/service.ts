@@ -13,6 +13,7 @@ import {
   ExternalStockLevel,
   IntegrationCapability,
   IntegrationConnectionInput,
+  IntegrationEligibilityRule,
   IntegrationLocationDTO,
   IntegrationLocationStatus,
   IntegrationPage,
@@ -31,6 +32,7 @@ import {
 } from "@mercurjs/types"
 
 import { decryptJson, encryptJson } from "../../utils/secrets"
+import { parseEligibilityRule, refreshItemEligibility } from "./utils/eligibility"
 import {
   IntegrationSyncError,
   toVisibleIntegrationError,
@@ -382,6 +384,57 @@ class IntegrationModuleService extends MedusaService({
     return this.callProvider(() => provider.listStock!(input, request))
   }
 
+  /** The store's rule, else the provider default. A damaged store rule blocks everything. */
+  async resolveEligibilityRule(scope: CatalogScope): Promise<IntegrationEligibilityRule | null> {
+    const row = await this.retrieveSellerIntegration(scope.seller_id, scope.provider_id)
+    if (row?.eligibility_rule) {
+      return parseEligibilityRule(row.eligibility_rule)
+    }
+    if (!this.providerService_.has(scope.provider_id)) {
+      return null
+    }
+    const provider = this.providerService_.retrieve(scope.provider_id)
+    return parseEligibilityRule(provider.getDefaultEligibilityRule?.())
+  }
+
+  /**
+   * Save a new rule for the store (when given) and re-evaluate its staged
+   * items. Atomic: an invalid rule or a failure leaves rule and results as they
+   * were. Not reachable from vendor routes.
+   */
+  @InjectTransactionManager()
+  async applyEligibilityRule(
+    scope: CatalogScope,
+    rule?: IntegrationEligibilityRule,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<{ evaluated: number; changed: number; eligible: number }> {
+    const db = sqlOf(sharedContext.transactionManager)
+    if (rule === undefined) {
+      return refreshItemEligibility(db, scope, await this.resolveEligibilityRule(scope))
+    }
+
+    const parsed = parseEligibilityRule(rule)
+    if (!parsed) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Invalid eligibility rule: attributes_in needs at least one attribute, each with at least one allowed value."
+      )
+    }
+    const saved = (await db.execute(
+      `UPDATE store_integration SET eligibility_rule = ?::jsonb, updated_at = now()
+        WHERE seller_id = ? AND provider_id = ? AND deleted_at IS NULL
+        RETURNING 1`,
+      [JSON.stringify(parsed), scope.seller_id, scope.provider_id]
+    )) as unknown[]
+    if (!saved.length) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `This store hasn't connected "${scope.provider_id}".`
+      )
+    }
+    return refreshItemEligibility(db, scope, parsed)
+  }
+
   /** Attribute keys the provider wants profiled in the catalogue summary. */
   catalogProfileKeys(providerId: string): string[] {
     const provider = this.providerService_.retrieve(providerId)
@@ -395,7 +448,16 @@ class IntegrationModuleService extends MedusaService({
     now: Date,
     @MedusaContext() sharedContext: Context = {}
   ): Promise<ItemsPageResult> {
-    return upsertItemsPage(sqlOf(sharedContext.transactionManager), scope, items, now)
+    const db = sqlOf(sharedContext.transactionManager)
+    const result = await upsertItemsPage(db, scope, items, now)
+    // Same transaction: an item that just became blocked is never left eligible.
+    await refreshItemEligibility(
+      db,
+      scope,
+      await this.resolveEligibilityRule(scope),
+      items.map((item) => String(item.external_id).trim())
+    )
+    return result
   }
 
   @InjectTransactionManager()
@@ -425,7 +487,10 @@ class IntegrationModuleService extends MedusaService({
     before: Date,
     @MedusaContext() sharedContext: Context = {}
   ): Promise<number> {
-    return deactivateUnseenItems(sqlOf(sharedContext.transactionManager), scope, before)
+    const db = sqlOf(sharedContext.transactionManager)
+    const deactivated = await deactivateUnseenItems(db, scope, before)
+    await refreshItemEligibility(db, scope, await this.resolveEligibilityRule(scope))
+    return deactivated
   }
 
   /** After a complete stock snapshot. Returns the number of lots set to 0. */

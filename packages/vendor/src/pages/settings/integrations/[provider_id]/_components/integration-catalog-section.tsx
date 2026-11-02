@@ -86,6 +86,14 @@ export const IntegrationCatalogSection = ({ provider }: IntegrationCatalogSectio
           value: summary.items,
           hint: t("integrations.detail.catalog.stats.activeItems", { count: summary.active_items }),
         },
+        {
+          label: t("integrations.detail.catalog.stats.eligible"),
+          value: summary.eligibility.eligible,
+          hint: t("integrations.detail.catalog.stats.eligibleHint", {
+            blocked: summary.eligibility.ineligible,
+            notEvaluated: summary.eligibility.not_evaluated,
+          }),
+        },
         { label: t("integrations.detail.catalog.stats.itemLocations"), value: summary.item_locations },
         { label: t("integrations.detail.catalog.stats.stockLots"), value: summary.stock_rows },
         { label: t("integrations.detail.catalog.stats.multiLot"), value: summary.multi_lot_price_pairs },
@@ -94,8 +102,22 @@ export const IntegrationCatalogSection = ({ provider }: IntegrationCatalogSectio
       ]
     : []
 
+  const reasonLabel = (reason: string | null) => {
+    const [code, key] = (reason ?? "").split(":")
+    return key
+      ? t(`integrations.detail.catalog.reason.${code}`, { key })
+      : t(`integrations.detail.catalog.reason.${code}`)
+  }
+
   const lists: { title: string; rows: IntegrationCatalogCount[] }[] = summary
     ? [
+        {
+          title: t("integrations.detail.catalog.byReason"),
+          rows: summary.eligibility.by_reason.map((row) => ({
+            ...row,
+            value: reasonLabel(row.value),
+          })),
+        },
         { title: t("integrations.detail.catalog.byStatus"), rows: summary.by_status },
         ...Object.entries(summary.by_attribute)
           .slice(0, MAX_ATTRIBUTE_LISTS)

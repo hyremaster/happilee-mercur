@@ -8,6 +8,7 @@ import type {
   IIntegrationProvider,
   IntegrationCategory,
   IntegrationConnectionInput,
+  IntegrationEligibilityRule,
   IntegrationPage,
   IntegrationPageRequest,
   IntegrationProviderDefinition,
@@ -474,6 +475,16 @@ export class GoFrugalIntegrationProvider implements IIntegrationProvider {
 
   getCatalogProfileKeys(): string[] {
     return ["Cat6", "Cat4", "itemTaxType", "itemProductType", "appliesOnline", "Cat1"]
+  }
+
+  /** Non-drug items only: no prescription flow exists, so scheduled items stay blocked. */
+  getDefaultEligibilityRule(): IntegrationEligibilityRule {
+    return {
+      attributes_in: {
+        Cat6: ["COSMETICS", "TOILETARIES", "FOODITEM", "SUPPLEMENTS", "PHYSIOTHERAPY"],
+        Cat4: ["2-Non-Scheduled", "3-Others"],
+      },
+    }
   }
 
   protected async fetchListPage(

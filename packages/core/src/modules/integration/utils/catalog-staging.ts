@@ -7,6 +7,7 @@ import {
   ExternalStockLevel,
   IntegrationCatalogAttributePairs,
   IntegrationCatalogCount,
+  IntegrationCatalogEligibility,
 } from "@mercurjs/types"
 
 /**
@@ -643,6 +644,7 @@ export type CatalogSummaryCounts = {
   by_status: IntegrationCatalogCount[]
   by_attribute: Record<string, IntegrationCatalogCount[]>
   attribute_pairs: IntegrationCatalogAttributePairs | null
+  eligibility: IntegrationCatalogEligibility
 }
 
 const ATTRIBUTE_VALUE_LIMIT = 50
@@ -751,6 +753,26 @@ export async function catalogSummary(
     }
   }
 
+  const [eligibility] = rowsOf(
+    await db.execute(
+      `SELECT
+        count(*) FILTER (WHERE is_eligible) AS eligible,
+        count(*) FILTER (WHERE NOT is_eligible AND eligibility_reason IS NOT NULL) AS ineligible,
+        count(*) FILTER (WHERE NOT is_eligible AND eligibility_reason IS NULL) AS not_evaluated
+        FROM integration_external_item WHERE ${scoped}`,
+      params
+    )
+  )
+  const eligibilityReasons = rowsOf(
+    await db.execute(
+      `SELECT eligibility_reason AS value, count(*) AS count
+        FROM integration_external_item
+        WHERE ${scoped} AND NOT is_eligible AND eligibility_reason IS NOT NULL
+        GROUP BY eligibility_reason ORDER BY count(*) DESC, eligibility_reason`,
+      params
+    )
+  )
+
   return {
     items: num(totals?.items),
     active_items: num(totals?.active_items),
@@ -762,5 +784,14 @@ export async function catalogSummary(
     by_status: byStatus,
     by_attribute: byAttribute,
     attribute_pairs: pairs,
+    eligibility: {
+      eligible: num(eligibility?.eligible),
+      ineligible: num(eligibility?.ineligible),
+      not_evaluated: num(eligibility?.not_evaluated),
+      by_reason: eligibilityReasons.map((row) => ({
+        value: row.value === null ? null : String(row.value),
+        count: num(row.count),
+      })),
+    },
   }
 }

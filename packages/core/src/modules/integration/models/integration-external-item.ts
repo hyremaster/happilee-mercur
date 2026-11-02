@@ -25,6 +25,10 @@ const IntegrationExternalItem = model
     raw: model.json().nullable(),
     raw_hash: model.text(),
     projection_pending: model.boolean().default(true),
+    /** Fail-closed: false until the rule allows the item. */
+    is_eligible: model.boolean().default(false),
+    /** Why the item is blocked. Null with is_eligible=false means not evaluated yet. */
+    eligibility_reason: model.text().nullable(),
     last_seen_at: model.dateTime(),
   })
   .indexes([

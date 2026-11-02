@@ -15,6 +15,12 @@ type CatalogSummary = {
     keys: [string, string]
     rows: { values: [string | null, string | null]; count: number }[]
   } | null
+  eligibility: {
+    eligible: number
+    ineligible: number
+    not_evaluated: number
+    by_reason: { value: string | null; count: number }[]
+  }
 }
 
 type IntegrationService = {
@@ -52,6 +58,15 @@ export default async function integrationCatalogProfile({ container, args }: Exe
   lines.push(`| Item × outlet pairs with more than one in-stock MRP (Q-F01) | ${s.multi_lot_price_pairs} |`)
   lines.push(`| Total MRP spread over those pairs (highest − lowest, ₹) | ${s.lot_price_spread_total} |`)
   lines.push(`| Pairs whose sale price is above the lowest in-stock MRP (Q-G09) | ${s.sale_price_above_min_lot_mrp} |`, "")
+
+  const { eligibility } = s
+  lines.push("## Eligibility under the current rule (Q-C01)", "", "| Result | Items | Share |", "|---|---|---|")
+  lines.push(`| Eligible | ${eligibility.eligible} | ${pct(eligibility.eligible, s.items)} |`)
+  lines.push(`| Not evaluated yet | ${eligibility.not_evaluated} | ${pct(eligibility.not_evaluated, s.items)} |`)
+  for (const row of eligibility.by_reason) {
+    lines.push(`| Blocked: ${cell(row.value)} | ${row.count} | ${pct(row.count, s.items)} |`)
+  }
+  lines.push("")
 
   lines.push("## Item status codes (Q-G15)", "", "| Status | Items | Share |", "|---|---|---|")
   for (const row of s.by_status) {

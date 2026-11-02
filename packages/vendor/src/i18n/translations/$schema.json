@@ -12053,6 +12053,12 @@
                     "aboveMrp": {
                       "type": "string"
                     },
+                    "eligible": {
+                      "type": "string"
+                    },
+                    "eligibleHint": {
+                      "type": "string"
+                    },
                     "spread": {
                       "type": "string"
                     }
@@ -12064,6 +12070,8 @@
                     "stockLots",
                     "multiLot",
                     "aboveMrp",
+                    "eligible",
+                    "eligibleHint",
                     "spread"
                   ],
                   "additionalProperties": false
@@ -12083,6 +12091,37 @@
                 "lastRun": {
                   "type": "string"
                 },
+                "byReason": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "object",
+                  "properties": {
+                    "no_rule": {
+                      "type": "string"
+                    },
+                    "inactive": {
+                      "type": "string"
+                    },
+                    "status_excluded": {
+                      "type": "string"
+                    },
+                    "missing": {
+                      "type": "string"
+                    },
+                    "not_allowed": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "no_rule",
+                    "inactive",
+                    "status_excluded",
+                    "missing",
+                    "not_allowed"
+                  ],
+                  "additionalProperties": false
+                },
                 "neverRun": {
                   "type": "string"
                 }
@@ -12099,6 +12138,8 @@
                 "pairs",
                 "noValue",
                 "lastRun",
+                "byReason",
+                "reason",
                 "neverRun"
               ],
               "additionalProperties": false

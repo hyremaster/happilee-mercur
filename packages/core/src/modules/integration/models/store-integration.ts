@@ -20,6 +20,11 @@ const StoreIntegration = model
     is_enabled: model.boolean().default(true),
     credentials: model.text().nullable(),
     settings: model.json().nullable(),
+    /**
+     * Catalogue eligibility rule; null uses the provider default. Kept out of
+     * `settings` and the DTO because vendors must not be able to change it.
+     */
+    eligibility_rule: model.json().nullable(),
     status: model
       .enum(StoreIntegrationStatus)
       .default(StoreIntegrationStatus.UNTESTED),

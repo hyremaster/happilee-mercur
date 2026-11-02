@@ -278,6 +278,27 @@ export interface IntegrationCatalogAttributePairs {
   rows: { values: [string | null, string | null]; count: number }[]
 }
 
+/**
+ * Which staged items may be sold online. An item is eligible only when every
+ * attribute listed here has an allowed value; anything else is blocked.
+ */
+export interface IntegrationEligibilityRule {
+  /** Attribute key → allowed values (exact match), e.g. { Cat4: ["3-Others"] }. */
+  attributes_in: Record<string, string[]>
+  /** Provider status codes that block an item. */
+  status_not_in?: string[]
+}
+
+export interface IntegrationCatalogEligibility {
+  eligible: number
+  /** Evaluated and blocked; see `by_reason`. */
+  ineligible: number
+  /** Staged but not evaluated yet. Treated as not sellable. */
+  not_evaluated: number
+  /** `no_rule`, `inactive`, `status_excluded`, `missing:<key>` or `not_allowed:<key>`. */
+  by_reason: IntegrationCatalogCount[]
+}
+
 /** Counts over staged catalogue data, used to decide sync rules on real data. */
 export interface IntegrationCatalogSummaryDTO {
   items: number
@@ -295,5 +316,6 @@ export interface IntegrationCatalogSummaryDTO {
   by_attribute: Record<string, IntegrationCatalogCount[]>
   /** Counts per combination of two attributes, e.g. Cat6 × Cat4. */
   attribute_pairs: IntegrationCatalogAttributePairs | null
+  eligibility: IntegrationCatalogEligibility
   last_runs: Partial<Record<IntegrationSyncStream, IntegrationSyncRunDTO | null>>
 }

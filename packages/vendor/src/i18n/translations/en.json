@@ -3654,14 +3654,24 @@
           "stockLots": "In-stock lots",
           "multiLot": "Items with several MRPs in stock",
           "aboveMrp": "Sale price above lowest in-stock MRP",
-          "spread": "Total MRP spread"
+          "spread": "Total MRP spread",
+          "eligible": "Sellable under the rule",
+          "eligibleHint": "{{blocked}} blocked · {{notEvaluated}} not checked yet"
         },
         "byStatus": "Status codes",
         "byAttribute": "{{key}} values",
         "pairs": "{{first}} × {{second}}",
         "noValue": "(empty)",
         "lastRun": "{{stream}}: {{status}} · {{date}}",
-        "neverRun": "{{stream}}: never synced"
+        "neverRun": "{{stream}}: never synced",
+        "byReason": "Why items are blocked",
+        "reason": {
+          "no_rule": "No eligibility rule",
+          "inactive": "Item is inactive",
+          "status_excluded": "Status code excluded",
+          "missing": "{{key}} is missing",
+          "not_allowed": "{{key}} value not allowed"
+        }
       },
       "toasts": {
         "synced": "Locations synced: {{found}} found.",

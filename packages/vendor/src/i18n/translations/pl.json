@@ -3487,14 +3487,24 @@
           "stockLots": "Partie na stanie",
           "multiLot": "Produkty z kilkoma cenami MRP na stanie",
           "aboveMrp": "Cena sprzedaży powyżej najniższej MRP na stanie",
-          "spread": "Łączna rozpiętość MRP"
+          "spread": "Łączna rozpiętość MRP",
+          "eligible": "Dopuszczone do sprzedaży",
+          "eligibleHint": "zablokowane: {{blocked}} · niesprawdzone: {{notEvaluated}}"
         },
         "byStatus": "Kody statusu",
         "byAttribute": "Wartości {{key}}",
         "pairs": "{{first}} × {{second}}",
         "noValue": "(puste)",
         "lastRun": "{{stream}}: {{status}} · {{date}}",
-        "neverRun": "{{stream}}: nigdy nie synchronizowano"
+        "neverRun": "{{stream}}: nigdy nie synchronizowano",
+        "byReason": "Dlaczego produkty są zablokowane",
+        "reason": {
+          "no_rule": "Brak reguły dopuszczenia",
+          "inactive": "Produkt nieaktywny",
+          "status_excluded": "Wykluczony kod statusu",
+          "missing": "Brak wartości {{key}}",
+          "not_allowed": "Niedozwolona wartość {{key}}"
+        }
       },
       "toasts": {
         "synced": "Zsynchronizowano lokalizacje: {{found}}.",

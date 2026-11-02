@@ -3,6 +3,7 @@ import {
   ExternalItemPrice,
   ExternalLocation,
   ExternalStockLevel,
+  IntegrationEligibilityRule,
   IntegrationPage,
   IntegrationPageRequest,
   IntegrationProviderDefinition,
@@ -75,4 +76,10 @@ export interface IIntegrationProvider {
    * (e.g. ["Cat6", "Cat4", "itemTaxType"]); the first two are also crossed.
    */
   getCatalogProfileKeys?(): string[]
+
+  /**
+   * Optional: the eligibility rule for stores with no rule of their own.
+   * Without one, every item of such a store stays blocked.
+   */
+  getDefaultEligibilityRule?(): IntegrationEligibilityRule | null
 }
