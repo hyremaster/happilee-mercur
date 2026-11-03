@@ -34,12 +34,21 @@ export function toSyncRunError(error: unknown): string {
     : INTERNAL_SYNC_ERROR
 }
 
+/** Workflow steps can rethrow an error as a plain object. */
+const messageOf = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+  const message = (error as { message?: unknown } | null)?.message
+  return typeof message === "string" ? message : String(error)
+}
+
 /**
  * The failure for server logs. Database errors arrive as "<SQL with its bound
  * rows> - <reason>", which can be hundreds of KB, so only the reason is kept.
  */
 export function toSyncRunLogMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error)
+  const message = messageOf(error)
   const separator = message.lastIndexOf(" - ")
   const reason =
     isSqlError(message) && separator !== -1 ? message.slice(separator + 3) : message
