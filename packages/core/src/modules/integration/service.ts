@@ -41,6 +41,12 @@ import {
   recordProjectedItems,
 } from "./utils/projection-staging"
 import {
+  listPricePage,
+  PriceItem,
+  recordItemPrices,
+  savePriceList,
+} from "./utils/price-staging"
+import {
   IntegrationSyncError,
   toVisibleIntegrationError,
 } from "./utils/integration-error"
@@ -426,6 +432,34 @@ class IntegrationModuleService extends MedusaService({
     @MedusaContext() sharedContext: Context = {}
   ): Promise<void> {
     await recordFailedProjection(sqlOf(sharedContext.transactionManager), scope, externalId, error)
+  }
+
+  @InjectManager()
+  async listPricePage(
+    scope: CatalogScope,
+    afterExternalId: string,
+    limit: number,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<PriceItem[]> {
+    return listPricePage(sqlOf(sharedContext.manager), scope, afterExternalId, limit)
+  }
+
+  @InjectTransactionManager()
+  async recordItemPrices(
+    scope: CatalogScope,
+    rows: Parameters<typeof recordItemPrices>[2],
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<void> {
+    await recordItemPrices(sqlOf(sharedContext.transactionManager), scope, rows)
+  }
+
+  @InjectTransactionManager()
+  async savePriceList(
+    scope: CatalogScope,
+    priceListId: string,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<void> {
+    await savePriceList(sqlOf(sharedContext.transactionManager), scope, priceListId)
   }
 
   /** The store's rule, else the provider default. A damaged store rule blocks everything. */

@@ -3649,8 +3649,8 @@
         "sync": "Sync catalogue",
         "empty": "No catalogue data yet. Sync to pull items, prices and stock from {{title}}.",
         "offPeakHint": "The first full pull reads the whole catalogue. Run it outside trading hours.",
-        "createProducts": "Create draft products",
-        "createProductsHint": "Creates draft products from sellable items. Nothing is published until you publish it.",
+        "createProducts": "Update products and prices",
+        "createProductsHint": "Creates draft products from sellable items and sets their prices. Nothing is published until you publish it.",
         "stats": {
           "items": "Items",
           "activeItems": "{{count}} active",
@@ -3662,7 +3662,9 @@
           "eligible": "Sellable under the rule",
           "eligibleHint": "{{blocked}} blocked · {{notEvaluated}} not checked yet",
           "products": "Draft products created",
-          "productsHint": "{{pending}} waiting · {{failed}} failed"
+          "productsHint": "{{pending}} waiting · {{failed}} failed",
+          "priced": "Products with a price",
+          "pricedHint": "{{held}} held back: check their MRP data"
         },
         "byStatus": "Status codes",
         "byAttribute": "{{key}} values",

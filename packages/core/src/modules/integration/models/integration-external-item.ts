@@ -34,6 +34,10 @@ const IntegrationExternalItem = model
     variant_id: model.text().nullable(),
     /** Why the last product sync failed; for operators, never sent to the panel. */
     projection_error: model.text().nullable(),
+    /** The MRP and selling price last written to Medusa; null when it has none. */
+    synced_prices: model.json().nullable(),
+    /** Why the item gets no price (bad provider data); for operators and counts. */
+    price_hold_reason: model.text().nullable(),
     last_seen_at: model.dateTime(),
   })
   .indexes([

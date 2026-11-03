@@ -12075,6 +12075,12 @@
                     "productsHint": {
                       "type": "string"
                     },
+                    "priced": {
+                      "type": "string"
+                    },
+                    "pricedHint": {
+                      "type": "string"
+                    },
                     "eligibleHint": {
                       "type": "string"
                     },
@@ -12092,6 +12098,8 @@
                     "eligible",
                     "eligibleHint",
                     "productsHint",
+                    "priced",
+                    "pricedHint",
                     "products",
                     "spread"
                   ],

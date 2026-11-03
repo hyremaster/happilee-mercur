@@ -25,6 +25,8 @@ const StoreIntegration = model
      * `settings` and the DTO because vendors must not be able to change it.
      */
     eligibility_rule: model.json().nullable(),
+    /** The sale price list holding synced selling prices. Not in the DTO. */
+    price_list_id: model.text().nullable(),
     status: model
       .enum(StoreIntegrationStatus)
       .default(StoreIntegrationStatus.UNTESTED),

@@ -310,6 +310,13 @@ export interface IntegrationCatalogProjection {
   failed: number
 }
 
+export interface IntegrationCatalogPricing {
+  /** Items with a synced price. */
+  priced: number
+  /** Items held back with no price because their provider data looks wrong. */
+  held: number
+}
+
 /** Counts over staged catalogue data, used to decide sync rules on real data. */
 export interface IntegrationCatalogSummaryDTO {
   items: number
@@ -329,5 +336,6 @@ export interface IntegrationCatalogSummaryDTO {
   attribute_pairs: IntegrationCatalogAttributePairs | null
   eligibility: IntegrationCatalogEligibility
   projection: IntegrationCatalogProjection
+  pricing: IntegrationCatalogPricing
   last_runs: Partial<Record<IntegrationSyncStream, IntegrationSyncRunDTO | null>>
 }

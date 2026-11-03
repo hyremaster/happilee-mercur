@@ -3482,8 +3482,8 @@
         "sync": "Synchronizuj katalog",
         "empty": "Brak danych katalogu. Zsynchronizuj, aby pobrać produkty, ceny i stany z {{title}}.",
         "offPeakHint": "Pierwsze pełne pobranie czyta cały katalog. Uruchom je poza godzinami pracy.",
-        "createProducts": "Utwórz szkice produktów",
-        "createProductsHint": "Tworzy szkice produktów z dopuszczonych pozycji. Nic nie zostanie opublikowane bez Twojej decyzji.",
+        "createProducts": "Aktualizuj produkty i ceny",
+        "createProductsHint": "Tworzy szkice produktów z dopuszczonych pozycji i ustawia ich ceny. Nic nie zostanie opublikowane bez Twojej decyzji.",
         "stats": {
           "items": "Produkty",
           "activeItems": "aktywne: {{count}}",
@@ -3495,7 +3495,9 @@
           "eligible": "Dopuszczone do sprzedaży",
           "eligibleHint": "zablokowane: {{blocked}} · niesprawdzone: {{notEvaluated}}",
           "products": "Utworzone szkice produktów",
-          "productsHint": "oczekujące: {{pending}} · błędy: {{failed}}"
+          "productsHint": "oczekujące: {{pending}} · błędy: {{failed}}",
+          "priced": "Produkty z ceną",
+          "pricedHint": "wstrzymane: {{held}} (sprawdź dane MRP)"
         },
         "byStatus": "Kody statusu",
         "byAttribute": "Wartości {{key}}",

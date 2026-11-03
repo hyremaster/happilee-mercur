@@ -15,6 +15,7 @@ import {
   toSyncRunError,
   toSyncRunLogMessage,
 } from "../../../modules/integration/utils/integration-error"
+import { projectPricesPage, resolvePriceTarget } from "../utils/project-prices"
 import { projectItemsPage } from "../utils/project-products"
 import { syncLockKey } from "../utils/sync-lock"
 
@@ -38,7 +39,7 @@ const LOCK_EXPIRE_SECONDS = 30 * 60
 const PAGE_SIZE = 25
 
 /**
- * Turn staged items that changed into Medusa products, page by page. Uses
+ * Turn staged items that changed into Medusa products and prices, page by page. Uses
  * staged data only and never calls the provider. Item failures are counted and
  * stay pending; failures are recorded on the run, not thrown.
  */
@@ -88,6 +89,9 @@ export const projectIntegrationProductsStep = createStep(
         unpublished: 0,
         skipped: 0,
         failed: 0,
+        priced: 0,
+        held: 0,
+        prices_failed: 0,
       }
       let error: string | null = null
 
@@ -114,8 +118,30 @@ export const projectIntegrationProductsStep = createStep(
             .catch(() => undefined)
         }
 
+        // Prices follow products, and read price and stock data the same way.
+        const target = await resolvePriceTarget(container, service, scope)
+        let afterPrice = ""
+        remaining = input.max_items ?? Number.POSITIVE_INFINITY
+        while (remaining > 0) {
+          const items = await service.listPricePage(scope, afterPrice, Math.min(PAGE_SIZE, remaining))
+          if (!items.length) {
+            break
+          }
+          remaining -= items.length
+          const page = await projectPricesPage(container, service, scope, target, items)
+          for (const [name, value] of Object.entries(page)) {
+            counts[name] += value
+          }
+          afterPrice = items[items.length - 1].external_id
+          await locking
+            .acquire(key, { ownerId, expire: LOCK_EXPIRE_SECONDS })
+            .catch(() => undefined)
+        }
+
         if (counts.failed && !counts.created && !counts.updated && !counts.unpublished) {
           error = "No products could be updated. Please try again later or contact support."
+        } else if (counts.prices_failed && !counts.priced && !counts.held) {
+          error = "No prices could be updated. Please try again later or contact support."
         }
       } catch (e) {
         error = toSyncRunError(e)

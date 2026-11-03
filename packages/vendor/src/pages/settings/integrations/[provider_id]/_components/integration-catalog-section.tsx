@@ -113,6 +113,13 @@ export const IntegrationCatalogSection = ({ provider }: IntegrationCatalogSectio
             failed: summary.projection.failed,
           }),
         },
+        {
+          label: t("integrations.detail.catalog.stats.priced"),
+          value: summary.pricing.priced,
+          hint: t("integrations.detail.catalog.stats.pricedHint", {
+            held: summary.pricing.held,
+          }),
+        },
         { label: t("integrations.detail.catalog.stats.itemLocations"), value: summary.item_locations },
         { label: t("integrations.detail.catalog.stats.stockLots"), value: summary.stock_rows },
         { label: t("integrations.detail.catalog.stats.multiLot"), value: summary.multi_lot_price_pairs },
