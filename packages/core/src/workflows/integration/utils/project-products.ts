@@ -1,5 +1,6 @@
 import {
   createProductsWorkflow,
+  updateInventoryItemsWorkflow,
   updateProductsWorkflow,
   updateProductVariantsWorkflow,
 } from "@medusajs/core-flows"
@@ -31,6 +32,10 @@ type IntegrationMetadata = {
   provider_id: string
   seller_id: string
   external_id: string
+  /** The provider's own code; the variant sku adds the store's prefix. */
+  sku: string | null
+  /** Fixed when the product is created, so renaming the store keeps its skus. */
+  sku_prefix: string
   hsn_code: string | null
   tax_rate: number | null
   /** The title last written by the sync; a different title means it was edited. */
@@ -42,7 +47,13 @@ type ExistingProduct = {
   title: string
   status: string
   metadata: Record<string, unknown> | null
-  variants: { id: string; sku: string | null; barcode: string | null; title: string }[]
+  variants: {
+    id: string
+    sku: string | null
+    barcode: string | null
+    title: string
+    inventory_items?: { inventory?: { id: string; sku: string | null } | null }[]
+  }[]
 }
 
 const OPTION = "Default"
@@ -57,10 +68,20 @@ export function toProductTitle(name: string): string {
     .replace(/(^|[\s\-/(])([a-z])/g, (_, prefix: string, letter: string) => prefix + letter.toUpperCase())
 }
 
-const integrationMetadata = (scope: Scope, item: ProjectionItem, syncedTitle: string): IntegrationMetadata => ({
+/** Variant and inventory skus are unique across the marketplace; provider codes aren't. */
+const toStoreSku = (prefix: string, sku: string) => `${prefix}-${sku}`
+
+const integrationMetadata = (
+  scope: Scope,
+  item: ProjectionItem,
+  syncedTitle: string,
+  skuPrefix: string
+): IntegrationMetadata => ({
   provider_id: scope.provider_id,
   seller_id: scope.seller_id,
   external_id: item.external_id,
+  sku: item.sku,
+  sku_prefix: skuPrefix,
   hsn_code: item.hsn_code,
   tax_rate: item.tax_rate,
   synced_title: syncedTitle,
@@ -78,6 +99,10 @@ const belongsTo = (product: ExistingProduct, scope: Scope, externalId: string) =
   )
 }
 
+/** Key by key: the database doesn't keep the order of metadata keys. */
+const sameMetadata = (stored: IntegrationMetadata | null, next: IntegrationMetadata) =>
+  (Object.keys(next) as (keyof IntegrationMetadata)[]).every((key) => stored?.[key] === next[key])
+
 const PRODUCT_FIELDS = [
   "id",
   "title",
@@ -87,6 +112,8 @@ const PRODUCT_FIELDS = [
   "variants.sku",
   "variants.barcode",
   "variants.title",
+  "variants.inventory_items.inventory.id",
+  "variants.inventory_items.inventory.sku",
 ]
 
 /**
@@ -135,8 +162,18 @@ export async function projectItemsPage(
 
   // A product made by a run that crashed before saving the mapping is adopted,
   // not duplicated. A sku held by anything else is a failure, not a takeover.
+  const { data: sellers } = await query.graph({
+    entity: "seller",
+    fields: ["handle"],
+    filters: { id: scope.seller_id },
+  })
+  const skuPrefix = (sellers[0] as { handle: string }).handle
+
   const withoutProduct = items.filter((item) => !item.product_id)
-  const skus = withoutProduct.map((item) => item.sku).filter((sku): sku is string => !!sku)
+  const skus = withoutProduct
+    .map((item) => item.sku)
+    .filter((sku): sku is string => !!sku)
+    .map((sku) => toStoreSku(skuPrefix, sku))
   const { data: skuOwners } = skus.length
     ? await query.graph({
         entity: "variant",
@@ -178,7 +215,8 @@ export async function projectItemsPage(
       await fail(item, new Error("The item has no sku."))
       continue
     }
-    const ownerId = productBySku.get(item.sku)
+    const storeSku = toStoreSku(skuPrefix, item.sku)
+    const ownerId = productBySku.get(storeSku)
     if (!ownerId) {
       toCreate.push(item)
       continue
@@ -187,7 +225,7 @@ export async function projectItemsPage(
     if (owner && belongsTo(owner, scope, item.external_id)) {
       toUpdate.push({ item, product: owner })
     } else {
-      await fail(item, new Error(`Sku ${item.sku} is already used by another product.`))
+      await fail(item, new Error(`Sku ${storeSku} is already used by another product.`))
     }
   }
 
@@ -200,7 +238,7 @@ export async function projectItemsPage(
           })
           counts.unpublished++
         }
-      } else if (await updateOwnedFields(container, scope, item, product)) {
+      } else if (await updateOwnedFields(container, scope, item, product, skuPrefix)) {
         counts.updated++
       }
       projected.push({
@@ -241,12 +279,12 @@ export async function projectItemsPage(
             discountable: true,
             shipping_profile_id: shippingProfileId,
             sales_channels: salesChannelId ? [{ id: salesChannelId }] : undefined,
-            metadata: { integration: integrationMetadata(scope, item, title) },
+            metadata: { integration: integrationMetadata(scope, item, title, skuPrefix) },
             options: [{ title: OPTION, values: [OPTION] }],
             variants: [
               {
                 title,
-                sku: item.sku as string,
+                sku: toStoreSku(skuPrefix, item.sku as string),
                 barcode: item.barcode ?? undefined,
                 manage_inventory: true,
                 allow_backorder: false,
@@ -313,24 +351,30 @@ async function updateOwnedFields(
   container: MedusaContainer,
   scope: Scope,
   item: ProjectionItem,
-  product: ExistingProduct
+  product: ExistingProduct,
+  currentSkuPrefix: string
 ): Promise<boolean> {
   const stored = storedMetadata(product)
   const nextTitle = toProductTitle(item.name)
   const titleUnedited = stored?.synced_title === product.title
   const title = titleUnedited ? nextTitle : product.title
   const syncedTitle = titleUnedited ? nextTitle : stored?.synced_title ?? product.title
-  const metadata = integrationMetadata(scope, item, syncedTitle)
+  const skuPrefix = stored?.sku_prefix ?? currentSkuPrefix
+  const metadata = integrationMetadata(scope, item, syncedTitle, skuPrefix)
 
   const variant = product.variants[0]
+  const sku = item.sku ? toStoreSku(skuPrefix, item.sku) : null
   const barcode = item.barcode ?? null
   const variantChanged =
     !!variant &&
-    (variant.sku !== item.sku ||
+    (variant.sku !== sku ||
       (variant.barcode ?? null) !== barcode ||
       (titleUnedited && variant.title !== nextTitle))
-  const productChanged =
-    title !== product.title || JSON.stringify(stored) !== JSON.stringify(metadata)
+  const productChanged = title !== product.title || !sameMetadata(stored, metadata)
+  const staleInventory = (variant?.inventory_items ?? [])
+    .map((link) => link.inventory)
+    .filter((inventory): inventory is { id: string; sku: string | null } => !!inventory)
+    .filter((inventory) => inventory.sku !== sku)
 
   if (productChanged) {
     await updateProductsWorkflow(container).run({
@@ -352,7 +396,7 @@ async function updateOwnedFields(
         product_variants: [
           {
             id: variant.id,
-            sku: item.sku,
+            sku,
             barcode,
             ...(titleUnedited ? { title: nextTitle } : {}),
           },
@@ -360,5 +404,10 @@ async function updateOwnedFields(
       },
     })
   }
-  return productChanged || variantChanged
+  if (staleInventory.length) {
+    await updateInventoryItemsWorkflow(container).run({
+      input: { updates: staleInventory.map((inventory) => ({ id: inventory.id, sku })) },
+    })
+  }
+  return productChanged || variantChanged || staleInventory.length > 0
 }
