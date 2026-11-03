@@ -1,10 +1,11 @@
 import type { SqlExecutor } from "./catalog-staging"
+import { isValidTaxRate } from "./inclusive-tax"
 
 type Scope = { seller_id: string; provider_id: string }
 
 export type SyncedPrices = { mrp: number; price: number }
 
-export type PriceHoldReason = "invalid_mrp" | "mrp_gap" | "no_price"
+export type PriceHoldReason = "invalid_mrp" | "mrp_gap" | "no_price" | "no_tax_rate"
 
 /** One outlet that can fulfil the item: mapped, active, sold online, in stock. */
 export type OutletOffer = {
@@ -18,6 +19,7 @@ export type OutletOffer = {
 export type PriceItem = {
   external_id: string
   variant_id: string
+  tax_rate: number | null
   synced_prices: SyncedPrices | null
   price_hold_reason: PriceHoldReason | null
   offers: OutletOffer[]
@@ -39,11 +41,15 @@ export const MAX_MRP_GAP_RATIO = 2
  * The one online price of an item (D-006, D-007): the lowest offer, capped at
  * the lowest in-stock MRP over every outlet that can fulfil it, so it is
  * compliant wherever the order routes. One doubtful outlet holds the whole
- * item: leaving it out could price above the MRP of the stock it ships.
+ * item: leaving it out could price above the MRP of the stock it ships. An item
+ * with no valid tax rate is held too: the GST inside its price is unknown (D-045).
  */
-export function computeItemPrice(offers: OutletOffer[]): ItemPriceResult {
+export function computeItemPrice(offers: OutletOffer[], taxRate: number | null): ItemPriceResult {
   if (!offers.length) {
     return { kind: "no_stock" }
+  }
+  if (!isValidTaxRate(taxRate)) {
+    return { kind: "held", reason: "no_tax_rate" }
   }
   const lowest = (offer: OutletOffer) => offer.lowest_mrp as number
 
@@ -76,7 +82,7 @@ export async function listPricePage(
 ): Promise<PriceItem[]> {
   const rows = (await db.execute(
     `WITH page AS (
-        SELECT external_id, variant_id, synced_prices, price_hold_reason
+        SELECT external_id, variant_id, tax_rate, synced_prices, price_hold_reason
         FROM integration_external_item
         WHERE seller_id = ? AND provider_id = ? AND deleted_at IS NULL AND is_eligible
           AND variant_id IS NOT NULL AND external_id > ?
@@ -103,7 +109,7 @@ export async function listPricePage(
           AND o.deleted_at IS NULL AND o.status = 'active' AND o.stock_location_id IS NOT NULL
         GROUP BY s.item_external_id, s.location_external_id
       )
-      SELECT p.external_id, p.variant_id, p.synced_prices, p.price_hold_reason,
+      SELECT p.external_id, p.variant_id, p.tax_rate, p.synced_prices, p.price_hold_reason,
         coalesce(
           (SELECT jsonb_agg(to_jsonb(o)) FROM offers o WHERE o.item_external_id = p.external_id),
           '[]'::jsonb

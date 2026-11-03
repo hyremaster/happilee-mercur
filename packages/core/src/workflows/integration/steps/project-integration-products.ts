@@ -15,7 +15,7 @@ import {
   toSyncRunError,
   toSyncRunLogMessage,
 } from "../../../modules/integration/utils/integration-error"
-import { projectPricesPage, resolvePriceTarget } from "../utils/project-prices"
+import { hasTaxConflict, projectPricesPage, resolvePriceTarget } from "../utils/project-prices"
 import { projectItemsPage } from "../utils/project-products"
 import { syncLockKey } from "../utils/sync-lock"
 
@@ -92,6 +92,7 @@ export const projectIntegrationProductsStep = createStep(
         priced: 0,
         held: 0,
         prices_failed: 0,
+        tax_conflict: 0,
       }
       let error: string | null = null
 
@@ -120,6 +121,14 @@ export const projectIntegrationProductsStep = createStep(
 
         // Prices follow products, and read price and stock data the same way.
         const target = await resolvePriceTarget(container, service, scope)
+        if (await hasTaxConflict(container, target.currency_code)) {
+          counts.tax_conflict = 1
+          container
+            .resolve(ContainerRegistrationKeys.LOGGER)
+            .error(
+              `A tax region above 0% uses currency ${target.currency_code}, which isn't tax-inclusive: tax would go on top of the synced prices of store ${input.seller_id}, above MRP. See D-045.`
+            )
+        }
         let afterPrice = ""
         remaining = input.max_items ?? Number.POSITIVE_INFINITY
         while (remaining > 0) {

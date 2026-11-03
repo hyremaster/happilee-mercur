@@ -70,6 +70,43 @@ export async function resolvePriceTarget(
   return { price_list_id: result[0].id, currency_code: currencyCode }
 }
 
+/**
+ * Synced prices include GST (D-045), and Medusa would add a tax rate on top of
+ * them unless the currency is tax-inclusive. True when a tax region above 0% in
+ * a country using this currency could do that.
+ */
+export async function hasTaxConflict(
+  container: MedusaContainer,
+  currencyCode: string
+): Promise<boolean> {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const { data: regions } = await query.graph({
+    entity: "region",
+    fields: ["countries.iso_2"],
+    filters: { currency_code: currencyCode },
+  })
+  const countries = (regions as unknown as { countries?: { iso_2: string }[] | null }[]).flatMap(
+    (region) => (region.countries ?? []).map((country) => country.iso_2)
+  )
+  if (!countries.length) {
+    return false
+  }
+
+  const tax = container.resolve(Modules.TAX)
+  const taxRegions = await tax.listTaxRegions({ country_code: countries })
+  const rates = taxRegions.length
+    ? await tax.listTaxRates({ tax_region_id: taxRegions.map((region) => region.id) })
+    : []
+  if (!rates.some((rate) => (rate.rate ?? 0) > 0)) {
+    return false
+  }
+
+  const [preference] = await container
+    .resolve(Modules.PRICING)
+    .listPricePreferences({ attribute: "currency_code", value: [currencyCode] })
+  return !preference?.is_tax_inclusive
+}
+
 const samePrices = (a: SyncedPrices | null, b: SyncedPrices | null) =>
   a?.mrp === b?.mrp && a?.price === b?.price
 
@@ -93,7 +130,7 @@ export async function projectPricesPage(
   const unchanged: Parameters<IntegrationModuleService["recordItemPrices"]>[1] = []
 
   for (const item of items) {
-    const result = computeItemPrice(item.offers)
+    const result = computeItemPrice(item.offers, item.tax_rate)
     if (result.kind === "no_stock") {
       if (item.price_hold_reason) {
         unchanged.push({ external_id: item.external_id, synced_prices: null, price_hold_reason: null })
