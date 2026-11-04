@@ -5,6 +5,7 @@ import {
 import { createOrderFulfillmentWorkflow } from "@medusajs/medusa/core-flows"
 import { HttpTypes } from "@mercurjs/types"
 
+import { repairReservedInventory } from "../../../../../utils/repair-reserved-inventory"
 import { validateSellerOrder } from "../../helpers"
 import { VendorCreateFulfillmentType } from "../../validators"
 
@@ -17,7 +18,7 @@ export const POST = async (
 
   await validateSellerOrder(req.scope, sellerId, id)
 
-  const { result: fulfillment } = await createOrderFulfillmentWorkflow(
+  const { result: fulfillment, errors } = await createOrderFulfillmentWorkflow(
     req.scope
   ).run({
     input: {
@@ -25,7 +26,15 @@ export const POST = async (
       created_by: sellerId,
       ...req.validatedBody,
     },
+    throwOnError: false,
   })
+
+  if (errors.length) {
+    // The rollback can leave the reserved quantity too low, so fix it before
+    // anyone can buy that stock. The vendor still sees the original error.
+    await repairReservedInventory(req.scope)
+    throw errors[0].error
+  }
 
   res.json({ fulfillment })
 }
