@@ -11995,6 +11995,9 @@
                 },
                 "stock": {
                   "type": "string"
+                },
+                "inventory": {
+                  "type": "string"
                 }
               },
               "required": [
@@ -12002,7 +12005,8 @@
                 "items",
                 "prices",
                 "stock",
-                "products"
+                "products",
+                "inventory"
               ],
               "additionalProperties": false
             },
@@ -12010,6 +12014,9 @@
               "type": "string"
             },
             "countsItems": {
+              "type": "string"
+            },
+            "countsInventory": {
               "type": "string"
             },
             "countsPrices": {
@@ -12229,6 +12236,7 @@
             "stream",
             "counts",
             "countsItems",
+            "countsInventory",
             "countsPrices",
             "countsStock",
             "countsProducts",

@@ -30,6 +30,9 @@ const IntegrationExternalItemLocation = model
     item_changed_at: model.dateTime().nullable(),
     /** Last time the prices stream changed this row. */
     price_changed_at: model.dateTime().nullable(),
+    /** What the inventory stream last wrote to Medusa, and at which branch. */
+    synced_stock: model.number().nullable(),
+    synced_stock_location_id: model.text().nullable(),
   })
   .indexes([
     {

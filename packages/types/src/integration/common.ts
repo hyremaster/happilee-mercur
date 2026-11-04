@@ -167,6 +167,8 @@ export enum IntegrationSyncStream {
   STOCK = "stock",
   /** Staged items into products. Uses staged data only; never calls the provider. */
   PRODUCTS = "products",
+  /** Staged stock into inventory levels. Uses staged data only; never calls the provider. */
+  INVENTORY = "inventory",
 }
 
 export enum IntegrationSyncTrigger {

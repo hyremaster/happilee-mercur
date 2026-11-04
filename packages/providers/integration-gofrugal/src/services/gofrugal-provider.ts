@@ -244,6 +244,14 @@ export class GoFrugalIntegrationProvider implements IIntegrationProvider {
           required: false,
           help_text: "Sent as companyDataContext on every Distribution Edition call.",
         },
+        {
+          key: "default_buffer",
+          label: "Default stock buffer",
+          type: "number",
+          required: false,
+          help_text:
+            "Units kept back from online sale at each outlet. GoFrugal's own buffer for an item applies when it's larger.",
+        },
       ],
     }
   }
@@ -254,6 +262,14 @@ export class GoFrugalIntegrationProvider implements IIntegrationProvider {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "API base URL must not contain a query string or fragment."
+      )
+    }
+
+    const buffer = settings.default_buffer
+    if (buffer !== undefined && buffer !== null && buffer !== "" && !(Number(buffer) >= 0)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Default stock buffer must be zero or more."
       )
     }
 

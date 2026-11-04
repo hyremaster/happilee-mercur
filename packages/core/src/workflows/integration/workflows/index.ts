@@ -4,6 +4,10 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 
 import {
+  applyIntegrationInventoryStep,
+  ApplyIntegrationInventoryStepInput,
+} from "../steps/apply-integration-inventory"
+import {
   projectIntegrationProductsStep,
   ProjectIntegrationProductsStepInput,
 } from "../steps/project-integration-products"
@@ -101,6 +105,20 @@ export const syncIntegrationCatalogStreamWorkflow = createWorkflow(
   syncIntegrationCatalogStreamWorkflowId,
   function (input: SyncIntegrationCatalogStreamStepInput) {
     const result = syncIntegrationCatalogStreamStep(input)
+    return new WorkflowResponse(result)
+  }
+)
+
+export const applyIntegrationInventoryWorkflowId = "apply-integration-inventory"
+
+/**
+ * Write staged stock to inventory levels. Uses staged data only. Never throws
+ * for row failures: the returned run carries the counts.
+ */
+export const applyIntegrationInventoryWorkflow = createWorkflow(
+  applyIntegrationInventoryWorkflowId,
+  function (input: ApplyIntegrationInventoryStepInput) {
+    const result = applyIntegrationInventoryStep(input)
     return new WorkflowResponse(result)
   }
 )

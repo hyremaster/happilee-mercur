@@ -3636,9 +3636,11 @@
         "items": "Items",
         "prices": "Prices",
         "stock": "Stock",
-        "products": "Products"
+        "products": "Products",
+        "inventory": "Branch stock"
       },
       "counts": "{{found}} found, {{created}} new, {{updated}} updated, {{deactivated}} deactivated",
+      "countsInventory": "{{created}} new, {{updated}} updated, {{failed}} failed",
       "countsItems": "{{found}} items, {{created}} new, {{updated}} updated, {{pages}} pages",
       "countsPrices": "{{found}} prices, {{matched}} matched, {{unmatched}} unmatched, {{changed}} changed",
       "countsStock": "{{found}} stock lots, {{created}} new, {{changed}} changed, {{zeroed}} set to 0",
@@ -3649,8 +3651,8 @@
         "sync": "Sync catalogue",
         "empty": "No catalogue data yet. Sync to pull items, prices and stock from {{title}}.",
         "offPeakHint": "The first full pull reads the whole catalogue. Run it outside trading hours.",
-        "createProducts": "Update products and prices",
-        "createProductsHint": "Creates draft products from sellable items and sets their prices. Nothing is published until you publish it.",
+        "createProducts": "Update products, prices and stock",
+        "createProductsHint": "Creates draft products from sellable items and sets their prices and branch stock. Nothing is published until you publish it.",
         "stats": {
           "items": "Items",
           "activeItems": "{{count}} active",

@@ -41,6 +41,11 @@ import {
   recordProjectedItems,
 } from "./utils/projection-staging"
 import {
+  listStockChangesPage,
+  recordAppliedStock,
+  StockChange,
+} from "./utils/inventory-staging"
+import {
   listPricePage,
   PriceItem,
   recordItemPrices,
@@ -432,6 +437,26 @@ class IntegrationModuleService extends MedusaService({
     @MedusaContext() sharedContext: Context = {}
   ): Promise<void> {
     await recordFailedProjection(sqlOf(sharedContext.transactionManager), scope, externalId, error)
+  }
+
+  @InjectManager()
+  async listStockChangesPage(
+    scope: CatalogScope,
+    defaultBuffer: number,
+    afterId: string,
+    limit: number,
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<StockChange[]> {
+    return listStockChangesPage(sqlOf(sharedContext.manager), scope, defaultBuffer, afterId, limit)
+  }
+
+  @InjectTransactionManager()
+  async recordAppliedStock(
+    scope: CatalogScope,
+    rows: Parameters<typeof recordAppliedStock>[2],
+    @MedusaContext() sharedContext: Context = {}
+  ): Promise<void> {
+    await recordAppliedStock(sqlOf(sharedContext.transactionManager), scope, rows)
   }
 
   @InjectManager()

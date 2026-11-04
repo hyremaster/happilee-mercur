@@ -6,6 +6,7 @@ import {
 } from "@mercurjs/types"
 
 import {
+  applyIntegrationInventoryWorkflow,
   projectIntegrationProductsWorkflow,
   syncIntegrationCatalogStreamWorkflow,
   syncIntegrationLocationsWorkflow,
@@ -93,7 +94,7 @@ export const INTEGRATION_SYNC_STREAMS: IntegrationSyncStreamDefinition[] = [
   {
     stream: IntegrationSyncStream.STOCK,
     capability: IntegrationCapability.STOCK,
-    interval_minutes: 15,
+    interval_minutes: 5,
     retry_after_failure_minutes: 15,
     stale_after_minutes: 60,
     scheduled_after_success_of: IntegrationSyncStream.ITEMS,
@@ -109,9 +110,23 @@ export const INTEGRATION_SYNC_STREAMS: IntegrationSyncStreamDefinition[] = [
     stale_after_minutes: 240,
     // Creating products is a person's first decision, like the first full pull.
     scheduled_after_success_of: IntegrationSyncStream.PRODUCTS,
+    manual_then: [IntegrationSyncStream.INVENTORY],
     inline: false,
     run: async (container, input) => {
       await projectIntegrationProductsWorkflow(container).run({ input })
+    },
+  },
+  {
+    stream: IntegrationSyncStream.INVENTORY,
+    capability: IntegrationCapability.STOCK,
+    interval_minutes: 5,
+    retry_after_failure_minutes: 5,
+    stale_after_minutes: 60,
+    // Needs products, and writes nothing a person hasn't started.
+    scheduled_after_success_of: IntegrationSyncStream.PRODUCTS,
+    inline: false,
+    run: async (container, input) => {
+      await applyIntegrationInventoryWorkflow(container).run({ input })
     },
   },
 ]
