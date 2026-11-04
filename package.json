@@ -2,6 +2,7 @@
   "name": "mercur",
   "private": true,
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "build": "turbo run build",
     "dev": "turbo run dev --filter=!@mercurjs/core",
     "lint": "oxlint --quiet",

@@ -37,6 +37,29 @@ bun run test:integration:tests       # Run integration tests
 - `apps/docs` - Documentation site (Mintlify)
 - `integration-tests` - Cross-package Jest integration suites
 
+## Public Repository: Check Before Committing
+
+`hyremaster/happilee-mercur` is a **public** fork, so everything pushed is visible to anyone and stays in git history even after deletion.
+
+Never commit, push, or put in a PR, issue, commit message, or artifact:
+
+- Credentials: API keys, tokens, passwords, private keys, `.env` values, including test keys for real services
+- Infrastructure details: real database or server hosts, IPs, account IDs
+- Personal or customer data: real names, phones, emails, addresses, locations, order data
+- Merchant data: real catalogue exports, prices, stock, outlet lists, API responses (`docs/features` and most of `integration-tests` are gitignored for this reason)
+
+Before every commit:
+
+1. Stage files by name, never `git add .` or `git add -A`.
+2. Read `git diff --cached` and look for the above. Use placeholders such as `example.com` and `+91 90000 00000` in code and tests.
+3. Read secrets from environment variables. Never hard-code them, even as fallbacks.
+
+`.githooks/pre-commit` blocks commits containing secrets using `gitleaks`, set up by `bun install`. Install it with `brew install gitleaks`; without it the hook only warns. It only catches secrets: the other rules above are still yours to check.
+
+If a secret is pushed, tell the user at once and rotate it: deleting it in a later commit doesn't remove it from history.
+
+Don't print secret values in chat or logs: mask them. Check that a page or document contains none of the above before publishing it.
+
 ## Commands
 
 - ALWAYS use `bun` (never npm, yarn, or pnpm)

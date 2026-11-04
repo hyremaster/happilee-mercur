@@ -1,0 +1,13 @@
+#!/bin/sh
+# Blocks commits that contain secrets. This repository is public, see CLAUDE.md.
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks isn't installed, so this commit wasn't scanned for secrets." >&2
+  echo "pre-commit: install it with: brew install gitleaks" >&2
+  exit 0
+fi
+
+if ! gitleaks git --pre-commit --staged --redact --no-banner --log-level warn; then
+  echo "pre-commit: gitleaks found a possible secret in the staged changes. Commit blocked." >&2
+  echo "pre-commit: remove it. If it's a false positive, add a '# gitleaks:allow' comment on that line." >&2
+  exit 1
+fi
