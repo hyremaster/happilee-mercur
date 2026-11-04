@@ -5,7 +5,12 @@ type Scope = { seller_id: string; provider_id: string }
 
 export type SyncedPrices = { mrp: number; price: number }
 
-export type PriceHoldReason = "invalid_mrp" | "mrp_gap" | "no_price" | "no_tax_rate"
+export type PriceHoldReason =
+  | "invalid_mrp"
+  | "mrp_gap"
+  | "mrp_gap_across_outlets"
+  | "no_price"
+  | "no_tax_rate"
 
 /** One outlet that can fulfil the item: mapped, active, sold online, in stock. */
 export type OutletOffer = {
@@ -23,6 +28,8 @@ export type PriceItem = {
   synced_prices: SyncedPrices | null
   price_hold_reason: PriceHoldReason | null
   offers: OutletOffer[]
+  /** Lowest MRP in the item's stock and price feed, at every outlet. */
+  lowest_mrp_anywhere: number | null
 }
 
 export type ItemPriceResult =
@@ -31,9 +38,9 @@ export type ItemPriceResult =
   | { kind: "no_stock" }
 
 /**
- * Prices this many times apart at one outlet are treated as bad data (a carton
- * MRP on a single unit, a typing error) and hold the item back. Real MRP
- * revisions are far smaller.
+ * Prices this many times apart, at one outlet or across outlets, are treated as
+ * bad data (a carton MRP on a single unit, a typing error) and hold the item
+ * back. Real MRP revisions are far smaller.
  */
 export const MAX_MRP_GAP_RATIO = 2
 
@@ -41,10 +48,17 @@ export const MAX_MRP_GAP_RATIO = 2
  * The one online price of an item (D-006, D-007): the lowest offer, capped at
  * the lowest in-stock MRP over every outlet that can fulfil it, so it is
  * compliant wherever the order routes. One doubtful outlet holds the whole
- * item: leaving it out could price above the MRP of the stock it ships. An item
- * with no valid tax rate is held too: the GST inside its price is unknown (D-045).
+ * item: leaving it out could price above the MRP of the stock it ships. The MRP
+ * used is also compared with the lowest at every outlet, mapped or not, because
+ * an outlet holding only a carton row looks consistent by itself. A high row at
+ * an outlet we don't sell from doesn't make a low price wrong, so it holds
+ * nothing. An item with no valid tax rate is held too: the GST inside its price
+ * is unknown (D-045).
  */
-export function computeItemPrice(offers: OutletOffer[], taxRate: number | null): ItemPriceResult {
+export function computeItemPrice(
+  item: Pick<PriceItem, "offers" | "tax_rate" | "lowest_mrp_anywhere">
+): ItemPriceResult {
+  const { offers, tax_rate: taxRate } = item
   if (!offers.length) {
     return { kind: "no_stock" }
   }
@@ -61,19 +75,28 @@ export function computeItemPrice(offers: OutletOffer[], taxRate: number | null):
   if (offers.some(hasGap)) {
     return { kind: "held", reason: "mrp_gap" }
   }
+  const mrp = Math.min(...offers.map(lowest))
+  if (
+    item.lowest_mrp_anywhere !== null &&
+    mrp / item.lowest_mrp_anywhere >= MAX_MRP_GAP_RATIO
+  ) {
+    return { kind: "held", reason: "mrp_gap_across_outlets" }
+  }
   const prices = offers
     .map((offer) => offer.offered)
     .filter((offered): offered is number => offered !== null && offered > 0)
   if (!prices.length) {
     return { kind: "held", reason: "no_price" }
   }
-  const mrp = Math.min(...offers.map(lowest))
   return { kind: "priced", prices: { mrp, price: Math.min(...prices, mrp) } }
 }
 
 const toNumber = (value: unknown) => (value === null || value === undefined ? null : Number(value))
 
-/** The next eligible items that have a variant, each with the outlets that can fulfil it. */
+/**
+ * The next eligible items that have a variant, each with the outlets that can
+ * fulfil it and its lowest MRP across all outlets.
+ */
 export async function listPricePage(
   db: SqlExecutor,
   scope: Scope,
@@ -108,12 +131,25 @@ export async function listPricePage(
           AND o.external_id = s.location_external_id
           AND o.deleted_at IS NULL AND o.status = 'active' AND o.stock_location_id IS NOT NULL
         GROUP BY s.item_external_id, s.location_external_id
+      ), mrps AS (
+        SELECT s.item_external_id, s.mrp
+        FROM page p
+        JOIN integration_external_stock s
+          ON s.seller_id = ? AND s.provider_id = ? AND s.item_external_id = p.external_id
+          AND s.deleted_at IS NULL AND s.quantity > 0 AND s.mrp > 0
+        UNION ALL
+        SELECT l.item_external_id, l.mrp
+        FROM page p
+        JOIN integration_external_item_location l
+          ON l.seller_id = ? AND l.provider_id = ? AND l.item_external_id = p.external_id
+          AND l.deleted_at IS NULL AND l.mrp > 0
       )
       SELECT p.external_id, p.variant_id, p.tax_rate, p.synced_prices, p.price_hold_reason,
         coalesce(
           (SELECT jsonb_agg(to_jsonb(o)) FROM offers o WHERE o.item_external_id = p.external_id),
           '[]'::jsonb
-        ) AS offers
+        ) AS offers,
+        (SELECT min(m.mrp) FROM mrps m WHERE m.item_external_id = p.external_id) AS lowest_mrp_anywhere
       FROM page p
       ORDER BY p.external_id`,
     [
@@ -123,11 +159,19 @@ export async function listPricePage(
       limit,
       scope.seller_id,
       scope.provider_id,
+      scope.seller_id,
+      scope.provider_id,
+      scope.seller_id,
+      scope.provider_id,
     ]
-  )) as (Omit<PriceItem, "offers"> & { offers: Record<string, unknown>[] })[]
+  )) as (Omit<PriceItem, "offers" | "lowest_mrp_anywhere"> & {
+    offers: Record<string, unknown>[]
+    lowest_mrp_anywhere: unknown
+  })[]
 
   return rows.map((row) => ({
     ...row,
+    lowest_mrp_anywhere: toNumber(row.lowest_mrp_anywhere),
     offers: row.offers.map((offer) => ({
       location_external_id: String(offer.location_external_id),
       offered: toNumber(offer.offered),

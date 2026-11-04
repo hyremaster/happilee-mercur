@@ -130,7 +130,7 @@ export async function projectPricesPage(
   const unchanged: Parameters<IntegrationModuleService["recordItemPrices"]>[1] = []
 
   for (const item of items) {
-    const result = computeItemPrice(item.offers, item.tax_rate)
+    const result = computeItemPrice(item)
     if (result.kind === "no_stock") {
       if (item.price_hold_reason) {
         unchanged.push({ external_id: item.external_id, synced_prices: null, price_hold_reason: null })
