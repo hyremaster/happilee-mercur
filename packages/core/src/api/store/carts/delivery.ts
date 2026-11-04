@@ -45,6 +45,65 @@ type CartRow = {
   items?: {
     variant?: { product?: { seller?: { id?: string } | null } | null } | null
   }[]
+  shipping_methods?: { shipping_option_id?: string | null }[]
+}
+
+const PICKUP_FULFILLMENT_SET = "pickup"
+
+type SellerShippingOption = {
+  seller?: { id?: string } | null
+  service_zone?: { fulfillment_set?: { type?: string } | null } | null
+}
+
+const isPickup = (option: SellerShippingOption) =>
+  option.service_zone?.fulfillment_set?.type === PICKUP_FULFILLMENT_SET
+
+/** Sellers whose chosen shipping methods in this cart are all pickup. */
+async function sellersPickingUp(
+  container: MedusaContainer,
+  cart: CartRow
+): Promise<Set<string>> {
+  const optionIds = (cart.shipping_methods ?? [])
+    .map((method) => method.shipping_option_id)
+    .filter((id): id is string => !!id)
+  if (!optionIds.length) {
+    return new Set()
+  }
+  const { data } = await container
+    .resolve(ContainerRegistrationKeys.QUERY)
+    .graph({
+      entity: "shipping_option",
+      fields: ["id", "seller.id", "service_zone.fulfillment_set.type"],
+      filters: { id: optionIds },
+    })
+  const options = data as unknown as SellerShippingOption[]
+  const delivering = new Set(
+    options.filter((option) => !isPickup(option)).map((option) => option.seller?.id)
+  )
+  return new Set(
+    options
+      .map((option) => option.seller?.id)
+      .filter((id): id is string => !!id && !delivering.has(id))
+  )
+}
+
+/** Of these sellers, the ones with a pickup option a customer could still choose. */
+async function sellersOfferingPickup(
+  container: MedusaContainer,
+  sellerIds: string[]
+): Promise<Set<string>> {
+  const { data } = await container
+    .resolve(ContainerRegistrationKeys.QUERY)
+    .graph({
+      entity: "seller",
+      fields: ["id", "shipping_options.service_zone.fulfillment_set.type"],
+      filters: { id: sellerIds },
+    })
+  return new Set(
+    (data as unknown as { id: string; shipping_options?: SellerShippingOption[] }[])
+      .filter((seller) => (seller.shipping_options ?? []).some(isPickup))
+      .map((seller) => seller.id)
+  )
 }
 
 const asNumber = (v: unknown): number | undefined =>
@@ -64,6 +123,9 @@ const asNumber = (v: unknown): number | undefined =>
  *
  * Location is taken from `shipping_address.metadata.latitude/longitude`
  * (preferred) or `shipping_address.postal_code` (zipcode fallback).
+ *
+ * A seller whose chosen methods in the cart are all pickup delivers nothing, so
+ * its delivery areas don't apply and Area Sense isn't asked about it.
  */
 export async function checkCartDeliveryAvailability(
   container: MedusaContainer,
@@ -85,6 +147,7 @@ export async function checkCartDeliveryAvailability(
       "shipping_address.postal_code",
       "shipping_address.metadata",
       "items.variant.product.seller.id",
+      "shipping_methods.shipping_option_id",
     ],
     filters: { id: cartId },
   })
@@ -107,7 +170,7 @@ export async function checkCartDeliveryAvailability(
   const hasCoords = latitude !== undefined && longitude !== undefined
   const hasZip = !!postalCode
 
-  const sellerIds = Array.from(
+  const cartSellerIds = Array.from(
     new Set(
       (cart.items ?? [])
         .map((i) => i.variant?.product?.seller?.id)
@@ -117,8 +180,17 @@ export async function checkCartDeliveryAvailability(
 
   // No sellers (e.g. empty cart) — nothing to restrict here; let the normal
   // cart validation handle emptiness.
-  if (!sellerIds.length) {
+  if (!cartSellerIds.length) {
     return { deliverable: true, location, sellers: [] }
+  }
+
+  const pickingUp = await sellersPickingUp(container, cart)
+  const pickupResults: SellerDeliveryResult[] = cartSellerIds
+    .filter((seller_id) => pickingUp.has(seller_id))
+    .map((seller_id) => ({ seller_id, deliverable: true, matched_area_ids: [] }))
+  const sellerIds = cartSellerIds.filter((seller_id) => !pickingUp.has(seller_id))
+  if (!sellerIds.length) {
+    return { deliverable: true, location, sellers: pickupResults }
   }
 
   if (!hasCoords && !hasZip) {
@@ -127,12 +199,15 @@ export async function checkCartDeliveryAvailability(
       location,
       reason:
         "Shipping address is missing coordinates (metadata.latitude/longitude) and postal code.",
-      sellers: sellerIds.map((seller_id) => ({
-        seller_id,
-        deliverable: false,
-        matched_area_ids: [],
-        reason: "No location to check.",
-      })),
+      sellers: [
+        ...pickupResults,
+        ...sellerIds.map((seller_id) => ({
+          seller_id,
+          deliverable: false,
+          matched_area_ids: [],
+          reason: "No location to check.",
+        })),
+      ],
     }
   }
 
@@ -157,7 +232,7 @@ export async function checkCartDeliveryAvailability(
   }
 
   // One Area Sense call per seller (each with its own key) — run in parallel.
-  const sellers: SellerDeliveryResult[] = await Promise.all(
+  const checked: SellerDeliveryResult[] = await Promise.all(
     sellerIds.map(async (seller_id): Promise<SellerDeliveryResult> => {
       const areaIds = areasBySeller.get(seller_id) ?? []
 
@@ -215,6 +290,7 @@ export async function checkCartDeliveryAvailability(
     })
   )
 
+  const sellers = [...pickupResults, ...checked]
   const deliverable = sellers.every((s) => s.deliverable)
 
   return {
@@ -233,7 +309,8 @@ export async function checkCartDeliveryAvailability(
  * NOT_ALLOWED if any seller can't deliver. No-op when the cart has no shipping
  * address yet (address is optional on create/update — the completion guard is
  * the final gate). Reuses checkCartDeliveryAvailability so the rule stays in one
- * place.
+ * place. A seller offering pickup isn't refused here, because the customer may
+ * not have chosen a method yet; the completion guard refuses delivery there.
  */
 export async function assertCartDeliverableIfAddressPresent(
   container: MedusaContainer,
@@ -266,10 +343,18 @@ export async function assertCartDeliverableIfAddressPresent(
   }
 
   const availability = await checkCartDeliveryAvailability(container, cartId)
-  if (!availability.deliverable) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_ALLOWED,
-      availability.reason ?? "Delivery is not available to the selected address."
-    )
+  if (availability.deliverable) {
+    return
   }
+  const refused = availability.sellers
+    .filter((seller) => !seller.deliverable)
+    .map((seller) => seller.seller_id)
+  const offeringPickup = await sellersOfferingPickup(container, refused)
+  if (refused.length && refused.every((id) => offeringPickup.has(id))) {
+    return
+  }
+  throw new MedusaError(
+    MedusaError.Types.NOT_ALLOWED,
+    availability.reason ?? "Delivery is not available to the selected address."
+  )
 }
